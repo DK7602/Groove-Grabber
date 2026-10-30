@@ -95,7 +95,7 @@ namespace gg
 
             // ---- trim the silence in front, then your START ----
             int start = (int) (leadingSilenceMs (a, sr) * sr / 1000.0);
-            start += (int) (juce::jmax (0.0f, p.startMs) * sr / 1000.0);
+            start += (int) (juce::jlimit (0.0f, 2000.0f, std::isfinite (p.startMs) ? p.startMs : 0.0f) * sr / 1000.0);
             start = juce::jlimit (0, juce::jmax (0, total - 1), start);
             int len = total - start;
             if (len <= 4) return {};
@@ -112,8 +112,10 @@ namespace gg
             }
 
             // ---- tune + sample-rate conversion in one resampling pass ----
-            const double ratio = std::pow (2.0, (double) p.tune / 12.0) * sr / outSr;
-            const int outLen = juce::jmax (1, (int) std::floor (len / ratio));
+            const double tune = std::isfinite (p.tune) ? juce::jlimit (-24.0, 24.0, (double) p.tune) : 0.0;
+            const double ratio = juce::jlimit (1.0 / 16.0, 16.0, std::pow (2.0, tune / 12.0) * sr / outSr);
+            const int outLen = (int) std::floor (len / ratio);
+            if (outLen < 8) return {};
             juce::AudioBuffer<float> out (2, outLen);
             if (std::abs (ratio - 1.0) < 1.0e-6)
             {
@@ -164,7 +166,7 @@ namespace gg
             }
 
             // ---- level: matched for its kind, then your GAIN; never over -0.5 dBFS ----
-            float gainDb = p.gainDb + p.padGainDb;
+            float gainDb = juce::jlimit (-60.0f, 24.0f, std::isfinite (p.gainDb + p.padGainDb) ? p.gainDb + p.padGainDb : 0.0f);
             if (p.normalise)
             {
                 const float* ch[2] = { res.getReadPointer (0), res.getReadPointer (1) };
@@ -175,6 +177,7 @@ namespace gg
             float g = juce::Decibels::decibelsToGain (gainDb);
             float peak = juce::jmax (res.getMagnitude (0, 0, keep), res.getMagnitude (1, 0, keep)) * g;
             if (peak > 0.944f) g *= 0.944f / peak;
+            if (! std::isfinite (g)) g = 0.0f;
             res.applyGain (g);
             return res;
         }

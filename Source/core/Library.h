@@ -70,6 +70,7 @@ namespace gg
 
         juce::SharedResourcePointer<Settings> settings;
         mutable std::mutex soundsLock;
+        std::recursive_mutex writeLock;      // one read-modify-publish-save at a time (edits, harvests, scans)
         SoundListPtr sounds;
         std::atomic<int> version { 0 };
         std::atomic<bool> scanning { false }, rescanRequested { false };

@@ -1,5 +1,6 @@
 #include "Kit.h"
 #include "Settings.h"
+#include <cmath>
 
 namespace gg
 {
@@ -27,11 +28,17 @@ namespace gg
     {
         SlotState s;
         s.path = v["path"].toString();
-        s.autoTune = (float) (double) v.getProperty ("autoTune", 0.0);
-        s.userTune = (float) (double) v.getProperty ("tune", 0.0);
-        s.startMs = (float) (double) v.getProperty ("start", 0.0);
-        s.lengthPct = juce::jlimit (5.0f, 100.0f, (float) (double) v.getProperty ("length", 100.0));
-        s.gainDb = (float) (double) v.getProperty ("gain", 0.0);
+        // anything read from a file is kept inside the ranges the controls allow
+        auto num = [&v] (const char* key, double fallback, double lo, double hi)
+        {
+            const double x = (double) v.getProperty (key, fallback);
+            return (float) (std::isfinite (x) ? juce::jlimit (lo, hi, x) : fallback);
+        };
+        s.autoTune = num ("autoTune", 0.0, -12.0, 12.0);
+        s.userTune = num ("tune", 0.0, -12.0, 12.0);
+        s.startMs = num ("start", 0.0, 0.0, 250.0);
+        s.lengthPct = num ("length", 100.0, 5.0, 100.0);
+        s.gainDb = num ("gain", 0.0, -24.0, 12.0);
         s.reverse = (bool) v.getProperty ("reverse", false);
         s.locked = (bool) v.getProperty ("locked", false);
         return s;
@@ -84,6 +91,7 @@ namespace gg
         k.target = Traits::fromVar (v["target"]);
         k.key = juce::jlimit (-1, 23, (int) v.getProperty ("key", -1));
         k.bpm = (double) v.getProperty ("bpm", 0.0);
+        if (! std::isfinite (k.bpm) || k.bpm < 0 || k.bpm > 300) k.bpm = 0;
         k.tuneToKey = (bool) v.getProperty ("tuneToKey", true);
         k.favorite = (bool) v.getProperty ("favorite", false);
         k.description = v["description"].toString();

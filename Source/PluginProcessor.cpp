@@ -9,12 +9,14 @@ GrooveGrabberProcessor::GrooveGrabberProcessor()
     player.setGroove (&gg::grooveFor (grooveId));
     player.setTempo (gg::styleFor (options.genre).bpm);
     library->addChangeListener (this);
+    addChangeListener (this);       // keeps the state snapshot up to date
 }
 
 GrooveGrabberProcessor::~GrooveGrabberProcessor()
 {
     alive->store (false);
     library->removeChangeListener (this);
+    removeChangeListener (this);
     worker.removeAllJobs (true, 5000);
 }
 
@@ -28,6 +30,7 @@ void GrooveGrabberProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
 {
     const bool rateChanged = std::abs (player.getSampleRate() - sampleRate) > 1.0;
     player.prepare (sampleRate, samplesPerBlock);
+    monoScratch.setSize (2, juce::jmax (1, samplesPerBlock), false, false, true);
     if (rateChanged && ! kits.empty())
         juce::MessageManager::callAsync ([this, a = alive] { if (a->load()) renderKits(); });
 }
@@ -49,7 +52,10 @@ void GrooveGrabberProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         player.process (buffer, midi, host);
     else
     {
-        juce::AudioBuffer<float> stereo (2, buffer.getNumSamples());
+        // no allocation here: the scratch buffer was sized in prepareToPlay (and only grows if a host
+        // sends a bigger block than it promised)
+        monoScratch.setSize (2, buffer.getNumSamples(), false, false, true);
+        auto& stereo = monoScratch;
         player.process (stereo, midi, host);
         buffer.clear();
         buffer.addFrom (0, 0, stereo, 0, 0, buffer.getNumSamples(), 0.5f);
@@ -70,9 +76,16 @@ void GrooveGrabberProcessor::notify (const juce::String& message)
     sendChangeMessage();
 }
 
-void GrooveGrabberProcessor::changeListenerCallback (juce::ChangeBroadcaster*)
+void GrooveGrabberProcessor::changeListenerCallback (juce::ChangeBroadcaster* source)
 {
-    sendChangeMessage();     // the library changed: pages refresh
+    if (source == &library.get())
+    {
+        sendChangeMessage();     // the library changed: pages refresh
+        return;
+    }
+    const auto s = makeState();
+    const juce::ScopedLock sl (snapshotLock);
+    stateSnapshot = s;
 }
 
 void GrooveGrabberProcessor::runInBackground (std::function<void()> job)
@@ -186,7 +199,7 @@ void GrooveGrabberProcessor::regenerateKit (int index, bool surprise)
 
 void GrooveGrabberProcessor::setActiveKit (int index)
 {
-    if (! juce::isPositiveAndBelow (index, (int) kits.size())) return;
+    if (! juce::isPositiveAndBelow (index, juce::jmin ((int) kits.size(), (int) playables.size()))) return;
     activeKit = index;
     if (playables[(size_t) index] != nullptr) player.setKit (playables[(size_t) index]);
     notify();
@@ -267,6 +280,7 @@ void GrooveGrabberProcessor::renderKits()
     for (int i = 0; i < (int) copy.size(); ++i) if (i != active) order.push_back (i);
     for (int i : order)
     {
+        if (i >= (int) playables.size()) break;
         runInBackground ([this, a = alive, generation, kit = copy[(size_t) i], i, sr]
         {
             if (! a->load() || renderGeneration.load() != generation) return;
@@ -302,6 +316,24 @@ void GrooveGrabberProcessor::previewFile (const juce::String& path, gg::Cat cat)
 //==============================================================================
 void GrooveGrabberProcessor::getStateInformation (juce::MemoryBlock& dest)
 {
+    juce::String text;
+    if (juce::MessageManager::existsAndIsCurrentThread())
+    {
+        text = makeState();
+        const juce::ScopedLock sl (snapshotLock);
+        stateSnapshot = text;
+    }
+    else
+    {
+        // some hosts save from another thread: hand over the last state the message thread made
+        const juce::ScopedLock sl (snapshotLock);
+        text = stateSnapshot.isNotEmpty() ? stateSnapshot : juce::String ("{}");
+    }
+    dest.replaceAll (text.toRawUTF8(), text.getNumBytesAsUTF8());
+}
+
+juce::String GrooveGrabberProcessor::makeState()
+{
     auto* o = new juce::DynamicObject();
     o->setProperty ("version", 1);
     o->setProperty ("description", description);
@@ -316,13 +348,20 @@ void GrooveGrabberProcessor::getStateInformation (juce::MemoryBlock& dest)
     o->setProperty ("swing", player.getSwing());
     o->setProperty ("volume", player.getVolume());
     o->setProperty ("follow", player.isFollowingHost());
-    const auto text = juce::JSON::toString (juce::var (o), true);
-    dest.replaceAll (text.toRawUTF8(), text.getNumBytesAsUTF8());
+    return juce::JSON::toString (juce::var (o), true);
 }
 
 void GrooveGrabberProcessor::setStateInformation (const void* data, int size)
 {
-    const auto v = juce::JSON::parse (juce::String::fromUTF8 (static_cast<const char*> (data), size));
+    if (data == nullptr || size <= 0) return;
+    const auto text = juce::String::fromUTF8 (static_cast<const char*> (data), size);
+    if (juce::MessageManager::existsAndIsCurrentThread()) applyState (text);
+    else juce::MessageManager::callAsync ([this, a = alive, text] { if (a->load()) applyState (text); });
+}
+
+void GrooveGrabberProcessor::applyState (const juce::String& text)
+{
+    const auto v = juce::JSON::parse (text);
     if (! v.isObject()) return;
     description = v["description"].toString();
     understood = gg::parseDescription (description);
@@ -330,7 +369,11 @@ void GrooveGrabberProcessor::setStateInformation (const void* data, int size)
     options = gg::KitOptions::fromVar (v["options"]);
     kits.clear();
     if (auto* a = v["kits"].getArray())
-        for (auto& item : *a) kits.push_back (gg::Kit::fromVar (item));
+        for (auto& item : *a)
+        {
+            if (kits.size() >= playables.size()) break;      // four kits, never more
+            kits.push_back (gg::Kit::fromVar (item));
+        }
     activeKit = juce::jlimit (0, juce::jmax (0, (int) kits.size() - 1), (int) v["active"]);
     const auto s = gg::slotFromId (v["slot"].toString());
     selectedSlot = s == gg::Slot::count ? gg::Slot::kick : s;

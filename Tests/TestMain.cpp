@@ -15,6 +15,7 @@
 #include <juce_events/juce_events.h>
 #include <cmath>
 #include <iostream>
+#include <limits>
 
 int runScreenshots (const juce::File& outDir);   // TestScreens.cpp
 
@@ -420,6 +421,23 @@ namespace
         const float la = gg::analysis::shortTermLoudnessDb (ca, 2, a.getNumSamples(), 44100);
         const float lb = gg::analysis::shortTermLoudnessDb (cb, 2, b.getNumSamples(), 44100);
         check (std::abs (la - lb) < 1.5f, "kicks level-matched (" + juce::String (la, 1) + " vs " + juce::String (lb, 1) + " dB)");
+
+        // damaged values never crash the renderer or poison the mix
+        {
+            gg::RenderParams wild;
+            wild.tune = 400; wild.gainDb = 1.0e6f; wild.startMs = -50;
+            auto w1 = gg::render::sound (testRoot().getChildFile ("Library/Live Rock Kit/Crash 18.wav").getFullPathName(), gg::Cat::crash, wild, 44100);
+            wild.tune = -400; wild.gainDb = std::numeric_limits<float>::infinity();
+            auto w2 = gg::render::sound (testRoot().getChildFile ("Library/Live Rock Kit/Crash 18.wav").getFullPathName(), gg::Cat::crash, wild, 44100);
+            bool finite = true;
+            for (auto* b : { &w1, &w2 })
+                for (int c = 0; c < b->getNumChannels(); ++c)
+                    for (int i = 0; i < b->getNumSamples(); ++i)
+                        if (! std::isfinite (b->getSample (c, i))) finite = false;
+            check (finite, "extreme tune / gain render safely");
+            auto st = gg::SlotState::fromVar (juce::JSON::parse (R"({"path":"x.wav","tune":400,"autoTune":-1e300,"gain":1e999,"start":-5,"length":0})"));
+            check (st.userTune == 12.0f && st.autoTune == -12.0f && st.gainDb == 0.0f && st.startMs == 0.0f && st.lengthPct == 5.0f, "kit file values clamped");
+        }
 
         // render: length and reverse
         gg::RenderParams half;

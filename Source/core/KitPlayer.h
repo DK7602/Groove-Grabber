@@ -110,6 +110,8 @@ namespace gg
         juce::SpinLock fifoWriteLock;
 
         // released on the message thread, never the audio thread
-        std::vector<juce::ReferenceCountedObjectPtr<juce::ReferenceCountedObject>> keepAlive;
+        struct Kept { juce::ReferenceCountedObjectPtr<juce::ReferenceCountedObject> object; int idleTicks = 0; };
+        std::vector<Kept> keepAlive;
+        void keep (juce::ReferenceCountedObject*);
     };
 }

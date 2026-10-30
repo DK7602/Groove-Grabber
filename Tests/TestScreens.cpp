@@ -76,5 +76,25 @@ int runScreenshots (const juce::File& outDir)
         pump (100);
     }
     proc.getSettings().setLightTheme (false);
+
+    // saved state: round trip, and a damaged / oversized one doesn't crash
+    {
+        juce::MemoryBlock mb;
+        proc.getStateInformation (mb);
+        GrooveGrabberProcessor other;
+        other.setStateInformation (mb.getData(), (int) mb.getSize());
+        const bool same = other.kits.size() == proc.kits.size() && other.description == proc.description;
+        if (! same) { std::cout << "  FAIL: state round trip" << std::endl; ++failures; }
+        auto v = juce::JSON::parse (mb.toString());
+        if (auto* a = v["kits"].getArray()) { auto copy = *a; for (auto& k : copy) a->add (k); }   // 8 kits
+        const auto big = juce::JSON::toString (v);
+        other.setStateInformation (big.toRawUTF8(), (int) big.getNumBytesAsUTF8());
+        pump (300);
+        if (other.kits.size() > 4) { std::cout << "  FAIL: more than 4 kits loaded" << std::endl; ++failures; }
+        const char junk[] = "{\"kits\": [ {\"slots\": {\"kick\": {\"path\": 5, \"tune\": \"abc\"}}} ], \"active\": 99}";
+        other.setStateInformation (junk, (int) sizeof (junk) - 1);
+        pump (300);
+        std::cout << "  state round trip and damaged state ok" << std::endl;
+    }
     return failures;
 }

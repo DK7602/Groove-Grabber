@@ -111,7 +111,7 @@ namespace gg
 
     void KitPlayer::setKit (PlayableKit::Ptr k)
     {
-        if (k != nullptr) keepAlive.push_back (k.get());
+        if (k != nullptr) keep (k.get());
         const juce::SpinLock::ScopedLockType sl (kitLock);
         pendingKit = k;
     }
@@ -127,7 +127,7 @@ namespace gg
         if (audio == nullptr) return;
         PreviewSound::Ptr p (new PreviewSound());
         p->audio = std::move (audio);
-        keepAlive.push_back (p.get());
+        keep (p.get());
         {
             const juce::SpinLock::ScopedLockType sl (kitLock);
             pendingPreview = p;
@@ -143,11 +143,19 @@ namespace gg
 
     void KitPlayer::timerCallback()
     {
-        // free kits / previews nobody uses any more (here, not on the audio thread). The newest few stay:
-        // a sound that was just replaced may still be fading out for a few milliseconds.
-        if (keepAlive.size() <= 6) return;
-        const auto keepFrom = keepAlive.end() - 6;
-        keepAlive.erase (std::remove_if (keepAlive.begin(), keepFrom, [] (auto& p) { return p->getReferenceCount() <= 1; }), keepFrom);
+        // free kits / previews nobody uses any more - here, never on the audio thread. Something is only
+        // freed once nothing else has held it for two ticks in a row (3 s), long after any fade-out ended.
+        for (auto& k : keepAlive)
+            k.idleTicks = k.object->getReferenceCount() <= 1 ? k.idleTicks + 1 : 0;
+        keepAlive.erase (std::remove_if (keepAlive.begin(), keepAlive.end(), [] (const Kept& k) { return k.idleTicks >= 2; }),
+                         keepAlive.end());
+    }
+
+    void KitPlayer::keep (juce::ReferenceCountedObject* o)
+    {
+        for (auto& k : keepAlive)
+            if (k.object.get() == o) { k.idleTicks = 0; return; }
+        keepAlive.push_back ({ o, 0 });
     }
 
     void KitPlayer::trigger (int note, float velocity)

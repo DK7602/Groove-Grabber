@@ -369,11 +369,14 @@ namespace ggui
     {
         harvestStatus = "Harvesting " + f.getFileName() + "...";
         repaint();
-        proc.runInBackground ([this, f, safe = juce::Component::SafePointer<LibraryPage> (this)]
+        // the job only holds the library (shared) - never this page, which may close while it runs
+        juce::SharedResourcePointer<gg::Library> lib;
+        proc.runInBackground ([lib, f, safe = juce::Component::SafePointer<LibraryPage> (this)]
         {
-            auto result = gg::harvestHits (f, gg::paths::harvestedDir());
-            if (result.ok)
-                proc.library->analyseFilesNow (result.files, gg::Source::harvested, gg::paths::harvestedDir());
+            auto stop = [] { auto* job = juce::ThreadPoolJob::getCurrentThreadPoolJob(); return job != nullptr && job->shouldExit(); };
+            auto result = gg::harvestHits (f, gg::paths::harvestedDir(), [stop] (float) { return ! stop(); });
+            if (result.ok && ! stop())
+                lib->analyseFilesNow (result.files, gg::Source::harvested, gg::paths::harvestedDir());
             juce::MessageManager::callAsync ([safe, result, f]
             {
                 if (safe == nullptr) return;

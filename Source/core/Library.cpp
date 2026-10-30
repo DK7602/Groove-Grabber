@@ -87,6 +87,7 @@ namespace gg
             settings->setSources (s);
             // re-tag without re-analysing
             const auto root = s[(size_t) index].folder;
+            std::lock_guard<std::recursive_mutex> wl (writeLock);
             SoundList copy (*getSounds());
             for (auto& snd : copy)
                 if (juce::File (snd.path).isAChildOf (root))
@@ -150,6 +151,7 @@ namespace gg
 
     void Library::editSound (const juce::String& path, const std::function<void (SoundInfo&)>& fn)
     {
+        std::lock_guard<std::recursive_mutex> wl (writeLock);
         SoundList copy (*getSounds());
         for (auto& s : copy)
             if (s.path == path) { fn (s); break; }
@@ -183,8 +185,9 @@ namespace gg
         const int ver = in.readInt();
         if (ver != cacheVersion) return false;
         const int count = in.readInt();
+        if (count < 0 || count > 5000000) return false;       // a damaged file
         SoundList list;
-        list.reserve ((size_t) juce::jmax (0, count));
+        list.reserve ((size_t) juce::jmin (count, 100000));
         for (int i = 0; i < count && ! in.isExhausted(); ++i)
         {
             SoundInfo s;
@@ -365,6 +368,37 @@ namespace gg
             if (threadShouldExit())
                 break;
 
+            // merge with what changed while scanning: your edits (favourite, never use, category) and
+            // sounds harvested in the meantime win over the scan's older copy
+            std::lock_guard<std::recursive_mutex> wl (writeLock);
+            {
+                auto now = getSounds();
+                std::unordered_map<std::string, const SoundInfo*> current;
+                for (auto& s : *now) current[s.path.toStdString()] = &s;
+                std::unordered_map<std::string, bool> inResult;
+                for (auto& s : result)
+                {
+                    inResult[s.path.toStdString()] = true;
+                    if (auto it = current.find (s.path.toStdString()); it != current.end())
+                    {
+                        const auto& c = *it->second;
+                        s.rating = c.rating;
+                        s.hidden = c.hidden;
+                        if (c.catByUser && ! (s.catByUser && s.cat == c.cat))
+                        {
+                            s.catByUser = true;
+                            s.cat = c.cat;
+                            s.catConfidence = 1.0f;
+                            s.percKind = c.percKind;
+                            s.traits = c.traits;
+                        }
+                    }
+                }
+                for (auto& s : *now)
+                    if (! inResult.count (s.path.toStdString()) && ! byPath.count (s.path.toStdString())
+                         && juce::File (s.path).existsAsFile())
+                        result.push_back (s);       // added while the scan ran
+            }
             const int count = (int) result.size();
             publish (std::move (result));
             saveCache (*getSounds());
@@ -382,13 +416,18 @@ namespace gg
     {
         juce::AudioFormatManager fm;
         fm.registerBasicFormats();
-        SoundList copy (*getSounds());
+        SoundList fresh;
         for (auto& f : files)
         {
             SoundInfo s;
             s.source = kind;
             s.pack = packNameFor (root, f);
-            if (! analysis::analyzeFile (f, folderPartsBetween (root, f), fm, s)) continue;
+            if (analysis::analyzeFile (f, folderPartsBetween (root, f), fm, s)) fresh.push_back (std::move (s));
+        }
+        std::lock_guard<std::recursive_mutex> wl (writeLock);
+        SoundList copy (*getSounds());
+        for (auto& s : fresh)
+        {
             bool replaced = false;
             for (auto& existing : copy)
                 if (existing.path == s.path) { existing = s; replaced = true; break; }

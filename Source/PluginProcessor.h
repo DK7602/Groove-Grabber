@@ -79,6 +79,8 @@ public:
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
+    juce::String makeState();
+    void applyState (const juce::String&);
     void renderKits();
     void notify (const juce::String& message = {});
     gg::KitGenerator makeGenerator() const;
@@ -90,6 +92,9 @@ private:
     std::atomic<int> renderGeneration { 0 };
     juce::uint32 seed = 1;
     juce::String statusMessage;
+    juce::AudioBuffer<float> monoScratch;            // for hosts that pick a mono output
+    juce::CriticalSection snapshotLock;
+    juce::String stateSnapshot;                      // for hosts that ask for the state off the message thread
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GrooveGrabberProcessor)
 };

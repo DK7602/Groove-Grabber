@@ -107,7 +107,7 @@ namespace gg
         return best;
     }
 
-    SongFacts analyseSong (const juce::File& file)
+    SongFacts analyseSong (const juce::File& file, const std::function<bool()>& shouldStop)
     {
         SongFacts s;
         juce::AudioFormatManager fm;
@@ -126,7 +126,9 @@ namespace gg
         std::vector<float> mono ((size_t) n, 0.0f);
         for (int c = 0; c < b.getNumChannels(); ++c)
             for (int i = 0; i < n; ++i) mono[(size_t) i] += b.getSample (c, i) / (float) b.getNumChannels();
+        if (shouldStop && shouldStop()) return s;
         s.bpm = detectTempo (mono.data(), n, sr);
+        if (shouldStop && shouldStop()) return s;
         s.key = detectKey (mono.data(), n, sr, s.keyConfidence);
         s.ok = s.bpm > 0 || s.key >= 0;
         return s;

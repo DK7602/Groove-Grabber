@@ -195,6 +195,7 @@ namespace gg
         k.tuneToKey = (bool) v.getProperty ("tuneToKey", true);
         k.key = juce::jlimit (-1, 23, (int) v.getProperty ("key", -1));
         k.bpm = (double) v.getProperty ("bpm", 0.0);
+        if (! std::isfinite (k.bpm) || k.bpm < 0 || k.bpm > 300) k.bpm = 0;
         if (auto* a = v["sources"].getArray())
             for (int i = 0; i < juce::jmin ((int) k.sources.size(), a->size()); ++i)
                 k.sources[(size_t) i] = (bool) a->getReference (i);

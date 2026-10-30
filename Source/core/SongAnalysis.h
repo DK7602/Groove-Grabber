@@ -3,6 +3,7 @@
 #pragma once
 
 #include <juce_audio_formats/juce_audio_formats.h>
+#include <functional>
 
 namespace gg
 {
@@ -15,7 +16,8 @@ namespace gg
         juce::String error;
     };
 
-    SongFacts analyseSong (const juce::File&);
+    // shouldStop: checked now and then; return true to give up early
+    SongFacts analyseSong (const juce::File&, const std::function<bool()>& shouldStop = {});
     double detectTempo (const float* mono, int numSamples, double sampleRate);
     int detectKey (const float* mono, int numSamples, double sampleRate, float& confidence);
 }

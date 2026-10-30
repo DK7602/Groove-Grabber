@@ -252,7 +252,7 @@ namespace ggui
                     const auto f = fc.getResult();
                     proc.runInBackground ([this, f, a = safe]
                     {
-                        const auto facts = gg::analyseSong (f);
+                        const auto facts = gg::analyseSong (f, [] { auto* job = juce::ThreadPoolJob::getCurrentThreadPoolJob(); return job != nullptr && job->shouldExit(); });
                         juce::MessageManager::callAsync ([this, facts, a, f]
                         {
                             if (a == nullptr) return;
