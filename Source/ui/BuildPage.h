@@ -1,0 +1,72 @@
+// Groove Grabber - BUILD: describe the song, shape the character, generate four kits, edit them, listen.
+#pragma once
+
+#include "KitViews.h"
+
+namespace ggui
+{
+    class SongPanel : public juce::Component
+    {
+    public:
+        explicit SongPanel (GrooveGrabberProcessor&);
+        void refresh();
+        void paint (juce::Graphics&) override;
+        void resized() override;
+        std::function<void()> onGenerate;
+
+    private:
+        void pushOptions();
+        void syncDescription();
+        GrooveGrabberProcessor& proc;
+        juce::TextEditor description;
+        juce::ComboBox genre;
+        juce::OwnedArray<juce::Slider> traits;
+        Segmented feel { { "AUTO", "LIVE", "HYBRID", "PROG" } }, lowEnd { { "AUTO", "KICK", "KICK + 808" } },
+                  perc { { "AUTO", "0", "1", "2", "3" } };
+        juce::ToggleButton fx { "FX / sound effects" }, tuneKey { "Tune kick, 808, toms to key" };
+        juce::OwnedArray<juce::ToggleButton> sources;
+        juce::TextButton generate { "GENERATE KITS" };
+        IconButton surprise { "surprise", Icon::dice };
+        juce::Rectangle<int> traitsArea, optionsArea, sourcesArea, understoodArea;
+        bool updating = false;
+    };
+
+    class TransportBar : public juce::Component, private juce::Timer
+    {
+    public:
+        explicit TransportBar (GrooveGrabberProcessor&);
+        void refresh();
+        void paint (juce::Graphics&) override;
+        void resized() override;
+        Toast toast;
+
+    private:
+        void timerCallback() override;
+        GrooveGrabberProcessor& proc;
+        IconButton play { "play", Icon::play, Icon::stop, true };
+        juce::ComboBox groove;
+        juce::Slider swing, volume;
+        juce::ToggleButton follow { "Follow DAW" };
+        double lastBeat = -1;
+    };
+
+    class BuildPage : public juce::Component
+    {
+    public:
+        explicit BuildPage (GrooveGrabberProcessor&);
+        void refresh();
+        void paint (juce::Graphics&) override;
+        void resized() override;
+        std::function<void()> onExport;
+
+    private:
+        GrooveGrabberProcessor& proc;
+        SongPanel song;
+        juce::OwnedArray<KitCard> cards;
+        PadGrid grid;
+        PadDetail detail;
+        TransportBar transport;
+        juce::TextButton regenerate { "REGENERATE" }, lockAll { "LOCK ALL" }, saveKit { "SAVE KIT" }, exportKit { "EXPORT" };
+        juce::Rectangle<int> labArea, editorHeader;
+    };
+}
