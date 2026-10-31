@@ -2,7 +2,7 @@
 #include "StandaloneBridge.h"
 
 GrooveGrabberEditor::GrooveGrabberEditor (GrooveGrabberProcessor& p)
-    : AudioProcessorEditor (p), proc (p), header (p), build (p), library (p), kitsPage (p), exporter (p)
+    : AudioProcessorEditor (p), proc (p), header (p), build (p), library (p), kitsPage (p), exporter (p), help (p)
 {
     ggui::setLight (proc.getSettings().isLightTheme());
     lnf->refreshColours();
@@ -14,9 +14,11 @@ GrooveGrabberEditor::GrooveGrabberEditor (GrooveGrabberProcessor& p)
     addChildComponent (library);
     addChildComponent (kitsPage);
     addChildComponent (exporter);
+    addChildComponent (help);
 
     header.onTab = [this] (int t) { showTab (t); };
     header.onThemeChanged = [this] { themeChanged(); };
+    header.onHelp = [this] (int page) { help.show (page); };
     build.onExport = [this] { if (auto* k = proc.getActiveKit()) exporter.show (*k); };
     kitsPage.onExport = [this] (const gg::Kit& k) { exporter.show (k); };
     kitsPage.onLoaded = [this] { showTab (0); };
@@ -98,6 +100,16 @@ bool GrooveGrabberEditor::keyPressed (const juce::KeyPress& k)
         proc.sendChangeMessage();
         return true;
     }
+    if (k == juce::KeyPress::F1Key)
+    {
+        help.show (0);
+        return true;
+    }
+    if (k == juce::KeyPress::escapeKey && help.isVisible())
+    {
+        help.setVisible (false);
+        return true;
+    }
     if (k == juce::KeyPress::escapeKey && exporter.isVisible())
     {
         exporter.setVisible (false);
@@ -128,4 +140,5 @@ void GrooveGrabberEditor::resized()
     for (auto* page : std::initializer_list<juce::Component*> { &build, &library, &kitsPage })
         page->setBounds (r);
     exporter.setBounds (getLocalBounds());
+    help.setBounds (getLocalBounds());
 }

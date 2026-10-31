@@ -143,6 +143,18 @@ namespace ggui
                 p.addPath (s);
                 break;
             }
+            case Icon::help:
+            {
+                // a ring with a question mark
+                juce::Path s;
+                s.addEllipse (0.1f, 0.1f, 0.8f, 0.8f);
+                s.addCentredArc (0.5f, 0.41f, 0.13f, 0.12f, 0.0f, -juce::MathConstants<float>::halfPi * 0.95f,
+                                 juce::MathConstants<float>::pi * 0.62f, true);
+                s.lineTo (0.5f, 0.6f);
+                juce::PathStrokeType (0.075f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded).createStrokedPath (p, s);
+                p.addEllipse (0.455f, 0.68f, 0.09f, 0.09f);
+                break;
+            }
             case Icon::search:
             {
                 juce::Path s;

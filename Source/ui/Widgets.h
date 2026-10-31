@@ -8,7 +8,7 @@
 namespace ggui
 {
     enum class Icon { play, stop, lock, unlock, heart, heartFilled, dice, refresh, gear, sun, moon, folder, exportIcon,
-                      compass, search, close, star, plus, waveform, drag, check, music, trash, eye, minus, library, grid };
+                      compass, search, close, star, plus, waveform, drag, check, music, trash, eye, minus, library, grid, help };
     juce::Path iconPath (Icon);
     void drawIcon (juce::Graphics&, Icon, juce::Rectangle<float>, juce::Colour);
 

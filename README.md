@@ -39,6 +39,9 @@ then drop the kit straight onto Groove Agent.
 6. **MY KITS:** every kit you save, filed by genre. Tap a genre (HIP-HOP, ROCK, COUNTRY...) or search by name,
    style, decade, key or BPM ("g-funk 90", "A minor").
 
+The full manual is built in: press the **?** button in the header (or F1). The same text is in
+[Resources/Manual.md](Resources/Manual.md).
+
 **Kit chemistry.** Sounds aren't just picked one by one. The open hat comes from the same pack as the closed hat,
 toms step apart in pitch, the percussion pads are different kinds (shaker, tambourine, conga...), the kick leaves
 room for the 808, and the whole kit agrees on how vintage and roomy it is.

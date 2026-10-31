@@ -106,6 +106,34 @@ int runScreenshots (const juce::File& outDir)
         save (*ed, outDir.getChildFile ("library-many-folders.png"));
     }
 
+    // the manual and About, inside the window
+    for (bool light : { false, true })
+    {
+        proc.getSettings().setLightTheme (light);
+        std::unique_ptr<GrooveGrabberEditor> ed (dynamic_cast<GrooveGrabberEditor*> (proc.createEditor()));
+        ed->setSize (1440, 900);
+        const auto t0 = juce::Time::getMillisecondCounterHiRes();
+        ed->showHelp (0);
+        const auto ms = juce::Time::getMillisecondCounterHiRes() - t0;
+        pump (300);
+        auto& help = ed->getHelp();
+        const auto sections = (int) help.getManual().getSections().size();
+        std::cout << "  manual: " << sections << " sections, " << help.getManual().numBlocks() << " blocks, opened in " << (int) ms << " ms" << std::endl;
+        if (sections < 12 || ! help.isVisible() || ms > 2000) { std::cout << "  FAIL: manual didn't open properly" << std::endl; ++failures; }
+        const juce::String suffix = light ? "-light" : "";
+        save (*ed, outDir.getChildFile ("manual" + suffix + ".png"));
+        help.scrollToSection (8);
+        pump (200);
+        save (*ed, outDir.getChildFile ("manual-export" + suffix + ".png"));
+        if (help.getManual().setSearch ("groove agent") < 5) { std::cout << "  FAIL: manual search" << std::endl; ++failures; }
+        help.getManual().setSearch ({});
+        ed->showHelp (1);
+        pump (200);
+        save (*ed, outDir.getChildFile ("about" + suffix + ".png"));
+        if (help.getPage() != 1) { std::cout << "  FAIL: About page" << std::endl; ++failures; }
+    }
+    proc.getSettings().setLightTheme (false);
+
     // saved state: round trip, and a damaged / oversized one doesn't crash
     {
         juce::MemoryBlock mb;

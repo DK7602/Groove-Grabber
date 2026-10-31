@@ -7,6 +7,7 @@
 #include "ui/LibraryPage.h"
 #include "ui/KitsPage.h"
 #include "ui/ExportPanel.h"
+#include "ui/HelpPanel.h"
 
 class GrooveGrabberEditor : public juce::AudioProcessorEditor,
                             private juce::ChangeListener,
@@ -23,6 +24,8 @@ public:
     int getTab() const noexcept   { return tab; }
     void refreshAll();
     void parentHierarchyChanged() override;
+    void showHelp (int page)      { help.show (page); }
+    ggui::HelpPanel& getHelp()    { return help; }
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
@@ -37,6 +40,7 @@ private:
     ggui::LibraryPage library;
     ggui::KitsPage kitsPage;
     ggui::ExportPanel exporter;
+    ggui::HelpPanel help;
     int tab = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GrooveGrabberEditor)

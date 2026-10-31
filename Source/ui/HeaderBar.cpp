@@ -105,7 +105,10 @@ namespace ggui
         theme.setTooltip ("Light / dark (or click the logo)");
         theme.onClick = [this] { toggleTheme(); };
         addAndMakeVisible (theme);
-        gear.setTooltip ("Settings: audio / MIDI (app), export format and folder");
+        help.setTooltip ("The manual (F1)");
+        help.onClick = [this] { if (onHelp) onHelp (0); };
+        addAndMakeVisible (help);
+        gear.setTooltip ("Settings: audio / MIDI (app), export format and folder, the manual, About");
         gear.onClick = [this] { showSettingsMenu(); };
         addAndMakeVisible (gear);
         setTab (0);
@@ -159,6 +162,8 @@ namespace ggui
         theme.setBounds (row.removeFromRight (46));
         row.removeFromRight (4);
         gear.setBounds (row.removeFromRight (46));
+        row.removeFromRight (4);
+        help.setBounds (row.removeFromRight (46));
         row.removeFromRight (10);
         keyCompass.setLabel (narrow ? juce::String() : juce::String ("KEY COMPASS"));
         keyCompass.setBounds (row.removeFromRight (narrow ? 46 : 158).reduced (0, 3));
@@ -187,16 +192,10 @@ namespace ggui
         auto la = logoArea;
         auto badge = la.removeFromLeft (la.getHeight()).toFloat();
         {
+            // the badge has its own glowing rounded border and clear corners: drawn as it is
             juce::Graphics::ScopedSaveState s (g);
-            juce::Path clip;
-            clip.addRoundedRectangle (badge, 12.0f);
-            g.reduceClipRegion (clip);
-            g.drawImage (badgeImage(), badge, juce::RectanglePlacement::centred | juce::RectanglePlacement::fillDestination);
-        }
-        if (! p.light)
-        {
-            g.setColour (p.orange.withAlpha (0.35f));
-            g.drawRoundedRectangle (badge.expanded (1.0f), 13.0f, 1.0f);
+            g.setImageResamplingQuality (juce::Graphics::highResamplingQuality);
+            g.drawImage (badgeImage(), badge, juce::RectanglePlacement::centred);
         }
         la.removeFromLeft (14);
         auto groove = la.removeFromTop (la.getHeight() * 64 / 100).toFloat();
@@ -310,6 +309,8 @@ namespace ggui
         m.addItem (5, "48 kHz", true, s.getExportSampleRate() > 46000);
         m.addSeparator();
         m.addItem (6, "Open the Groove Grabber folder");
+        m.addSeparator();
+        m.addItem (8, "Manual (F1)");
         m.addItem (7, "About Groove Grabber " GG_VERSION);
         m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&gear), [this, safe = juce::Component::SafePointer<HeaderBar> (this)] (int r)
         {
@@ -330,13 +331,9 @@ namespace ggui
                 case 5: st.setExportSampleRate (48000.0); break;
                 case 6: gg::paths::documentsDir().revealToUser(); break;
                 case 10: gg::standalone::showAudioSettings(); break;
-                case 7:
-                {
-                    auto notices = juce::String::fromUTF8 (GGBinary::THIRD_PARTY_NOTICES_txt, GGBinary::THIRD_PARTY_NOTICES_txtSize);
-                    juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::NoIcon, "Groove Grabber " GG_VERSION,
-                        "Your sounds. Your style. Your groove.\n\nBuilds drum kits from your own library for the song you're making.\n\n" + notices);
-                    break;
-                }
+                // inside the window, not a separate system dialog (one of those froze the app on Windows)
+                case 7: if (onHelp) onHelp (1); break;
+                case 8: if (onHelp) onHelp (0); break;
                 default: break;
             }
         });

@@ -34,6 +34,7 @@ namespace ggui
         void setTab (int);
         std::function<void (int)> onTab;
         std::function<void()> onThemeChanged;
+        std::function<void (int)> onHelp;              // 0 = the manual, 1 = About
         void paint (juce::Graphics&) override;
         void resized() override;
         void mouseUp (const juce::MouseEvent&) override;
@@ -47,7 +48,8 @@ namespace ggui
         juce::OwnedArray<juce::TextButton> tabs;
         juce::ComboBox key;
         DragNumber bpm;
-        IconButton keyCompass { "Key Compass", Icon::compass }, theme { "theme", Icon::moon }, gear { "settings", Icon::gear };
+        IconButton keyCompass { "Key Compass", Icon::compass }, theme { "theme", Icon::moon }, gear { "settings", Icon::gear },
+                   help { "manual", Icon::help };
         std::unique_ptr<juce::FileChooser> chooser;
         juce::Rectangle<int> logoArea, keyLabel, bpmLabel;
         int tab = 0;

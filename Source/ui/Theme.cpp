@@ -389,7 +389,10 @@ namespace ggui
         r = r.reduced (0.5f);
         g.setColour (p.sunken);
         g.fillRoundedRectangle (r, 7.0f);
-        g.setColour (box.hasKeyboardFocus (true) || box.isMouseOver (true) ? p.blue.withAlpha (0.8f) : p.line);
+        // lit while its list is open or the mouse is really on it (not a stale hover after scrolling, not kept focus)
+        const bool hot = box.isPopupActive()
+                      || (box.isMouseOver (true) && box.getScreenBounds().contains (juce::Desktop::getMousePosition()));
+        g.setColour (hot ? p.blue.withAlpha (0.8f) : p.line);
         g.drawRoundedRectangle (r, 7.0f, 1.0f);
         juce::Path arrow;
         const float ax = (float) w - 16.0f, ay = (float) h * 0.5f;
