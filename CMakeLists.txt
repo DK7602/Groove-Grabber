@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.24)
+# Windows: link the C++ runtime into the plug-in itself, so a DAW's plug-in scanner never trips over missing runtime DLLs
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-project(GrooveGrabber VERSION 1.0.5 LANGUAGES C CXX)
+project(GrooveGrabber VERSION 1.0.6 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -143,8 +145,8 @@ target_compile_definitions(GrooveGrabber PUBLIC JUCE_MODAL_LOOPS_PERMITTED=0)
 # ------------------------------------------------------------------------------------------------
 if(GG_BUILD_TESTS)
     juce_add_console_app(GGTests PRODUCT_NAME "GGTests")
-    target_sources(GGTests PRIVATE Tests/TestMain.cpp Tests/TestSounds.cpp Tests/TestScreens.cpp ${GG_CORE_SOURCES} ${GG_UI_SOURCES})
-    target_compile_definitions(GGTests PRIVATE GG_TEST_RUNNER=1 JUCE_MODAL_LOOPS_PERMITTED=1
+    target_sources(GGTests PRIVATE Tests/TestMain.cpp Tests/TestSounds.cpp Tests/TestScreens.cpp Tests/TestHost.cpp ${GG_CORE_SOURCES} ${GG_UI_SOURCES})
+    target_compile_definitions(GGTests PRIVATE GG_TEST_RUNNER=1 JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_PLUGINHOST_VST3=1
         GG_TESTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Tests")
     target_link_libraries(GGTests PRIVATE GGShared)
 endif()

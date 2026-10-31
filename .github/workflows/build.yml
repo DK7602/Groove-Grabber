@@ -98,6 +98,16 @@ jobs:
       - name: Test
         run: build\GGTests_artefacts\${{ env.BUILD_TYPE }}\GGTests.exe --engine
 
+      - name: Load the VST3 like a DAW (scan, play, state, window, close)
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          ./build/GGTests_artefacts/${{ env.BUILD_TYPE }}/GGTests.exe --host "build/GrooveGrabber_artefacts/${{ env.BUILD_TYPE }}/VST3/Groove Grabber.vst3" 2>&1 | tee host.log
+          grep -E "FAIL|PROBLEMS" host.log | while IFS= read -r line; do echo "::error::${line:0:900}"; done || true
+          echo "::notice::$(grep -E 'name:|created in|deleted in|loads, plays' host.log | tr '\n' ' ' | cut -c1-900)"
+
+
       - name: Build installer (Inno Setup)
         shell: pwsh
         run: |

@@ -35,6 +35,10 @@ namespace gg
 
         // ---- scanning ----
         void startScan();                       // picks up new / changed / removed files
+        // Once a window is open: look for new files a few seconds later, and keep an eye on the cache another
+        // Groove Grabber may update. Never before - a DAW scanning plug-ins, or a session where the window is
+        // never opened, shouldn't start reading your drive.
+        void beginWatching();
         void cancelScan();
         bool isScanning() const noexcept        { return scanning.load(); }
         float getProgress() const noexcept      { return progress.load(); }

@@ -154,6 +154,16 @@ int runScreenshots (const juce::File& outDir)
         std::cout << "  state round trip and damaged state ok" << std::endl;
     }
 
+    // a brand-new instance's state restored into itself (what a DAW does when it scans or loads a default preset)
+    {
+        GrooveGrabberProcessor fresh;
+        juce::MemoryBlock mb;
+        fresh.getStateInformation (mb);
+        fresh.setStateInformation (mb.getData(), (int) mb.getSize());
+        pump (200);
+        std::cout << "  a new instance's own state restores without kits (no crash)" << std::endl;
+    }
+
     // the genre box and the description together
     {
         GrooveGrabberProcessor p;

@@ -24,6 +24,7 @@ GrooveGrabberEditor::GrooveGrabberEditor (GrooveGrabberProcessor& p)
     kitsPage.onLoaded = [this] { showTab (0); };
 
     proc.addChangeListener (this);
+    proc.library->beginWatching();      // only now: never while a DAW is just scanning plug-ins
     setWantsKeyboardFocus (true);
 
     // first time, with nothing to build from: start on the library

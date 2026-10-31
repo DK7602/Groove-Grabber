@@ -2,6 +2,7 @@
 //   GGTests              run everything
 //   GGTests --engine     engine tests only
 //   GGTests --shots DIR  also write screenshots to DIR (default: build folder)
+//   GGTests --host <.vst3> load the built plug-in like a DAW would (scan, play, state, window, close)
 #include <set>
 #include "TestSounds.h"
 #include "core/Analyzer.h"
@@ -745,11 +746,17 @@ namespace
 }
 
 //==============================================================================
+int runHostScan (const juce::File&);
+
 int main (int argc, char** argv)
 {
     juce::ScopedJuceInitialiser_GUI gui;
     juce::StringArray args;
     for (int i = 1; i < argc; ++i) args.add (argv[i]);
+
+    // GGTests --host <plug-in>: load the built plug-in like a DAW would, and nothing else
+    if (const int h = args.indexOf ("--host"); h >= 0 && h + 1 < args.size())
+        return runHostScan (juce::File (args[h + 1])) == 0 ? 0 : 1;
 
     // keep the tests out of the real settings / library
     const auto home = testRoot().getChildFile ("Home");

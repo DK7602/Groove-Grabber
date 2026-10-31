@@ -46,7 +46,11 @@ namespace gg
     {
         sounds = std::make_shared<const SoundList>();
         loadCache();
-        startTimer (4000);
+    }
+
+    void Library::beginWatching()
+    {
+        if (! isTimerRunning()) startTimer (4000);
     }
 
     Library::~Library()

@@ -315,13 +315,14 @@ void GrooveGrabberProcessor::renderKits()
     const int generation = ++renderGeneration;
     const double sr = player.getSampleRate() > 0 ? player.getSampleRate() : 44100.0;
     auto copy = kits;
-    const int active = activeKit;
+    if (copy.empty()) return;          // nothing to render (a fresh instance, e.g. while a DAW scans plug-ins)
+    const int active = juce::jlimit (0, (int) copy.size() - 1, activeKit);
     // the kit you're looking at first, then the others
     std::vector<int> order { active };
     for (int i = 0; i < (int) copy.size(); ++i) if (i != active) order.push_back (i);
     for (int i : order)
     {
-        if (i >= (int) playables.size()) break;
+        if (i >= (int) playables.size() || i >= (int) copy.size()) continue;
         runInBackground ([this, a = alive, generation, kit = copy[(size_t) i], i, sr]
         {
             if (! a->load() || renderGeneration.load() != generation) return;

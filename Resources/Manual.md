@@ -410,7 +410,7 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | The four kits feel too alike | Use the dice (Surprise me), move the sliders further, or name a style or artist. |
 | A word or artist you typed didn't change anything | Check the blue "understood" line under the box. Use the drop-downs, or give a common-word name a cue ("like Future"). |
 | Pads sound out of tune with your song | Set the right KEY in the header, or switch off "Tune kick, 808, toms to key". Fine-tune with the pad's TUNE knob. |
-| The plug-in doesn't show up in your DAW | Rescan plug-ins in your DAW. On Windows the VST3 is in C:\Program Files\Common Files\VST3. |
+| The plug-in doesn't show up in your DAW | It's an instrument: look in your instrument list (Cubase: under Drum, by Grabber Audio). On Windows the VST3 is in C:\Program Files\Common Files\VST3. In Cubase, if it was ever blocked, open Studio > VST Plug-in Manager, show the blocklist, select Groove Grabber and click Reactivate. |
 | No sound from the standalone app | Gear menu, **Audio / MIDI settings...**, and pick your output device. |
 | The groove drifts from your song | Turn on **Follow DAW** in the groove bar. |
 | Groove Agent pads land on the wrong notes | Keep "Silent files for empty pads" on, and drop all 22 files on the first pad (C1). |
