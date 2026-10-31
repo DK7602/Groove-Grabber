@@ -209,6 +209,7 @@ namespace
                 { "honky tonk shuffle", gg::Genre::country, "country.classic", -1 },
                 { "90s r&b", gg::Genre::rnb, "rnb.newjack", 3 },
                 { "deep house", gg::Genre::edm, "edm.house", -1 },
+                { "dark alt R&B, 70 bpm", gg::Genre::rnb, "rnb.alt", -1 },
                 { "trap", gg::Genre::trap, "trap", -1 },
             };
             for (auto& c : cases)

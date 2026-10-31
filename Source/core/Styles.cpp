@@ -139,7 +139,7 @@ namespace gg
                 d ("neo.dusty",     "Dusty Neo Soul",     "Vinyl - Warm - Laid Back",    t (0.48f, 0.78f, 0.35f, 0.40f, 0.80f, 0.25f, 0.70f), "boombap2"),
                 d ("neo.rhodes",    "Rhodes Room Soul",    "Roomy - Soft - Natural",      t (0.42f, 0.72f, 0.50f, 0.60f, 0.50f, 0.20f, 0.85f), "rnb1"),
                 d ("neo.late",      "Late Night Neo Soul", "Deep - Smooth - Swung",    t (0.55f, 0.75f, 0.42f, 0.35f, 0.60f, 0.30f, 0.60f), "boombap2") }));
-            add (style (Genre::rnb, "rnb.alt", "Modern / Alt R&B", { "alt r b", "alternative r b", "alt rnb", "trap soul", "trapsoul", "dark r b", "dark rnb", "pbr b", "pbrnb" },
+            add (style (Genre::rnb, "rnb.alt", "Modern / Alt R&B", { "alt r&b", "alternative r&b", "dark r&b", "pbr&b", "alt r b", "alternative r b", "alt rnb", "trap soul", "trapsoul", "dark r b", "dark rnb", "pbr b", "pbrnb" },
                         { E2010, ENOW }, 70, true, 2, 0.1f, { P::snap, P::shaker }, {
                 d ("alt.trapsoul",  "Trap Soul",      "808s - Snaps - Moody",        t (0.72f, 0.55f, 0.55f, 0.30f, 0.12f, 0.45f, 0.12f), "trap2"),
                 d ("alt.dark",      "Dark R&B",       "Dark - Spacious - Deep",      t (0.65f, 0.55f, 0.35f, 0.50f, 0.15f, 0.40f, 0.12f), "rnb1"),
