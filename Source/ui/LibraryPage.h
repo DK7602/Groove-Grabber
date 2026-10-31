@@ -46,6 +46,8 @@ namespace ggui
         std::vector<int> chipCats;
         juce::TextButton addPacks { "+ ADD DRUM FOLDER" }, addRecordings { "+ MY RECORDINGS" }, rescan { "RESCAN" };
         juce::OwnedArray<juce::Component> sourceRows;
+        juce::Viewport sourcesView;          // the folder list scrolls when there are many
+        juce::Component sourcesContent;
         double progress = 0;
         juce::ProgressBar progressBar { progress };
         std::unique_ptr<juce::FileChooser> chooser;

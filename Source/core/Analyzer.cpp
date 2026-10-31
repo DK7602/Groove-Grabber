@@ -112,9 +112,30 @@ namespace gg::analysis
 
             if (hasAny (t, { "fx", "sfx", "riser", "risers", "rise", "sweep", "sweeps", "impact", "impacts", "uplifter",
                              "downlifter", "whoosh", "swoosh", "noise", "reverse", "rev", "reversed", "laser", "zap", "scratch",
-                             "scratches", "vox", "vocal", "vocals", "chant", "adlib", "stab", "stabs", "transition", "glitch", "foley",
-                             "texture", "atmos", "drone", "siren", "gunshot", "airhorn", "horn", "tag" }))
+                             "scratches", "stab", "stabs", "transition", "glitch", "foley",
+                             "texture", "atmos", "drone", "siren", "gunshot", "airhorn", "tag" }))
                 set (Cat::fx, 0.85f);
+
+            // vocals and instruments: never drums, unless a drum word says otherwise ("Vocal Snare", "Synth Kick")
+            {
+                const bool drumContext = hasAny (t, { "drum", "drums", "kit", "kits", "808", "909", "perc", "percussion", "beatbox", "oneshot" })
+                                      || phrase (joined, "drum kit");
+                const bool vocal = hasAny (t, { "vocal", "vocals", "vox", "voice", "voices", "chant", "chants", "adlib", "adlibs", "acapella",
+                                                "acappella", "accapella", "acapellas", "sung", "singing", "singer", "choir", "hook", "hooks",
+                                                "phrase", "phrases", "shout", "shouts", "verse", "spoken", "speech", "lyric", "lyrics",
+                                                "harmony", "harmonies", "ooh", "aah", "humming" });
+                const bool instrument = hasAny (t, { "synth", "synths", "piano", "pianos", "rhodes", "wurli", "wurlitzer", "organ", "keys",
+                                                     "guitar", "guitars", "gtr", "pads", "lead", "leads", "pluck", "plucks", "chord", "chords",
+                                                     "melody", "melodies", "melodic", "arp", "arps", "arpeggio", "strings", "violin", "cello",
+                                                     "brass", "flute", "sax", "saxophone", "trumpet", "marimba", "kalimba", "harp", "instrument",
+                                                     "instruments", "bassline", "basslines" })
+                                     || ((t.contains ("bass") || t.contains ("basses")) && (t.contains ("loop") || t.contains ("loops")));
+                if ((vocal || (instrument && ! drumContext)) && ! (drumContext && ! vocal && h.strength >= 0.8f))
+                {
+                    g.saysMelodic = true;
+                    set (Cat::melodic, 0.86f);
+                }
+            }
 
             // "808" on its own is the bass; "808 snare", "808 clap" etc. is the drum machine's sound
             if (g.says808 && h.strength < 0.85f)                           set (Cat::bass808, 0.88f);
@@ -184,6 +205,7 @@ namespace gg::analysis
             if (hit.perc == PercKind::none && fh.perc != PercKind::none && hit.cat == Cat::perc)
                 hit.perc = fh.perc;
             g.loopWord = g.loopWord || (fg.loopWord && i == folderList.size() - 1);
+            g.saysMelodic = g.saysMelodic || (fg.saysMelodic && hit.cat == Cat::melodic);
             g.says808 = g.says808 || (fg.says808 && hit.cat == Cat::bass808);
             if (hit.cat == Cat::closedHat || hit.cat == Cat::openHat)
             {
@@ -682,8 +704,17 @@ namespace gg::analysis
             if (c == Cat::bass808 && g.saysKick && ! (s.decayMs > 380 && s.pitchConf > 0.5f))
                 c = Cat::kick;
 
-            // loops and whole songs never go in a kit
-            if (s.duration > 12.0f || (s.onsets >= 4 && s.duration > 1.0f) || (g.loopWord && s.onsets >= 2 && s.duration > 0.8f))
+            // a long, steady, clearly pitched sound with no drum name is an instrument note, not a drum
+            if (g.cat == Cat::unknown && s.duration > 1.5f && s.decayMs > 900.0f && s.pitchConf > 0.75f
+                 && s.pitchHz > 150.0f && s.pitchHz < 2000.0f && s.flatness < 0.05f)
+            {
+                c = Cat::melodic;
+                conf = 0.7f;
+            }
+
+            // loops and whole songs never go in a kit (vocal / instrument loops stay "Vocal / Melodic")
+            if (c != Cat::melodic)
+            if (s.duration > 12.0f || (s.onsets >= 4 && s.duration > 1.0f) || (g.loopWord && (s.onsets >= 2 || s.duration > 1.5f) && s.duration > 0.8f))
                 if (! (c == Cat::fx && g.cat == Cat::fx))
                 {
                     c = Cat::loop;

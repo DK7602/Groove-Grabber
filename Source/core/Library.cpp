@@ -7,7 +7,10 @@ namespace gg
     namespace
     {
         constexpr int cacheMagic = 0x47474c31;   // "GGL1"
-        constexpr int cacheVersion = 2;
+        constexpr int cacheVersion = 3;
+        // Bump when the classification rules change: cached sounds are re-sorted from their stored
+        // measurements on the next start (no files are read again).
+        constexpr int rulesVersion = 2;
 
         juce::String folderPartsBetween (const juce::File& root, const juce::File& file)
         {
@@ -183,7 +186,8 @@ namespace gg
         juce::FileInputStream in (f);
         if (! in.openedOk() || in.readInt() != cacheMagic) return false;
         const int ver = in.readInt();
-        if (ver != cacheVersion) return false;
+        if (ver != 2 && ver != cacheVersion) return false;
+        const int rules = ver >= 3 ? in.readInt() : 1;
         const int count = in.readInt();
         if (count < 0 || count > 5000000) return false;       // a damaged file
         SoundList list;
@@ -195,6 +199,22 @@ namespace gg
             list.push_back (std::move (s));
         }
         cacheTimeOnDisk = f.getLastModificationTime();
+        if (rules < rulesVersion)
+        {
+            for (auto& s : list)
+            {
+                if (s.catByUser) continue;
+                // the folders the name guess uses: the last few above the file
+                juce::StringArray parts;
+                for (auto dir = juce::File (s.path).getParentDirectory(); parts.size() < 3 && dir.getParentDirectory() != dir; dir = dir.getParentDirectory())
+                    parts.insert (0, dir.getFileName());
+                const auto guess = analysis::guessFromName (juce::File (s.path).getFileNameWithoutExtension(), parts.joinIntoString ("/"));
+                analysis::finish (s, guess);
+            }
+            publish (std::move (list));
+            saveCache (*getSounds());
+            return true;
+        }
         publish (std::move (list));
         return true;
     }
@@ -210,6 +230,7 @@ namespace gg
             out.truncate();
             out.writeInt (cacheMagic);
             out.writeInt (cacheVersion);
+            out.writeInt (rulesVersion);
             out.writeInt ((int) list.size());
             for (auto& s : list) s.write (out);
             out.flush();

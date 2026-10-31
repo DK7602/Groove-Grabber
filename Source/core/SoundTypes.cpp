@@ -19,6 +19,7 @@ namespace gg
             case Cat::perc:      return "Perc";
             case Cat::fx:        return "FX";
             case Cat::loop:      return "Loop";
+            case Cat::melodic:   return "Vocal / Melodic";
             case Cat::unknown:
             case Cat::count:     break;
         }
@@ -42,6 +43,7 @@ namespace gg
             case Cat::perc:      return "perc";
             case Cat::fx:        return "fx";
             case Cat::loop:      return "loop";
+            case Cat::melodic:   return "melodic";
             case Cat::unknown:
             case Cat::count:     break;
         }
@@ -56,7 +58,7 @@ namespace gg
         return Cat::unknown;
     }
 
-    bool catIsKitSound (Cat c) noexcept    { return c != Cat::loop && c != Cat::unknown && c != Cat::count; }
+    bool catIsKitSound (Cat c) noexcept    { return c != Cat::loop && c != Cat::unknown && c != Cat::melodic && c != Cat::count; }
 
     juce::String percKindName (PercKind k)
     {

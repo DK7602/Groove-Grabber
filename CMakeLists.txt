@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(GrooveGrabber VERSION 1.0.0 LANGUAGES C CXX)
+project(GrooveGrabber VERSION 1.0.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -85,6 +85,7 @@ set(GG_CORE_SOURCES
 set(GG_UI_SOURCES
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
+    Source/StandaloneBridge.cpp
     Source/ui/Theme.cpp
     Source/ui/Widgets.cpp
     Source/ui/HeaderBar.cpp

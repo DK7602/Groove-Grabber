@@ -22,6 +22,7 @@ public:
     void showTab (int);
     int getTab() const noexcept   { return tab; }
     void refreshAll();
+    void parentHierarchyChanged() override;
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;

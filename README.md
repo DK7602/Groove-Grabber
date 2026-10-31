@@ -85,6 +85,7 @@ bounce a "sampling pass" (each drum hit on its own at soft, medium and hard) and
 * **HARVEST HITS** (LIBRARY page): drop a drums-only bounce, a drum stem or a break. Every hit is found and
   classified, hits of the same drum are grouped, and the cleanest **soft / medium / hard** versions of each are kept.
 * No Key Compass song? KEY COMPASS > *Detect key and tempo from a song file* reads them from a bounce of your song.
+* Click the logo to switch between dark and light. The gear holds audio / MIDI settings (app) and the export format.
 
 ## In the DAW
 

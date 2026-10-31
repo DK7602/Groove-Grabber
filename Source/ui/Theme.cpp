@@ -579,7 +579,7 @@ namespace ggui
         s.append (text, uiFont (15.0f, false), pal().text);
         juce::TextLayout tl;
         tl.createLayout (s, 320.0f);
-        const int w = (int) tl.getWidth() + 22, h = (int) tl.getHeight() + 14;
+        const int w = (int) std::ceil (tl.getWidth()) + 26, h = (int) std::ceil (tl.getHeight()) + 16;
         return juce::Rectangle<int> (pos.x > parent.getCentreX() ? pos.x - (w + 12) : pos.x + 18,
                                      pos.y > parent.getCentreY() ? pos.y - (h + 6) : pos.y + 20, w, h).constrainedWithin (parent);
     }
@@ -595,8 +595,8 @@ namespace ggui
         juce::AttributedString s;
         s.append (text, uiFont (15.0f, false), p.text);
         juce::TextLayout tl;
-        tl.createLayout (s, (float) w - 22);
-        tl.draw (g, r.reduced (11, 7));
+        tl.createLayout (s, (float) w - 20);      // a little wider than measured, so it never re-wraps
+        tl.draw (g, r.reduced (10, 8));
     }
 
     void LookAndFeel::drawLabel (juce::Graphics& g, juce::Label& l)

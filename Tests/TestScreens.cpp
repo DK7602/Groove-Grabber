@@ -77,6 +77,19 @@ int runScreenshots (const juce::File& outDir)
     }
     proc.getSettings().setLightTheme (false);
 
+    // many folders: the list must scroll, not squash the last one
+    {
+        auto sources = proc.getSettings().getSources();
+        for (int i = 0; i < 12; ++i)
+            sources.push_back ({ juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("GG Pack " + juce::String (i + 1)), gg::Source::packs, true });
+        proc.getSettings().setSources (sources);
+        std::unique_ptr<GrooveGrabberEditor> ed (dynamic_cast<GrooveGrabberEditor*> (proc.createEditor()));
+        ed->setSize (1440, 900);
+        ed->showTab (1);
+        pump (300);
+        save (*ed, outDir.getChildFile ("library-many-folders.png"));
+    }
+
     // saved state: round trip, and a damaged / oversized one doesn't crash
     {
         juce::MemoryBlock mb;

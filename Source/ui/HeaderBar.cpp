@@ -2,6 +2,7 @@
 #include "core/SongAnalysis.h"
 #include "core/Settings.h"
 #include "GGBinaryData.h"
+#include "../StandaloneBridge.h"
 
 namespace ggui
 {
@@ -101,18 +102,30 @@ namespace ggui
         keyCompass.onClick = [this] { showKeyCompassMenu(); };
         addAndMakeVisible (keyCompass);
 
-        theme.setTooltip ("Light / dark");
-        theme.onClick = [this]
-        {
-            proc.getSettings().setLightTheme (! isLight());
-            setLight (! isLight());
-            if (onThemeChanged) onThemeChanged();
-        };
+        theme.setTooltip ("Light / dark (or click the logo)");
+        theme.onClick = [this] { toggleTheme(); };
         addAndMakeVisible (theme);
-        gear.setTooltip ("Settings");
+        gear.setTooltip ("Settings: audio / MIDI (app), export format and folder");
         gear.onClick = [this] { showSettingsMenu(); };
         addAndMakeVisible (gear);
         setTab (0);
+    }
+
+    void HeaderBar::toggleTheme()
+    {
+        proc.getSettings().setLightTheme (! isLight());
+        setLight (! isLight());
+        if (onThemeChanged) onThemeChanged();
+    }
+
+    void HeaderBar::mouseUp (const juce::MouseEvent& e)
+    {
+        if (e.mouseWasClicked() && logoArea.contains (e.getPosition())) toggleTheme();
+    }
+
+    void HeaderBar::mouseMove (const juce::MouseEvent& e)
+    {
+        setMouseCursor (logoArea.contains (e.getPosition()) ? juce::MouseCursor::PointingHandCursor : juce::MouseCursor::NormalCursor);
     }
 
     void HeaderBar::setTab (int t)
@@ -133,23 +146,28 @@ namespace ggui
 
     void HeaderBar::resized()
     {
-        auto r = getLocalBounds().reduced (14, 10);
+        auto r = getLocalBounds().reduced (14, 9);
         const bool narrow = getWidth() < 1340;
-        logoArea = r.removeFromLeft (narrow ? 236 : 300);
+        logoArea = r.removeFromLeft (narrow ? 280 : 340);
         r.removeFromLeft (narrow ? 4 : 10);
-        for (auto* t : tabs) { t->setBounds (r.removeFromLeft (t == tabs[2] ? (narrow ? 96 : 104) : (narrow ? 86 : 96)).reduced (2, 2)); }
+        auto tabRow = r.withSizeKeepingCentre (r.getWidth(), 44);
+        for (auto* t : tabs) { t->setBounds (tabRow.removeFromLeft (t == tabs[2] ? (narrow ? 96 : 108) : (narrow ? 86 : 100)).reduced (2, 2)); }
+        r = r.withLeft (tabRow.getX());
 
-        gear.setBounds (r.removeFromRight (38).reduced (2));
-        r.removeFromRight (2);
-        theme.setBounds (r.removeFromRight (38).reduced (2));
-        r.removeFromRight (10);
+        // right to left: light / dark, settings, Key Compass, BPM, key
+        auto row = r.withSizeKeepingCentre (r.getWidth(), 46);
+        theme.setBounds (row.removeFromRight (46));
+        row.removeFromRight (4);
+        gear.setBounds (row.removeFromRight (46));
+        row.removeFromRight (10);
         keyCompass.setLabel (narrow ? juce::String() : juce::String ("KEY COMPASS"));
-        keyCompass.setBounds (r.removeFromRight (narrow ? 40 : 150).reduced (0, 3));
+        keyCompass.setBounds (row.removeFromRight (narrow ? 46 : 158).reduced (0, 3));
+        r = row;
         r.removeFromRight (10);
-        bpm.setBounds (r.removeFromRight (64).reduced (0, 5));
+        bpm.setBounds (r.removeFromRight (64).reduced (0, 3));
         bpmLabel = r.removeFromRight (36);
         r.removeFromRight (6);
-        key.setBounds (r.removeFromRight (narrow ? 124 : 140).reduced (0, 5));
+        key.setBounds (r.removeFromRight (narrow ? 124 : 140).reduced (0, 3));
         keyLabel = r.removeFromRight (34);
     }
 
@@ -171,20 +189,20 @@ namespace ggui
         {
             juce::Graphics::ScopedSaveState s (g);
             juce::Path clip;
-            clip.addRoundedRectangle (badge, 9.0f);
+            clip.addRoundedRectangle (badge, 12.0f);
             g.reduceClipRegion (clip);
             g.drawImage (badgeImage(), badge, juce::RectanglePlacement::centred | juce::RectanglePlacement::fillDestination);
         }
         if (! p.light)
         {
             g.setColour (p.orange.withAlpha (0.35f));
-            g.drawRoundedRectangle (badge.expanded (1.0f), 10.0f, 1.0f);
+            g.drawRoundedRectangle (badge.expanded (1.0f), 13.0f, 1.0f);
         }
-        la.removeFromLeft (12);
-        auto groove = la.removeFromTop (la.getHeight() * 62 / 100).toFloat();
+        la.removeFromLeft (14);
+        auto groove = la.removeFromTop (la.getHeight() * 64 / 100).toFloat();
         auto grabber = la.toFloat();
         {
-            const auto font = titleFont (28.0f).withExtraKerningFactor (0.04f);
+            const auto font = titleFont (38.0f).withExtraKerningFactor (0.04f);
             juce::GlyphArrangement ga;
             ga.addLineOfText (font, "GROOVE", groove.getX(), groove.getBottom() - 4);
             juce::Path text;
@@ -203,8 +221,8 @@ namespace ggui
             g.fillPath (text);
         }
         g.setColour (p.orange);
-        g.setFont (headFont (13.0f).withExtraKerningFactor (0.62f));
-        g.drawText ("GRABBER", grabber.withTrimmedLeft (2), juce::Justification::topLeft, false);
+        g.setFont (headFont (17.0f).withExtraKerningFactor (0.66f));
+        g.drawText ("GRABBER", grabber.withTrimmedLeft (3), juce::Justification::topLeft, false);
 
         g.setColour (p.dim);
         g.setFont (headFont (10.0f).withExtraKerningFactor (0.12f));
@@ -279,6 +297,11 @@ namespace ggui
     {
         auto& s = proc.getSettings();
         juce::PopupMenu m;
+        if (gg::standalone::isStandalone())
+        {
+            m.addItem (10, "Audio / MIDI settings...");
+            m.addSeparator();
+        }
         m.addSectionHeader ("EXPORT");
         m.addItem (1, "Export folder: " + s.getExportDir().getFullPathName());
         m.addItem (2, "24-bit WAV", true, s.getExportBitDepth() == 24);
@@ -306,6 +329,7 @@ namespace ggui
                 case 4: st.setExportSampleRate (44100.0); break;
                 case 5: st.setExportSampleRate (48000.0); break;
                 case 6: gg::paths::documentsDir().revealToUser(); break;
+                case 10: gg::standalone::showAudioSettings(); break;
                 case 7:
                 {
                     auto notices = juce::String::fromUTF8 (GGBinary::THIRD_PARTY_NOTICES_txt, GGBinary::THIRD_PARTY_NOTICES_txtSize);

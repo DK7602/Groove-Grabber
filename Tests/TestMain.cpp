@@ -104,6 +104,26 @@ namespace
         add ("Mystery/Sound 08.wav", s.crash (2.6f), gg::Cat::crash);
         add ("Mystery/Sound 09.wav", s.rim(), gg::Cat::rim);
         add ("Mystery/Sound 10.wav", s.riser (2.5f), gg::Cat::fx);
+
+        // a loop whose hits run together (no gaps to count) is still a loop when its name says so
+        add ("Loops/BerserkTrap_Full_Drum_Loop_140_06_Am.wav", s.riser (5.0f), gg::Cat::loop);
+
+        // vocals and instruments never go in a kit
+        add ("Vocal - Loops/ChantsShouts_Adlibs_Dry_C#m_140_Hey.wav", s.riser (1.4f), gg::Cat::melodic);
+        add ("Vocal - One Shots/ChantsShouts_Shouts_Saturated_Yo_3.wav", s.snare (300, 0.06f, 0.5f), gg::Cat::melodic);
+        add ("Synth - Loops/BerserkTrap_Synth_Loop_15_150_Gm_Synth.wav", s.riser (2.7f), gg::Cat::melodic);
+        {
+            juce::AudioBuffer<float> note (2, (int) (s.sr * 2.5));
+            for (int i = 0; i < note.getNumSamples(); ++i)
+            {
+                const float t = (float) (i / s.sr);
+                const float v = (std::sin (juce::MathConstants<float>::twoPi * 330.0f * t) + 0.3f * std::sin (juce::MathConstants<float>::twoPi * 660.0f * t))
+                              * 0.5f * std::exp (-t / 1.5f) * juce::jmin (1.0f, t / 0.01f);
+                note.setSample (0, i, v);
+                note.setSample (1, i, v);
+            }
+            add ("Mystery/Sound 11.wav", note, gg::Cat::melodic);     // a held instrument note, no name
+        }
         return out;
     }
 
@@ -125,6 +145,11 @@ namespace
             { "Tambourine Hit", "", gg::Cat::perc },        { "Riser Up", "", gg::Cat::fx },
             { "Sound 12", "Kicks", gg::Cat::kick },         { "001", "Drums/Snares", gg::Cat::snare },
             { "808 Snare", "", gg::Cat::snare },            { "808 Clap", "", gg::Cat::clap },
+            { "ChantsShouts_Chants2_Ambient_Gm_140_Hey", "", gg::Cat::melodic },  { "Amen06_CreamFilling_Keys_94bpm_Db_25", "", gg::Cat::melodic },
+            { "BerserkTrap_Bass_Loop_01_140_E", "", gg::Cat::melodic },          { "Rhodes Chord Cm", "", gg::Cat::melodic },
+            { "Hey 01", "Vocal - One Shots", gg::Cat::melodic },                 { "Vocal Snare 2", "", gg::Cat::snare },
+            { "Synth Kick 3", "", gg::Cat::kick },                               { "Kick 1", "Synth Drums", gg::Cat::kick },
+            { "Guitar Hit", "", gg::Cat::melodic },                              { "808 Synth Bass C", "", gg::Cat::bass808 },
         };
         for (auto& c : cases)
         {

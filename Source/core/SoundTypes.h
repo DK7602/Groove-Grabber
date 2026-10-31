@@ -13,6 +13,7 @@ namespace gg
         kick, bass808, snare, clap, rim, closedHat, openHat, tom, crash, ride, perc, fx,
         loop,       // a loop or a whole song: never put in a kit
         unknown,
+        melodic,    // vocals, chants, synths, keys, guitars, bass loops: never put in a kit
         count
     };
 

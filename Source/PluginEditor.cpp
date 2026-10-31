@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "StandaloneBridge.h"
 
 GrooveGrabberEditor::GrooveGrabberEditor (GrooveGrabberProcessor& p)
     : AudioProcessorEditor (p), proc (p), header (p), build (p), library (p), kitsPage (p), exporter (p)
@@ -28,8 +29,8 @@ GrooveGrabberEditor::GrooveGrabberEditor (GrooveGrabberProcessor& p)
     showTab (empty && proc.kits.empty() ? 1 : 0);
 
     setResizable (true, true);
-    setResizeLimits (1180, 760, 2600, 1700);
-    setSize (1440, 900);
+    setResizeLimits (1180, 780, 2600, 1700);
+    setSize (1440, 920);
     refreshAll();
 }
 
@@ -38,6 +39,15 @@ GrooveGrabberEditor::~GrooveGrabberEditor()
     proc.removeChangeListener (this);
     juce::LookAndFeel::setDefaultLookAndFeel (nullptr);
     setLookAndFeel (nullptr);
+}
+
+void GrooveGrabberEditor::parentHierarchyChanged()
+{
+    // the app's tiny "Options" button: our settings gear does the same job
+    juce::MessageManager::callAsync ([safe = juce::Component::SafePointer<GrooveGrabberEditor> (this)]
+    {
+        if (safe != nullptr) gg::standalone::hideTitleBarOptionsButton (*safe);
+    });
 }
 
 void GrooveGrabberEditor::showTab (int t)
@@ -114,7 +124,7 @@ void GrooveGrabberEditor::paint (juce::Graphics& g)
 void GrooveGrabberEditor::resized()
 {
     auto r = getLocalBounds();
-    header.setBounds (r.removeFromTop (66));
+    header.setBounds (r.removeFromTop (88));
     for (auto* page : std::initializer_list<juce::Component*> { &build, &library, &kitsPage })
         page->setBounds (r);
     exporter.setBounds (getLocalBounds());

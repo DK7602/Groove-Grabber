@@ -20,6 +20,7 @@ namespace gg::analysis
         float organic = 0;           // -1..1 from words like "acoustic", "live" / "808", "synth"
         bool loopWord = false;
         bool says808 = false, saysKick = false, saysHat = false, saysOpen = false, saysClosed = false;
+        bool saysMelodic = false;     // vocal / instrument words ("Vocal - Loops", "Synth", "Keys")
     };
 
     // fileName without extension; folders = the folders between the source root and the file

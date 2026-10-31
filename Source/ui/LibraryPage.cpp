@@ -118,6 +118,11 @@ namespace ggui
         addAndMakeVisible (rescan);
         addAndMakeVisible (progressBar);
 
+        sourcesView.setViewedComponent (&sourcesContent, false);
+        sourcesView.setScrollBarsShown (true, false);
+        sourcesView.setScrollBarThickness (8);
+        addAndMakeVisible (sourcesView);
+
         startTimerHz (4);
         refresh();
     }
@@ -145,7 +150,7 @@ namespace ggui
         sourceRows.clear();
         const auto src = proc.library->getSources();
         for (int i = 0; i < (int) src.size(); ++i)
-            addAndMakeVisible (sourceRows.add (new SourceRow (proc, i, src[(size_t) i])));
+            sourcesContent.addAndMakeVisible (sourceRows.add (new SourceRow (proc, i, src[(size_t) i])));
         resized();
     }
 
@@ -412,8 +417,13 @@ namespace ggui
         statsArea = scanRow;
         l.removeFromBottom (6);
         sourcesArea = l;
-        for (auto* row : sourceRows)
-            row->setBounds (l.removeFromTop (46));
+        sourcesView.setBounds (l);
+        const int rowH = 46;
+        const bool scrolls = rowH * sourceRows.size() > l.getHeight();
+        const int w = l.getWidth() - (scrolls ? 12 : 0);
+        sourcesContent.setSize (w, juce::jmax (l.getHeight(), rowH * sourceRows.size()));
+        for (int i = 0; i < sourceRows.size(); ++i)
+            sourceRows[i]->setBounds (0, i * rowH, w, rowH);
 
         // right: chips, search, table
         auto rr = r.reduced (14, 12);

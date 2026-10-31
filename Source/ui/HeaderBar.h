@@ -36,8 +36,11 @@ namespace ggui
         std::function<void()> onThemeChanged;
         void paint (juce::Graphics&) override;
         void resized() override;
+        void mouseUp (const juce::MouseEvent&) override;
+        void mouseMove (const juce::MouseEvent&) override;
 
     private:
+        void toggleTheme();
         void showKeyCompassMenu();
         void showSettingsMenu();
         GrooveGrabberProcessor& proc;
