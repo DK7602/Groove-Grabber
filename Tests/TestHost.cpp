@@ -4,6 +4,7 @@
 //
 //   GGTests --host "<path>/Groove Grabber.vst3"
 #include <juce_audio_processors/juce_audio_processors.h>
+#include "core/Analyzer.h"
 #include <iostream>
 
 namespace
@@ -90,4 +91,29 @@ int runHostScan (const juce::File& plugin)
     }
     std::cout << (failures == 0 ? "  loads, plays, saves and closes cleanly" : "  PROBLEMS loading it") << std::endl;
     return failures;
+}
+
+// GGTests --classify <folder>: what Groove Grabber hears in every sound under a folder (for audits), as tab-separated lines
+int runClassify (const juce::File& folder)
+{
+    juce::AudioFormatManager fm;
+    fm.registerBasicFormats();
+    std::cout << "path\tcat\tconf\tdur\tpitch\tdecayMs\tattackMs\tsub\tlow\tmid\thigh\tcentroid\tflat\tonsets\tbursts\tloud\tpunch\twarmth\tbright\troom\tvintage\taggr\torganic\tpconf\tcrest\trolloff\ttailfloor\tpeak\tairflat\tring\tglide" << std::endl;
+    for (const auto& e : juce::RangedDirectoryIterator (folder, true, "*", juce::File::findFiles))
+    {
+        const auto f = e.getFile();
+        const auto ext = f.getFileExtension().toLowerCase();
+        if (ext != ".wav" && ext != ".aif" && ext != ".aiff" && ext != ".flac" && ext != ".mp3" && ext != ".ogg") continue;
+        gg::SoundInfo s;
+        const auto folders = f.getParentDirectory().getRelativePathFrom (folder).replaceCharacter ('\\', '/');
+        if (! gg::analysis::analyzeFile (f, folders, fm, s)) { std::cout << f.getFullPathName() << "\tFAILED" << std::endl; continue; }
+        std::cout << f.getFullPathName() << "\t" << gg::catName (s.cat) << "\t" << s.catConfidence << "\t" << s.duration << "\t" << s.pitchHz
+                  << "\t" << s.decayMs << "\t" << s.attackMs << "\t" << s.subShare << "\t" << s.lowShare << "\t" << s.midShare << "\t" << s.highShare
+                  << "\t" << s.centroidHz << "\t" << s.flatness << "\t" << s.onsets << "\t" << s.burstCount << "\t" << s.loudDb
+                  << "\t" << s.traits.punch << "\t" << s.traits.warmth << "\t" << s.traits.bright << "\t" << s.traits.room
+                  << "\t" << s.traits.vintage << "\t" << s.traits.aggr << "\t" << s.traits.organic
+                  << "\t" << s.pitchConf << "\t" << s.crestDb << "\t" << s.rolloffHz << "\t" << s.tailFloorDb << "\t" << s.peakDb
+                  << "\t" << s.airFlatness << "\t" << s.ringMs << "\t" << s.pitchGlide << std::endl;
+    }
+    return 0;
 }

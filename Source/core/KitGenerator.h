@@ -31,6 +31,8 @@ namespace gg
         // Set every slot's autoTune for the kit's key (kick to root/fifth, 808 to root, toms to the scale)
         void tuneToKey (Kit&, int key) const;
         static float autoTuneFor (const SoundInfo&, Slot, int key);
+        // With no key: semitones that put the kick on the 808's note or its fifth (0 if more than 2.5 away)
+        static float kickTo808 (const SoundInfo& kick, const SoundInfo& bass);
 
         int usableCount (Cat c) const noexcept   { return (int) pools[(size_t) c].size(); }
         int totalUsable() const noexcept;

@@ -252,7 +252,8 @@ namespace ggui
         g.drawFittedText (shortName (st.path), bottom.removeFromTop (16), juce::Justification::centredLeft, 1, 0.7f);
         juce::String tag;
         const float tune = st.tune (kit->tuneToKey);
-        if (std::abs (st.autoTune) > 0.01f && kit->tuneToKey && kit->key >= 0) tag << "KEY " << (st.autoTune > 0 ? "+" : "") << juce::String (st.autoTune, 1);
+        if (std::abs (st.autoTune) > 0.01f && kit->tuneToKey)
+            tag << (kit->key >= 0 ? "KEY " : "TO 808 ") << (st.autoTune > 0 ? "+" : "") << juce::String (st.autoTune, 1);
         if (std::abs (st.userTune) > 0.01f) tag << (tag.isEmpty() ? "" : "  ") << (tune > 0 ? "+" : "") << juce::String (tune, 1) << " st";
         if (st.reverse) tag << (tag.isEmpty() ? "" : "  ") << "REV";
         if (tag.isNotEmpty())
@@ -557,8 +558,9 @@ namespace ggui
                 juce::StringArray n;
                 if (info->leadSilenceMs > 2.0f) n.add ("trimmed " + juce::String (juce::roundToInt (info->leadSilenceMs)) + " ms of silence");
                 n.add ("level matched");
-                if (std::abs (st.autoTune) > 0.01f && kit->tuneToKey && kit->key >= 0)
-                    n.add ("tuned " + juce::String (st.autoTune > 0 ? "+" : "") + juce::String (st.autoTune, 2) + " st to " + gg::keyShortName (kit->key));
+                if (std::abs (st.autoTune) > 0.01f && kit->tuneToKey)
+                    n.add ("tuned " + juce::String (st.autoTune > 0 ? "+" : "") + juce::String (st.autoTune, 2) + " st to "
+                           + (kit->key >= 0 ? gg::keyShortName (kit->key) : juce::String ("the 808")));
                 if (info->hasPitch() && (slot == gg::Slot::bass808 || slot == gg::Slot::kick || gg::slotCat (slot) == gg::Cat::tom))
                     n.add ("note " + gg::noteName ((int) std::round (info->midiPitch() + st.tune (kit->tuneToKey))));
                 if (info->clipped) n.add ("clipped in the file");

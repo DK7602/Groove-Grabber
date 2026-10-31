@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "core/KitNames.h"
 #include "PluginEditor.h"
 
 GrooveGrabberProcessor::GrooveGrabberProcessor()
@@ -166,10 +167,7 @@ void GrooveGrabberProcessor::setKey (int key)
     // retune what's there now (each kit keeps its sounds)
     auto gen = makeGenerator();
     for (auto& k : kits)
-    {
-        if (options.key >= 0) gen.tuneToKey (k, options.key);
-        else { k.key = -1; for (auto& s : k.slots) s.autoTune = 0; }
-    }
+        gen.tuneToKey (k, options.key);     // (no key: just the kick to the 808)
     renderKits();
     notify();
 }
@@ -210,6 +208,7 @@ void GrooveGrabberProcessor::generate (bool surprise)
     for (auto& k : previous) k.description = description;
     kits = gen.generateAll (seed, surprise ? 0.14f : 0.035f, previous.size() == 4 ? &previous : nullptr);
     for (auto& k : kits) k.description = description;
+    gg::nameKits (kits, description, seed);     // fresh names every build
     activeKit = juce::jlimit (0, 3, activeKit);
     gg::kitstore::addToHistory (kits);
 
@@ -272,6 +271,8 @@ void GrooveGrabberProcessor::setSlotSound (int kitIndex, gg::Slot slot, const ju
     st.locked = locked;
     if (auto info = library->find (path); info.has_value() && options.key >= 0 && kits[(size_t) kitIndex].tuneToKey)
         st.autoTune = gg::KitGenerator::autoTuneFor (*info, slot, options.key);
+    if (options.key < 0 && (slot == gg::Slot::kick || slot == gg::Slot::bass808))
+        makeGenerator().tuneToKey (kits[(size_t) kitIndex], -1);     // keep the kick on the 808's note
     kitChanged (kitIndex);
 }
 

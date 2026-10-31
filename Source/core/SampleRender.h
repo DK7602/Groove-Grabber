@@ -55,6 +55,8 @@ namespace gg
         std::vector<std::pair<float, float>> peaks (const juce::AudioBuffer<float>&, int numPoints);
 
         // How much silence the renderer trims from the front (ms)
-        float leadingSilenceMs (const juce::AudioBuffer<float>&, double sampleRate);
+        // (threshold: below this much of the peak counts as silence; effects use a lower one, so a riser's
+        // quiet start isn't cut)
+        float leadingSilenceMs (const juce::AudioBuffer<float>&, double sampleRate, float threshold = 0.01f);
     }
 }

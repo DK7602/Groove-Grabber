@@ -45,13 +45,19 @@ namespace gg
         float leadSilenceMs = 0;        // silence before the hit (trimmed on the way out)
         float attackMs = 0, decayMs = 0;           // onset -> peak, peak -> -30 dB
         float centroidHz = 0, rolloffHz = 0, flatness = 0;
+        float airFlatness = 0;          // how noise-like the top (2 kHz up) is: wires, shakers, cymbals ~ high; bells, rims ~ low
+        float ringMs = 0;               // peak -> -40 dB (cymbals and 808s ring on long after a hat or a kick has gone)
+        float pitchGlide = 0;           // semitones the pitch falls over the first ~150 ms (kicks sweep, toms barely move)
         float subShare = 0, lowShare = 0, midShare = 0, highShare = 0;   // energy shares of the hit
         float pitchHz = 0, pitchConf = 0;          // fundamental (kicks, 808s, toms)
         int onsets = 1;                 // hits in the file (more than a few = a loop)
-        int burstCount = 1;             // separate bursts in the first 50 ms (claps have several)
+        int burstCount = 1;             // separate bursts in the first 60 ms, each after a real gap (claps have 3 or 4)
         float crestDb = 0;              // peak to RMS
         float tailFloorDb = -100;       // noise left once it has died away (vinyl, hiss)
         bool clipped = false;
+        int measureVersion = 0;         // which version of the measurements this is (older ones are measured again)
+        static constexpr int currentMeasure = 2;
+        bool needsMeasure() const noexcept { return measureVersion < currentMeasure; }
 
         Traits traits;
 

@@ -7,10 +7,10 @@ namespace gg
     namespace
     {
         constexpr int cacheMagic = 0x47474c31;   // "GGL1"
-        constexpr int cacheVersion = 3;
+        constexpr int cacheVersion = 4;   // 4: ringMs, pitchGlide, airFlatness (older caches are re-measured)
         // Bump when the classification rules change: cached sounds are re-sorted from their stored
         // measurements on the next start (no files are read again).
-        constexpr int rulesVersion = 2;
+        constexpr int rulesVersion = 3;
 
         juce::String folderPartsBetween (const juce::File& root, const juce::File& file)
         {
@@ -190,7 +190,7 @@ namespace gg
         juce::FileInputStream in (f);
         if (! in.openedOk() || in.readInt() != cacheMagic) return false;
         const int ver = in.readInt();
-        if (ver != 2 && ver != cacheVersion) return false;
+        if (ver < 2 || ver > cacheVersion) return false;
         const int rules = ver >= 3 ? in.readInt() : 1;
         const int count = in.readInt();
         if (count < 0 || count > 5000000) return false;       // a damaged file
@@ -207,7 +207,8 @@ namespace gg
         {
             for (auto& s : list)
             {
-                if (s.catByUser) continue;
+                // (measured by an older version: keeps its old category until the scan measures it again)
+                if (s.catByUser || s.needsMeasure()) continue;
                 // the folders the name guess uses: the last few above the file
                 juce::StringArray parts;
                 for (auto dir = juce::File (s.path).getParentDirectory(); parts.size() < 3 && dir.getParentDirectory() != dir; dir = dir.getParentDirectory())
@@ -316,6 +317,7 @@ namespace gg
             SoundList result;
             result.reserve (items.size());
             std::vector<size_t> todo;
+            int updating = 0;      // already known, measured by an older version
             std::unordered_map<std::string, bool> seen;
             for (size_t i = 0; i < items.size(); ++i)
             {
@@ -323,7 +325,7 @@ namespace gg
                 if (seen.count (key)) continue;          // the same folder added twice
                 seen[key] = true;
                 auto it = byPath.find (key);
-                if (it != byPath.end() && it->second->fileSize == items[i].file.getSize()
+                if (it != byPath.end() && ! it->second->needsMeasure() && it->second->fileSize == items[i].file.getSize()
                      && it->second->modTime == items[i].file.getLastModificationTime().toMilliseconds())
                 {
                     auto s = *it->second;
@@ -332,7 +334,10 @@ namespace gg
                     result.push_back (std::move (s));
                 }
                 else
+                {
                     todo.push_back (i);
+                    if (it != byPath.end() && it->second->needsMeasure()) ++updating;
+                }
             }
 
             // ---- analyse the new ones ----
@@ -381,7 +386,9 @@ namespace gg
                 {
                     {
                         const juce::ScopedLock sl (statusLock);
-                        status = "Analysing " + juce::String (done.load()) + " of " + juce::String (total) + " new sounds...";
+                        status = updating > total / 2
+                                   ? "Updating the analysis: " + juce::String (done.load()) + " of " + juce::String (total) + " sounds..."
+                                   : "Analysing " + juce::String (done.load()) + " of " + juce::String (total) + " new sounds...";
                     }
                     sendChangeMessage();
                     wait (250);

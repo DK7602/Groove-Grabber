@@ -67,7 +67,7 @@ namespace gg
             }
         }
 
-        float leadingSilenceMs (const juce::AudioBuffer<float>& b, double sr)
+        float leadingSilenceMs (const juce::AudioBuffer<float>& b, double sr, float threshold)
         {
             float peak = 0;
             for (int c = 0; c < b.getNumChannels(); ++c) peak = juce::jmax (peak, b.getMagnitude (c, 0, b.getNumSamples()));
@@ -77,7 +77,7 @@ namespace gg
             {
                 const float* d = b.getReadPointer (c);
                 for (int i = 0; i < first; ++i)
-                    if (std::abs (d[i]) >= peak * 0.01f) { first = i; break; }
+                    if (std::abs (d[i]) >= peak * threshold) { first = i; break; }
             }
             // keep half a millisecond so the attack is never clipped
             return (float) (juce::jmax (0.0, first - sr * 0.0005) * 1000.0 / sr);
@@ -94,7 +94,7 @@ namespace gg
             const int total = a.getNumSamples();
 
             // ---- trim the silence in front, then your START ----
-            int start = (int) (leadingSilenceMs (a, sr) * sr / 1000.0);
+            int start = (int) (leadingSilenceMs (a, sr, cat == Cat::fx ? 0.001f : 0.01f) * sr / 1000.0);
             start += (int) (juce::jlimit (0.0f, 2000.0f, std::isfinite (p.startMs) ? p.startMs : 0.0f) * sr / 1000.0);
             start = juce::jlimit (0, juce::jmax (0, total - 1), start);
             int len = total - start;

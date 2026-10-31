@@ -8,6 +8,7 @@
 #include "core/Analyzer.h"
 #include "core/Library.h"
 #include "core/KitGenerator.h"
+#include "core/KitNames.h"
 #include "core/SongContext.h"
 #include "core/Exporter.h"
 #include "core/KitPlayer.h"
@@ -101,7 +102,7 @@ namespace
         add ("Mystery/Sound 03.wav", s.snare (200, 0.18f, 0.9f), gg::Cat::snare);
         add ("Mystery/Sound 04.wav", s.clap (0.15f), gg::Cat::clap);
         add ("Mystery/Sound 05.wav", s.hat (0.03f), gg::Cat::closedHat);
-        add ("Mystery/Sound 06.wav", s.hat (0.38f), gg::Cat::openHat);
+        add ("Mystery/Sound 06.wav", s.hat (0.2f), gg::Cat::openHat);     // rings ~0.9 s (much longer and it is a crash)
         add ("Mystery/Sound 07.wav", s.tom (120), gg::Cat::tom);
         add ("Mystery/Sound 08.wav", s.crash (2.6f), gg::Cat::crash);
         add ("Mystery/Sound 09.wav", s.rim(), gg::Cat::rim);
@@ -361,7 +362,37 @@ namespace
         auto b = syn.bass808 (49.0f, 1.2f);
         gg::SoundInfo s808;
         gg::analysis::measure (b.getReadPointer (0), b.getNumSamples(), syn.sr, s808);
-        check (std::abs (s808.midiPitch() - 31.0f) < 0.6f, "808 pitch G1 (31), got " + juce::String (s808.midiPitch(), 2));
+        check (std::abs (s808.midiPitch() - 31.0f) < 0.2f, "808 pitch G1 (31), got " + juce::String (s808.midiPitch(), 2));
+
+        // 808s that drop from an octave up, or slide into the note, are tuned by the note they land on
+        {
+            auto make808 = [&] (float f0, float drop, float dropTau, float slideSt, float slideTime)
+            {
+                juce::AudioBuffer<float> buf (1, (int) (syn.sr * 1.4));
+                double phase = 0;
+                for (int i = 0; i < buf.getNumSamples(); ++i)
+                {
+                    const double t = i / syn.sr;
+                    const double st = t < slideTime ? slideSt * (1.0 - t / slideTime) : 0.0;
+                    const double f = f0 * (1.0 + drop * std::exp (-t / dropTau)) * std::pow (2.0, st / 12.0);
+                    phase += 2.0 * juce::MathConstants<double>::pi * f / syn.sr;
+                    const double env = std::exp (-t / 0.6) * juce::jmin (1.0, t / 0.002);
+                    buf.setSample (0, i, (float) (std::tanh (std::sin (phase) * env * 1.8) * 0.85));
+                }
+                return buf;
+            };
+            struct Case { const char* what; float f0, drop, tau, slide, slideTime; };
+            for (auto c : { Case { "punchy drop (+1 oct, 30 ms)", 41.2f, 1.0f, 0.03f, 0, 0 }, Case { "long drop (+1 oct, 60 ms)", 49.0f, 1.0f, 0.06f, 0, 0 },
+                            Case { "slide in (+5, 120 ms)", 36.7f, 0, 0.02f, 5.0f, 0.12f }, Case { "big slide (+12, 200 ms)", 55.0f, 0, 0.02f, 12.0f, 0.2f } })
+            {
+                auto b = make808 (c.f0, c.drop, c.tau, c.slide, c.slideTime);
+                gg::SoundInfo s;
+                gg::analysis::measure (b.getReadPointer (0), b.getNumSamples(), syn.sr, s);
+                const float want = 69.0f + 12.0f * std::log2 (c.f0 / 440.0f);
+                check (std::abs (s.midiPitch() - want) < 0.3f, juce::String ("808 ") + c.what + ": tuned by its landing note (off by "
+                       + juce::String (s.midiPitch() - want, 2) + " semitones)");
+            }
+        }
 
         // traits: the vintage pack reads as more vintage than the trap pack
         gg::SoundInfo dusty, clean;
@@ -369,6 +400,31 @@ namespace
         gg::analysis::analyzeFile (testRoot().getChildFile ("Library/Trap Essentials/Snares/Snare Crack.wav"), "Trap Essentials/Snares", fm, clean);
         check (dusty.traits.vintage > clean.traits.vintage + 0.15f, "dusty snare more vintage (" + juce::String (dusty.traits.vintage, 2) + " vs " + juce::String (clean.traits.vintage, 2) + ")");
         check (dusty.traits.bright < clean.traits.bright, "dusty snare darker");
+
+        // the library memory: new measurements saved; an older memory is used until it's measured again
+        {
+            gg::SoundInfo a;
+            a.path = "/x/kick.wav";
+            a.ringMs = 321; a.pitchGlide = 4.5f; a.airFlatness = 0.25f; a.measureVersion = gg::SoundInfo::currentMeasure; a.decayMs = 100;
+            juce::MemoryOutputStream out;
+            a.write (out);
+            gg::SoundInfo b;
+            juce::MemoryInputStream in (out.getData(), out.getDataSize(), false);
+            check (b.read (in, 4) && b.ringMs == 321.0f && b.pitchGlide == 4.5f && ! b.needsMeasure(), "new measurements saved and read back");
+            gg::SoundInfo c;
+            juce::MemoryInputStream in3 (out.getData(), out.getDataSize() - 13, false);     // the same sound in the version-3 layout
+            check (c.read (in3, 3) && c.needsMeasure() && c.ringMs > 0, "a sound from an older library memory is measured again on the next scan");
+        }
+
+        // no key: the kick goes on the 808's note (or its fifth)
+        {
+            gg::SoundInfo k, b;
+            k.pitchHz = 55.0f; k.pitchConf = 0.9f;                  // A1 (33)
+            b.pitchHz = 41.2f * std::pow (2.0f, 0.3f / 12.0f); b.pitchConf = 0.9f;    // E1 (28) + 0.3
+            const float t = gg::KitGenerator::kickTo808 (k, b);
+            check (std::abs (k.midiPitch() + t - (b.midiPitch() + 12.0f - 5.0f)) < 0.02f || std::abs (k.midiPitch() + t - (b.midiPitch() + 7.0f)) < 0.02f,
+                   "no key: kick tuned onto the 808's fifth (" + juce::String (t, 2) + " st)");
+        }
 
         // ---- the Library class (background scan) ----
         section ("Library scan");
@@ -487,6 +543,37 @@ namespace
             std::set<juce::String> names;
             for (auto& k : dk) names.insert (k.name);
             check (names.size() == 4, "four different kit names");
+
+            // fresh names on every build: from the style, what you typed, and each kit's character
+            check (gg::nameWordsIn ("trap, westcoast, late night").joinIntoString ("|") == "Late Night|Westside", "place and mood words read from the description");
+            for (auto desc : { "trap, westcoast", "dusty 90s boom bap", "rainy lofi", "worship", "like Dr. Dre", "metal", "country summer" })
+            {
+                gg::KitOptions no;
+                gg::applyDescription (gg::parseDescription (desc), no);
+                gg::KitGenerator ng (sounds, no);
+                juce::StringArray all;
+                std::set<juce::String> words;
+                bool repeated = false;
+                for (juce::uint32 sd : { 11u, 12u })
+                {
+                    auto nk = ng.generateAll (sd);
+                    gg::nameKits (nk, desc, sd);
+                    juce::StringArray these;
+                    for (auto& k : nk)
+                    {
+                        these.add (k.name);
+                        if (sd == 11u)
+                            for (auto& w : juce::StringArray::fromTokens (k.name.toLowerCase(), " ", ""))
+                                if (w.length() > 2 && ! words.insert (w).second) repeated = true;
+                    }
+                    std::cout << "  " << desc << ": " << these.joinIntoString (" / ") << std::endl;
+                    all.addArray (these);
+                }
+                check (! repeated, juce::String (desc) + ": no word twice across the four names");
+                check (all[0] != all[4] || all[1] != all[5], juce::String (desc) + ": a new build gets new names");
+                if (juce::String (desc) == "trap, westcoast")
+                    check (all[0].contains ("Westside"), "trap, westcoast: kit 1 is named for the west coast (" + all[0] + ")");
+            }
         }
         for (int gi = 0; gi < gg::numGenres; ++gi)
             for (auto& st : gg::stylesOf ((gg::Genre) gi))
@@ -747,6 +834,7 @@ namespace
 
 //==============================================================================
 int runHostScan (const juce::File&);
+int runClassify (const juce::File&);
 
 int main (int argc, char** argv)
 {
@@ -757,6 +845,8 @@ int main (int argc, char** argv)
     // GGTests --host <plug-in>: load the built plug-in like a DAW would, and nothing else
     if (const int h = args.indexOf ("--host"); h >= 0 && h + 1 < args.size())
         return runHostScan (juce::File (args[h + 1])) == 0 ? 0 : 1;
+    if (const int c = args.indexOf ("--classify"); c >= 0 && c + 1 < args.size())
+        return runClassify (juce::File (args[c + 1]));
 
     // keep the tests out of the real settings / library
     const auto home = testRoot().getChildFile ("Home");

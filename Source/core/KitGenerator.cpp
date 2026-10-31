@@ -30,6 +30,23 @@ namespace gg
             }
         }
 
+        // what kind of effect: a build-up (riser, reverse), a hit with a tail (impact, downlifter), a texture
+        // (vinyl, noise, atmos) or a short accent (scratch, stab, laser, tag). Two FX in a kit should differ.
+        enum class FxKind { build, impact, texture, accent };
+        FxKind fxKindOf (const SoundInfo& s)
+        {
+            const juce::File f (s.path);
+            const auto p = " " + (f.getParentDirectory().getFileName() + " " + f.getFileNameWithoutExtension()).toLowerCase().replaceCharacters ("_-./\\()[]0123456789", "                   ") + " ";
+            auto any = [&p] (std::initializer_list<const char*> ws) { for (auto* w : ws) if (p.contains (" " + juce::String (w) + " ")) return true; return false; };
+            if (any ({ "riser", "risers", "rise", "uplifter", "uplift", "build", "buildup", "reverse", "reversed", "rev", "swell", "upsweep" })) return FxKind::build;
+            if (any ({ "impact", "impacts", "boom", "downlifter", "downsweep", "drop", "sub drop", "slam", "thud" }))                        return FxKind::impact;
+            if (any ({ "vinyl", "noise", "texture", "textures", "atmos", "atmosphere", "ambience", "ambient", "foley", "drone", "tape", "crackle" })) return FxKind::texture;
+            if (any ({ "scratch", "scratches", "stab", "stabs", "laser", "zap", "glitch", "tag", "airhorn", "horn", "siren", "chop", "vox" }))  return FxKind::accent;
+            if (s.attackMs > 120.0f) return FxKind::build;
+            if (s.duration > 1.5f && s.decayMs > 700.0f) return s.flatness > 0.3f ? FxKind::texture : FxKind::impact;
+            return FxKind::accent;
+        }
+
         bool isMainSlot (Slot s)
         {
             return s == Slot::kick || s == Slot::snare || s == Slot::closedHat || s == Slot::bass808 || s == Slot::clap;
@@ -151,7 +168,8 @@ namespace gg
         switch (slot)
         {
             case Slot::kick:
-                if (with808) score -= 0.15f * rise (s.decayMs, 250, 560) + 0.05f * s.subShare;
+                // with an 808 the kick has to get out of its way: short, not much ring, not much sub
+                if (with808) score -= 0.15f * juce::jmax (rise (s.decayMs, 250, 560), rise (s.ringMs, 450, 900)) + 0.05f * s.subShare;
                 else         score += 0.08f * rise (s.subShare + s.lowShare, 0.4f, 0.7f);
                 break;
             case Slot::bass808:
@@ -239,6 +257,9 @@ namespace gg
                 break;
             case Slot::bass808:
                 if (auto* k = snd (Slot::kick)) score -= 0.06f * rise (k->decayMs, 210, 490);
+                break;
+            case Slot::fx2:
+                if (auto* f = snd (Slot::fx1); f != nullptr && fxKindOf (*f) == fxKindOf (s)) score -= 0.15f;
                 break;
             default: break;
         }
@@ -344,7 +365,7 @@ namespace gg
             for (size_t i = 0; i < toms.size(); ++i) kit[targets[i]].path = toms[i].second;
         }
 
-        if (opts.key >= 0) tuneToKey (kit, opts.key);
+        tuneToKey (kit, opts.key);    // (no key: the kick to the 808)
         return kit;
     }
 
@@ -407,6 +428,21 @@ namespace gg
         return std::round (((float) target - midi) * 100.0f) / 100.0f;
     }
 
+    float KitGenerator::kickTo808 (const SoundInfo& kick, const SoundInfo& bass)
+    {
+        // the 808's own note (not the nearest semitone: an 808 can sit between notes) or its fifth
+        if (! kick.hasPitch() || ! bass.hasPitch()) return 0.0f;
+        const float k = kick.midiPitch(), b = bass.midiPitch();
+        float best = 1000;
+        for (int oct = -3; oct <= 3; ++oct)
+            for (float iv : { 0.0f, 7.0f })
+            {
+                const float t = b + iv + 12.0f * (float) oct;
+                if (std::abs (t - k) < std::abs (best)) best = t - k;
+            }
+        return std::abs (best) <= 2.5f ? std::round (best * 100.0f) / 100.0f : 0.0f;
+    }
+
     void KitGenerator::tuneToKey (Kit& kit, int key) const
     {
         kit.key = key;
@@ -414,9 +450,15 @@ namespace gg
         {
             auto& st = kit.slots[(size_t) i];
             st.autoTune = 0;
-            if (st.isEmpty()) continue;
+            if (st.isEmpty() || key < 0) continue;
             if (auto* s = find (st.path))
                 st.autoTune = autoTuneFor (*s, (Slot) i, key);
         }
+
+        // no key: the kick is still tuned to the 808, so the low end agrees with itself
+        if (key < 0 && ! kit[Slot::kick].isEmpty() && ! kit[Slot::bass808].isEmpty())
+            if (auto* k = find (kit[Slot::kick].path))
+                if (auto* b = find (kit[Slot::bass808].path))
+                    kit[Slot::kick].autoTune = kickTo808 (*k, *b);
     }
 }

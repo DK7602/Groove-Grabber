@@ -64,8 +64,16 @@ namespace gg::analysis
 
         struct WordHit { Cat cat = Cat::unknown; float strength = 0; PercKind perc = PercKind::none; };
 
-        WordHit catFromTokens (const juce::StringArray& t, NameGuess& g)
+        WordHit catFromTokens (const juce::StringArray& tokens, NameGuess& g)
         {
+            // words run together ("realclaps", "trapsnare", "snarehard"): the unmistakable drum words inside
+            // a longer token count as words of their own
+            juce::StringArray t (tokens);
+            for (auto& tok : tokens)
+                if (tok.length() >= 6)
+                    for (auto* w : { "kick", "snare", "clap", "hihat", "cymbal", "shaker", "cowbell", "rimshot", "conga", "bongo", "tambourine", "crash" })
+                        if (tok.contains (w) && tok != w && tok != juce::String (w) + "s")
+                            t.addIfNotAlreadyThere (w);
             const auto joined = t.joinIntoString (" ");
             WordHit h;
             auto set = [&h] (Cat c, float s, PercKind p = PercKind::none)
@@ -82,31 +90,39 @@ namespace gg::analysis
             g.saysClosed = g.saysClosed || hasAny (t, { "closed", "close", "chh", "ch", "cl", "tight", "pedal", "clsd" });
 
             if (kickWord)                                                   set (Cat::kick, 0.9f);
-            if (hasAny (t, { "snare", "snares", "snr", "sd", "sn", "snre" })) set (Cat::snare, 0.9f);
+            if (hasAny (t, { "snare", "snares", "snr", "sd", "sn", "snre", "snaredrum" })) set (Cat::snare, 0.9f);
             if (hasAny (t, { "clap", "claps", "clp", "handclap", "handclaps" })) set (Cat::clap, 0.92f);
+            if (t.contains ("cp"))                                          set (Cat::clap, 0.85f);    // drum-machine shorthand
             if (hasAny (t, { "rim", "rims", "rimshot", "sidestick", "crossstick" }) || phrase (joined, "side stick") || phrase (joined, "cross stick"))
                 set (Cat::rim, 0.92f);
+            if (t.contains ("rs"))                                          set (Cat::rim, 0.85f);
             if (t.contains ("stick") || t.contains ("sticks"))              set (Cat::rim, 0.55f);
             if (hatWord)
             {
                 if (g.saysOpen && ! t.contains ("closed"))                  set (Cat::openHat, 0.93f);
                 else                                                        set (Cat::closedHat, g.saysClosed ? 0.93f : 0.75f);
             }
-            if (hasAny (t, { "tom", "toms", "ftom", "floortom", "racktom", "rtom" }) || phrase (joined, "floor tom"))
+            if (hasAny (t, { "tom", "toms", "ftom", "floortom", "racktom", "rtom", "lowtom", "midtom", "hitom", "hightom" }) || phrase (joined, "floor tom"))
                 set (Cat::tom, 0.9f);
+            if (hasAny (t, { "lt", "mt", "ht", "ft" }))                    set (Cat::tom, 0.84f);     // low / mid / high / floor tom
             if (hasAny (t, { "crash", "crashes", "splash", "china", "cymbal", "cymbals", "cym", "cymb" })) set (Cat::crash, 0.88f);
+            if (t.contains ("cy"))                                          set (Cat::crash, 0.84f);
             if (hasAny (t, { "ride", "rides" }))                            set (Cat::ride, 0.93f);
+            if (t.contains ("rd"))                                          set (Cat::ride, 0.84f);
             if (hasAny (t, { "sub", "subs", "subbass", "bass", "basses", "808bass" }) && ! phrase (joined, "bass drum"))
+            {
                 set (Cat::bass808, 0.8f);
+                g.saysBass = true;
+            }
 
             // percussion, with its kind
-            if (hasAny (t, { "shaker", "shakers", "shk", "shake", "maraca", "maracas", "cabasa", "egg" })) set (Cat::perc, 0.9f, PercKind::shaker);
+            if (hasAny (t, { "shaker", "shakers", "shk", "shake", "maraca", "maracas", "marc", "mrc", "cabasa", "egg" })) set (Cat::perc, 0.9f, PercKind::shaker);
             if (hasAny (t, { "tamb", "tambo", "tambourine", "tambourines", "tamborine", "jingle" }))     set (Cat::perc, 0.9f, PercKind::tambourine);
-            if (hasAny (t, { "conga", "congas", "bongo", "bongos", "djembe", "tabla", "timbale", "timbales", "cajon", "darbuka" }))
+            if (hasAny (t, { "conga", "congas", "cng", "bongo", "bongos", "djembe", "tabla", "timbale", "timbales", "cajon", "darbuka", "lc", "lcg", "mcg", "hcg" }))
                 set (Cat::perc, 0.9f, PercKind::conga);
-            if (hasAny (t, { "cowbell", "cowbells", "cowb", "cb", "agogo" }))                          set (Cat::perc, 0.9f, PercKind::cowbell);
+            if (hasAny (t, { "cowbell", "cowbells", "cowb", "cow", "cb", "agogo" }))                          set (Cat::perc, 0.9f, PercKind::cowbell);
             if (hasAny (t, { "snap", "snaps", "fingersnap", "fingersnaps", "finger" }))                set (Cat::perc, 0.9f, PercKind::snap);
-            if (hasAny (t, { "block", "woodblock", "clave", "claves", "knock", "wood" }))              set (Cat::perc, 0.85f, PercKind::block);
+            if (hasAny (t, { "block", "woodblock", "clave", "claves", "clv", "knock", "wood" }))              set (Cat::perc, 0.85f, PercKind::block);
             if (hasAny (t, { "triangle", "tri", "chime", "chimes", "bell", "bells" }))                 set (Cat::perc, 0.6f, PercKind::triangle);
             if (hasAny (t, { "perc", "percs", "percussion", "guiro", "taiko", "click", "tick" }))     set (Cat::perc, 0.82f, PercKind::other);
 
@@ -137,8 +153,10 @@ namespace gg::analysis
                 }
             }
 
-            // "808" on its own is the bass; "808 snare", "808 clap" etc. is the drum machine's sound
-            if (g.says808 && h.strength < 0.85f)                           set (Cat::bass808, 0.88f);
+            // "808" on its own is the bass; "808 snare", "808 clap", "808 LT" or a "TR-808 Kit" folder is the drum machine
+            if (g.says808 && h.cat == Cat::unknown
+                 && ! hasAny (t, { "kit", "kits", "drum", "drums", "machine", "machines", "tr", "rhythm", "perc", "percussion", "oneshots" }))
+                set (Cat::bass808, 0.88f);
             if (g.says808 && kickWord && h.cat == Cat::kick)                h.strength = 0.7f;   // "808 kick": the audio decides kick vs 808
 
             if (hasAny (t, { "loop", "loops", "lp", "break", "breaks", "breakbeat", "groove", "grooves", "fill", "fills" }) || t.contains ("bpm"))
@@ -207,6 +225,7 @@ namespace gg::analysis
             g.loopWord = g.loopWord || (fg.loopWord && i == folderList.size() - 1);
             g.saysMelodic = g.saysMelodic || (fg.saysMelodic && hit.cat == Cat::melodic);
             g.says808 = g.says808 || (fg.says808 && hit.cat == Cat::bass808);
+            g.saysBass = g.saysBass || (fg.saysBass && hit.cat == Cat::bass808);
             if (hit.cat == Cat::closedHat || hit.cat == Cat::openHat)
             {
                 g.saysOpen = g.saysOpen || fg.saysOpen;
@@ -296,6 +315,18 @@ namespace gg::analysis
             best = minLag;
             for (int tau = minLag; tau < maxLag; ++tau)
                 if (cmnd[(size_t) tau] < cmnd[(size_t) best]) best = tau;
+
+            // a drum's overtones aren't harmonic (a tom's ring at 1.59x and 2.14x its note), so the deepest dip
+            // can land on a "period" two notes long - an octave too low. An earlier dip that is nearly as deep
+            // is the real note.
+            if (cmnd[(size_t) best] < 0.35f)
+                for (int tau = juce::jmax (minLag + 1, best / 4); tau < best * 3 / 4; ++tau)
+                    if (cmnd[(size_t) tau] < cmnd[(size_t) tau - 1] && cmnd[(size_t) tau] <= cmnd[(size_t) tau + 1]
+                         && cmnd[(size_t) tau] < cmnd[(size_t) best] + 0.06f)
+                    {
+                        best = tau;
+                        break;
+                    }
         }
 
         // parabolic interpolation
@@ -331,6 +362,7 @@ namespace gg::analysis
     void measure (const float* x, int n, double sr, SoundInfo& info)
     {
         info.sampleRate = sr;
+        info.measureVersion = SoundInfo::currentMeasure;
         if (n <= 0 || sr <= 0) return;
 
         // ---- peak, clipping ----
@@ -394,6 +426,21 @@ namespace gg::analysis
         // (the quiet tail, to -40 dB, still counts as "the sound" for the spectrum and noise floor)
         int tailF = frames - 1;
         while (tailF > maxF && env[(size_t) tailF] < envMax * 0.01f) --tailF;
+
+        // how long it rings: to -40 dB, or to just above the hiss / vinyl floor if that's louder
+        {
+            std::vector<float> after (env.begin() + maxF, env.end());
+            float floorLevel = 0;
+            if (after.size() > 20)
+            {
+                std::nth_element (after.begin(), after.begin() + (long) after.size() / 10, after.end());
+                floorLevel = after[after.size() / 10];
+            }
+            const float thresh = juce::jmin (envMax * 0.1f, juce::jmax (envMax * 0.01f, floorLevel * 2.0f));
+            int ringF = frames - 1;
+            while (ringF > maxF && env[(size_t) ringF] < thresh) --ringF;
+            info.ringMs = (float) (ringF - maxF);
+        }
 
         // loudest 50 ms
         {
@@ -466,8 +513,7 @@ namespace gg::analysis
             ++framesAdded;
         }
         const double binHz = sr / Spectrum::size;
-        double total = 0, weighted = 0, sub = 0, low = 0, mid = 0, high = 0, logSum = 0, linSum = 0;
-        int flatBins = 0;
+        double total = 0, weighted = 0, sub = 0, low = 0, mid = 0, high = 0, maxP = 0;
         for (int k = 1; k <= Spectrum::size / 2; ++k)
         {
             const double f = k * binHz;
@@ -475,17 +521,39 @@ namespace gg::analysis
             const double p = sp.power[(size_t) k];
             total += p;
             weighted += f * p;
+            maxP = juce::jmax (maxP, p);
             if (f < 70) sub += p;
             else if (f < 250) low += p;
             else if (f < 2500) mid += p;
             else if (f >= 5000) high += p;
-            if (f >= 100 && f <= juce::jmin (16000.0, sr * 0.45))
+        }
+
+        // flatness (1 = noise, 0 = pure tones), only over the band the sound actually covers: an old 8-bit
+        // or band-limited sample has empty top octaves, which would otherwise read as "tonal"
+        double edgeHz = juce::jmin (16000.0, sr * 0.45);
+        if (total > 0)
+        {
+            double cum = 0;
+            for (int k = 1; k <= Spectrum::size / 2; ++k)
             {
-                logSum += std::log (p + 1.0e-12);
-                linSum += p + 1.0e-12;
-                ++flatBins;
+                cum += sp.power[(size_t) k];
+                if (cum >= 0.995 * total) { edgeHz = juce::jmin (edgeHz, juce::jmax (1000.0, k * binHz)); break; }
             }
         }
+        auto flatnessBetween = [&] (double loHz, double hiHz)
+        {
+            const double fl = maxP * 1.0e-7 + 1.0e-14;
+            double logSum = 0, linSum = 0;
+            int bins = 0;
+            for (int k = (int) std::ceil (loHz / binHz); k <= juce::jmin (Spectrum::size / 2, (int) (hiHz / binHz)); ++k)
+            {
+                const double p = sp.power[(size_t) k] + fl;
+                logSum += std::log (p);
+                linSum += p;
+                ++bins;
+            }
+            return bins > 4 ? (float) (std::exp (logSum / bins) / (linSum / bins)) : 0.0f;
+        };
         if (total > 0)
         {
             info.centroidHz = (float) (weighted / total);
@@ -501,28 +569,32 @@ namespace gg::analysis
                 if (cum >= 0.85 * total) { info.rolloffHz = (float) (k * binHz); break; }
             }
         }
-        if (flatBins > 0)
-            info.flatness = (float) (std::exp (logSum / flatBins) / (linSum / flatBins));
+        info.flatness = flatnessBetween (100.0, edgeHz);
+        info.airFlatness = edgeHz > 3500.0 ? flatnessBetween (2000.0, edgeHz) : 0.0f;
 
-        // separate bursts in the first 50 ms (claps have 3 or 4)
+        // separate bursts in the first 60 ms (a clap's 3 or 4 hands). A burst only counts after a real gap:
+        // the level has to fall to half (-6 dB) and climb back to twice that. The flutter of plain noise
+        // (a snare's wires, a shaker) never does that.
         if (info.centroidHz > 700.0f && info.subShare + info.lowShare < 0.4f)
         {
             const float fastPeak = *std::max_element (fastEnv.begin(), fastEnv.end());
             int bursts = 0;
-            const int end = juce::jmin (frames - 1, onsetF + 50);
-            float lastMin = 0;
-            bool rising = true;
-            for (int f = onsetF + 1; f < end; ++f)
+            bool inBurst = false;
+            float burstPeak = 0, dip = 0;
+            const int from = juce::jmax (0, onsetF - 5), end = juce::jmin (frames, onsetF + 60);
+            for (int f = from; f < end; ++f)
             {
-                const float a = fastEnv[(size_t) f - 1], b = fastEnv[(size_t) f];
-                if (rising && b < a)
+                const float e = fastEnv[(size_t) f];
+                if (! inBurst)
                 {
-                    if (a > fastPeak * 0.25f && (bursts == 0 || a > lastMin * 1.4f)) ++bursts;
-                    rising = false;
-                    lastMin = b;
+                    if (e >= fastPeak * 0.3f && (bursts == 0 || e >= dip * 2.0f)) { inBurst = true; ++bursts; burstPeak = e; }
+                    else dip = juce::jmin (dip, e);
                 }
-                else if (! rising && b > a) rising = true;
-                else if (! rising) lastMin = juce::jmin (lastMin, b);
+                else
+                {
+                    burstPeak = juce::jmax (burstPeak, e);
+                    if (e < burstPeak * 0.5f) { inBurst = false; dip = e; }
+                }
             }
             info.burstCount = juce::jmax (1, bursts);
         }
@@ -542,61 +614,127 @@ namespace gg::analysis
                 const float f0 = detectPitch (x + from, len, sr, 28.0f, 1000.0f, conf);
                 if (f0 > 0) { info.pitchHz = f0; info.pitchConf = conf; }
             }
+
+            // the note it settles on once any pitch drop or slide is over - what an 808 has to be tuned by
+            // (an 808 that starts an octave up and falls for 50 ms reads several notes sharp over the whole
+            // hit). Pitch in overlapping windows along the body; the steady stretch at the end wins.
+            if (info.pitchConf > 0.4f)
+            {
+                const int win = (int) (sr * 0.12), step = (int) (sr * 0.04);
+                std::vector<std::pair<float, float>> notes;     // (midi, confidence)
+                for (int start = onsetSample + (int) (sr * 0.02); start + win <= soundEnd && start < onsetSample + (int) (sr * 0.9); start += step)
+                {
+                    const int fr = juce::jlimit (0, frames - 1, (start + win / 2) / hop);
+                    if (env[(size_t) fr] < envMax * 0.1f) break;        // faded 20 dB: the tail can fool it
+                    float c = 0;
+                    const float p = detectPitch (x + start, win, sr, 28.0f, 1000.0f, c);
+                    if (p > 0 && c > 0.6f) notes.emplace_back (69.0f + 12.0f * std::log2 (p / 440.0f), c);
+                }
+                if (notes.size() >= 2)
+                {
+                    // walk back from the last window while the note holds (within half a semitone)
+                    const float last = notes.back().first;
+                    std::vector<float> steady;
+                    float confSum = 0;
+                    for (auto it = notes.rbegin(); it != notes.rend() && std::abs (it->first - last) < 0.5f; ++it)
+                    {
+                        steady.push_back (it->first);
+                        confSum += it->second;
+                    }
+                    if (steady.size() >= 2 || notes.size() == 2)
+                    {
+                        std::nth_element (steady.begin(), steady.begin() + (long) steady.size() / 2, steady.end());
+                        const float note = steady[steady.size() / 2];
+                        // a drop or a slide only ever lands lower, and not by more than an octave and a bit;
+                        // anything else is the window being fooled
+                        const float overall = 69.0f + 12.0f * std::log2 (info.pitchHz / 440.0f);
+                        if (overall - note > -1.0f && overall - note < 8.5f)
+                        {
+                            info.pitchHz = 440.0f * std::pow (2.0f, (note - 69.0f) / 12.0f);
+                            info.pitchConf = juce::jmax (info.pitchConf, confSum / (float) steady.size());
+                        }
+                    }
+                }
+            }
+
+            // the pitch right at the start: a kick sweeps down from an octave or more above, a tom barely moves
+            info.pitchGlide = 0;
+            const int eFrom = onsetSample + (int) (sr * 0.002), eLen = juce::jmin ((int) (sr * 0.045), soundEnd - eFrom);
+            if (info.pitchConf > 0.45f && eLen > (int) (sr * 0.03))
+            {
+                float econf = 0;
+                const float early = detectPitch (x + eFrom, eLen, sr, 40.0f, 1200.0f, econf);
+                if (early > 0 && econf > 0.45f)
+                    info.pitchGlide = juce::jlimit (-12.0f, 36.0f, 12.0f * std::log2 (early / info.pitchHz));
+            }
         }
     }
 
     //==============================================================================
     Cat classifyAudio (const SoundInfo& s, float& confidence)
     {
-        const float lowAll = s.subShare + s.lowShare;
-        const float cen = s.centroidHz, decay = s.decayMs, flat = s.flatness, high = s.highShare;
-        const bool tonal = s.pitchConf > 0.6f;
+        // Rules checked against ~1,900 labelled one-shots from 90 drum machines and kits (with their names
+        // hidden). Each sound gets a 0..1 score per category; the best one wins.
+        const float sub = s.subShare, low = s.lowShare, mid = s.midShare, high = s.highShare;
+        const float lowAll = sub + low;
+        const float mh = mid + high;
+        const float air = juce::jmax (0.0f, 1.0f - lowAll - mid);          // everything above 2.5 kHz
+        const float cen = s.centroidHz, decay = s.decayMs, ring = s.ringMs, flat = s.flatness, af = s.airFlatness;
+        const float ph = s.pitchHz, pc = s.pitchConf, att = s.attackMs, dur = s.duration;
+        const bool pitched = pc > 0.4f, clearPitch = pc > 0.55f;
+        const int bursts = s.burstCount;
         std::array<float, numCats> sc {};
 
-        const float body = lowAll + s.midShare;                  // anything below 2.5 kHz
-        const bool pitched = s.pitchConf > 0.4f;
+        // ---- low drums ----
+        // a kick: a low fundamental (they sit around 45-75 Hz) or real sub, and next to nothing up top
+        const float kickLow = clearPitch ? juce::jmax (fall (ph, 68, 92), rise (sub, 0.2f, 0.4f)) : 1.0f;
+        sc[(size_t) Cat::kick] = rise (lowAll, 0.35f, 0.7f) * fall (cen, 400, 1800) * fall (decay, 600, 1300) * kickLow
+                               * fall (mh, 0.2f, 0.45f) * fall (high, 0.06f, 0.15f);
 
-        auto& kick = sc[(size_t) Cat::kick];
-        kick = rise (lowAll, 0.35f, 0.7f) * fall (cen, 400, 1800) * fall (decay, 600, 1300);
+        // an 808: low, clean and long
+        sc[(size_t) Cat::bass808] = rise (lowAll, 0.5f, 0.85f) * fall (cen, 250, 800) * juce::jmax (rise (decay, 400, 800), rise (ring, 800, 1400))
+                                  * (0.4f + 0.6f * rise (pc, 0.4f, 0.75f)) * (pitched ? fall (ph, 75, 110) : 1.0f) * fall (mh, 0.06f, 0.2f);
 
-        auto& b808 = sc[(size_t) Cat::bass808];
-        b808 = rise (lowAll, 0.5f, 0.85f) * fall (cen, 250, 800) * rise (decay, 400, 800) * (0.4f + 0.6f * rise (s.pitchConf, 0.4f, 0.75f))
-             * (pitched ? fall (s.pitchHz, 95, 150) : 1.0f) * fall (s.midShare + s.highShare, 0.06f, 0.2f);
+        // a tom: a clear note above a kick's, ringing on
+        sc[(size_t) Cat::tom] = rise (pc, 0.45f, 0.75f) * rise (ph, 62, 85) * fall (ph, 350, 500) * fall (cen, 1500, 3500)
+                              * rise (decay, 60, 140) * fall (decay, 2500, 4000) * fall (sub, 0.3f, 0.6f)
+                              * (0.8f + 0.2f * rise (mh, 0.02f, 0.08f)) * fall (mh, 0.15f, 0.3f) * (0.7f + 0.3f * rise (ring, 200, 450));
 
-        auto& snare = sc[(size_t) Cat::snare];
-        snare = rise (cen, 700, 1600) * fall (cen, 7000, 10500) * rise (flat, 0.04f, 0.15f) * fall (lowAll, 0.45f, 0.75f)
-              * rise (body, 0.08f, 0.2f) * rise (decay, 50, 110) * fall (decay, 1200, 2000) * (s.burstCount >= 3 ? 0.55f : 1.0f);
+        // ---- cymbals: all air, no body. Closed < open < crash by how long they ring ----
+        const float metal = rise (air, 0.3f, 0.55f) * fall (lowAll, 0.04f, 0.12f) * rise (cen, 2500, 4000);
+        const float hat = metal * rise (cen, 4000, 6000) * rise (high, 0.3f, 0.5f) * rise (flat, 0.05f, 0.15f);
+        const float cymbal = juce::jmax (rise (ring, 800, 1400), rise (dur, 0.9f, 1.4f) * rise (ring, 400, 650));
+        sc[(size_t) Cat::closedHat] = hat * fall (ring, 200, 400) * fall (decay, 160, 350) * fall (att, 20, 35);
+        sc[(size_t) Cat::openHat] = hat * juce::jmax (rise (ring, 220, 380), rise (decay, 200, 350)) * (1.0f - 0.85f * cymbal);
+        sc[(size_t) Cat::crash] = metal * cymbal * rise (flat, 0.05f, 0.12f);
+        sc[(size_t) Cat::ride] = metal * cymbal * fall (flat, 0.1f, 0.2f) * 0.9f;
 
-        auto& clap = sc[(size_t) Cat::clap];
-        clap = rise (cen, 800, 1500) * fall (cen, 6000, 9000) * rise (flat, 0.01f, 0.05f) * fall (lowAll, 0.35f, 0.6f)
-             * (s.burstCount >= 3 ? 1.05f : (s.burstCount == 2 ? 0.55f : 0.25f)) * fall (decay, 1000, 1700);
+        // ---- snare: a body plus a noise (the wires). Without a body it has to be short ----
+        const float noisy = juce::jmax (rise (air, 0.03f, 0.12f) * juce::jmax (rise (flat, 0.04f, 0.12f), rise (af, 0.25f, 0.4f)),
+                                        rise (mid, 0.25f, 0.5f) * rise (flat, 0.12f, 0.25f));
+        const float bodyOrBright = juce::jmax (rise (lowAll, 0.1f, 0.3f), rise (cen, 1500, 2500) * rise (flat, 0.1f, 0.2f) * fall (ring, 400, 800));
+        sc[(size_t) Cat::snare] = noisy * bodyOrBright * fall (high, 0.6f, 0.8f) * fall (cen, 7000, 10500) * fall (lowAll, 0.9f, 0.98f)
+                                * rise (decay, 25, 55) * fall (decay, 1200, 2000) * (bursts >= 3 ? 0.5f : 1.0f);
 
-        auto& rim = sc[(size_t) Cat::rim];
-        rim = fall (decay, 80, 180) * rise (cen, 700, 1400) * fall (cen, 6000, 9000) * fall (flat, 0.12f, 0.35f) * fall (lowAll, 0.3f, 0.6f);
+        // ---- clap: mid-band noise in separate bursts, almost no low end, not much air ----
+        sc[(size_t) Cat::clap] = rise (cen, 800, 1500) * fall (cen, 3500, 5500) * rise (flat, 0.05f, 0.12f) * fall (lowAll, 0.12f, 0.3f)
+                               * fall (high, 0.25f, 0.45f) * (bursts >= 3 ? 1.1f : (bursts == 2 ? 0.7f : 0.3f)) * fall (decay, 400, 900);
 
-        const float hatShape = rise (cen, 4000, 7000) * rise (high, 0.3f, 0.55f) * rise (flat, 0.06f, 0.2f)
-                             * fall (body, 0.12f, 0.3f) * (s.burstCount >= 3 ? 0.5f : 1.0f);
-        sc[(size_t) Cat::closedHat] = hatShape * fall (decay, 160, 350);
-        sc[(size_t) Cat::openHat] = hatShape * rise (decay, 200, 400) * fall (decay, 2000, 3500);
+        // ---- rim: a short, mid-band click ----
+        // (a tonal click is a rim only around an 808 rim's note: higher is a clave or a block, lower a conga)
+        const float rimTone = flat >= 0.1f ? 1.0f : (pc > 0.6f ? rise (ph, 300, 380) * fall (ph, 650, 800) : fall (cen, 1200, 1800));
+        sc[(size_t) Cat::rim] = fall (decay, 45, 90) * fall (ring, 120, 220) * rise (cen, 220, 600) * fall (cen, 6000, 9000)
+                              * fall (flat, 0.25f, 0.45f) * fall (lowAll, 0.5f, 0.9f) * rimTone;
 
-        auto& crash = sc[(size_t) Cat::crash];
-        crash = rise (cen, 2800, 5000) * rise (decay, 1300, 2300) * rise (flat, 0.1f, 0.28f);
+        // ---- percussion: shakers (noise with a soft attack), bells / claves / blocks / congas (clear tones) ----
+        const float shaker = rise (air, 0.5f, 0.8f) * rise (att, 15, 25) * fall (ring, 300, 600);
+        const float tone = juce::jmax ((pc > 0.6f ? 1.0f : 0.0f) * rise (ph, 300, 420), fall (flat, 0.02f, 0.05f) * rise (cen, 800, 1500))
+                         * fall (lowAll, 0.1f, 0.3f) * fall (decay, 400, 900);
+        sc[(size_t) Cat::perc] = 0.22f + juce::jmax (0.4f * shaker, 0.45f * tone);
 
-        auto& ride = sc[(size_t) Cat::ride];
-        ride = rise (cen, 2500, 4500) * rise (decay, 1000, 2000) * fall (flat, 0.1f, 0.3f) * 0.95f;
-
-        auto& tom = sc[(size_t) Cat::tom];
-        tom = rise (s.pitchConf, 0.45f, 0.75f) * rise (s.pitchHz, 55, 80) * fall (s.pitchHz, 350, 500) * fall (cen, 1500, 3500)
-            * rise (decay, 150, 300) * fall (s.subShare, 0.35f, 0.65f) * fall (decay, 2500, 4000)
-            * (0.55f + 0.45f * rise (s.midShare + s.highShare, 0.02f, 0.08f));
-
-        auto& perc = sc[(size_t) Cat::perc];
-        perc = 0.22f + 0.4f * (tonal && s.pitchHz > 400 ? 1.0f : 0.0f) * fall (decay, 400, 900)
-             + 0.25f * (flat > 0.3f && cen > 3500 && s.attackMs > 4 ? 1.0f : 0.0f) * fall (decay, 400, 800);
-
-        auto& fx = sc[(size_t) Cat::fx];
-        fx = juce::jmax (rise (s.duration, 1.5f, 3.0f) * rise (decay, 1500, 3000) * fall (cen, 2500, 5000) * fall (flat, 0.15f, 0.3f),
-                         rise (s.attackMs, 80, 350));   // long build-ups (risers, reverse hits)
+        // ---- effects: long and evolving, or a slow build (risers, reversed hits) ----
+        sc[(size_t) Cat::fx] = juce::jmax (rise (dur, 1.5f, 3.0f) * rise (decay, 1500, 3000) * fall (cen, 2500, 5000) * fall (flat, 0.15f, 0.3f),
+                                           rise (att, 80, 350));
 
         int best = 0, second = 1;
         for (int i = 0; i < numCats; ++i)
@@ -694,9 +832,17 @@ namespace gg::analysis
                 }
             }
 
-            // hats: the length decides open / closed when the name doesn't say
+            // hats: how long it rings decides open / closed when the name doesn't say
             if ((c == Cat::closedHat || c == Cat::openHat) && ! g.saysOpen && ! g.saysClosed)
-                c = s.decayMs > 260 ? Cat::openHat : Cat::closedHat;
+                c = s.ringMs > 300 ? Cat::openHat : Cat::closedHat;
+
+            // "808" alone could be the drum machine ("808 Cow", "808 MC"): with no low end it isn't the bass
+            if (c == Cat::bass808 && g.cat == Cat::bass808 && ! g.saysBass && audio != Cat::bass808 && audio != Cat::kick
+                 && (s.subShare + s.lowShare < 0.4f || s.centroidHz > 700.0f))
+            {
+                c = audio;
+                conf = audioConf * 0.9f;
+            }
 
             // "808 kick" and kicks that are really 808s: long, tonal, low
             if (c == Cat::kick && g.says808 && s.decayMs > 380 && s.pitchConf > 0.5f)

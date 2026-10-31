@@ -78,6 +78,7 @@ Add your drum folders once. Groove Grabber listens to every sound, works out wha
 - **+ MY RECORDINGS** adds a folder of hits you recorded yourself.
 - You can also drag folders from Explorer or Finder straight onto the page.
 - **RESCAN** looks for new, changed or removed files. Only new ones are analysed.
+- After an update that measures sounds in a new way, the first scan goes through your whole library once more ("Updating the analysis..."). Your favourites, never-use marks and the types you set by hand are kept.
 
 Scanning runs in the background on at most half your computer's cores, so your session keeps playing. A progress bar shows how far it's got.
 
@@ -92,9 +93,10 @@ Three folders are added for you: My Recordings, Harvested, and your Sample Snagg
 
 **What it learns about each sound**
 
-- **Type:** Kick, 808, Snare, Clap, Rim, Closed Hat, Open Hat, Tom, Crash, Ride, Perc or FX. It uses the sound itself plus clues in the file and folder names.
+- **Type:** Kick, 808, Snare, Clap, Rim, Closed Hat, Open Hat, Tom, Crash, Ride, Perc or FX. It uses the sound itself plus clues in the file and folder names, including drum-machine shorthand (BD, SD, CP, CH, OH, LT, MT, HT, CY, RS, CB). From the sound alone it tells a kick from a tom by its note and its sub, a clap from a snare by the clap's separate bursts, and a closed hat from an open hat and an open hat from a crash by how long each one rings.
+- **"808" in a name:** "808 Bass" or a folder of 808s is the bass; "808 Snare", "808 LT" or a "TR-808" kit folder is the drum machine's own sound.
 - **Character:** punch, warmth, brightness, room, vintage, aggression and live feel.
-- **Pitch** (the NOTE column), length, and problems such as clipping or hiss.
+- **Pitch** (the NOTE column), length, and problems such as clipping or hiss. An 808 that drops from an octave up or slides into its note is tuned by the note it lands on.
 
 Loops and vocal or melodic sounds (vocal chops, keys, guitar phrases) are recognised and **left out of kits automatically**, so a pack that mixes drums with loops is fine.
 
@@ -183,8 +185,8 @@ Moving a slider shifts all four kits the same way, so each kit keeps its own per
 | FEEL | Auto, Live, Hybrid, Prog | Auto lets the style decide. Live = real drums, Prog = drum machines, Hybrid = a mix. |
 | LOW END | Auto, Kick, Kick + 808 | Just a kick, or a kick and an 808. Auto follows the style (trap and G-Funk use an 808, rock doesn't). |
 | PERC | Auto, 0, 1, 2, 3 | How many percussion pads (shaker, tambourine, conga...) |
-| FX / sound effects | On / off | Adds two FX pads: risers, impacts, sweeps |
-| Tune kick, 808, toms to key | On / off | Tunes the 808 to the song's root, the kick to the root or fifth when it's close, and the toms to notes of the scale. Needs a key. |
+| FX / sound effects | On / off | Adds two FX pads of different kinds: a build-up (riser, reverse), an impact, a texture (vinyl, noise) or an accent (scratch, stab, laser) |
+| Tune kick, 808, toms to key | On / off | Tunes the 808 to the song's root, the kick to the root or fifth when it's close, and the toms to notes of the scale. With no key set, the kick is still tuned to the 808's note (or its fifth), so the low end agrees. |
 
 **USE SOUNDS FROM**
 
@@ -199,7 +201,7 @@ One switch per kind of folder: Drum Packs, One Shots, My Recordings, Sample Snag
 
 You get four kits across the top of the BUILD page, each a different take on your style. They're steered apart on purpose, so they don't share their main sounds.
 
-**Kit names** say what each kit is, plus the decade when you gave one. "90s g-funk" gives 90s Westside Classic, 90s Sunset G-Funk, 90s Westside Knock and 90s G-Funk Machine. "Hard rock" gives Rock Hard Hitter, Arena Hard Rock, Hard Rock Crunch and Hair Metal Gloss. Under each name is a three-word description of its sound.
+**Kit names** are new every time you generate. They come from your style, the places and moods you typed ("westcoast", "rainy", "summer", "late night") and each kit's own sound: the darkest kit gets a dark name, the dustiest a dusty one. "trap, westcoast" might give Westside Pulse, Diamond Lowrider, Compton Roll and Golden Hour Crenshaw. Under each name is a three-word description of its sound. Re-rolling one kit keeps its name, and you can rename a kit when you export it.
 
 **On each kit card**
 
@@ -210,7 +212,7 @@ You get four kits across the top of the BUILD page, each a different take on you
 
 **The pads (KIT EDITOR)**
 
-The kit you're editing shows its pads: Kick, 808, Snare, Clap, Rim, Closed Hat, Open Hat, Crash, Ride, three toms, three percussion and two FX. Each pad shows its waveform, file name and how far it was tuned to the key ("KEY +3.5").
+The kit you're editing shows its pads: Kick, 808, Snare, Clap, Rim, Closed Hat, Open Hat, Crash, Ride, three toms, three percussion and two FX. Each pad shows its waveform, file name and how far it was tuned to the key ("KEY +3.5"), or to the 808 when no key is set ("TO 808 +1.2").
 
 - **Click a pad** to hear it and open it in the pad editor below.
 - **Drag a pad into your DAW** to use that one sound on its own.

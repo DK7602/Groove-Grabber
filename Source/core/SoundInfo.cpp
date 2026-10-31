@@ -81,9 +81,14 @@ namespace gg
             o.writeFloat (traits[i]);
         o.writeByte ((char) rating);
         o.writeBool (hidden);
+        // version 4
+        o.writeFloat (airFlatness);
+        o.writeFloat (ringMs);
+        o.writeFloat (pitchGlide);
+        o.writeByte ((char) measureVersion);
     }
 
-    bool SoundInfo::read (juce::InputStream& in, int /*version*/)
+    bool SoundInfo::read (juce::InputStream& in, int version)
     {
         path = in.readString();
         pack = in.readString();
@@ -111,6 +116,19 @@ namespace gg
             traits[i] = in.readFloat();
         rating = (signed char) in.readByte();
         hidden = in.readBool();
+        if (version >= 4)
+        {
+            airFlatness = in.readFloat();
+            ringMs = in.readFloat();
+            pitchGlide = in.readFloat();
+            measureVersion = (int) in.readByte();
+        }
+        else
+        {
+            // measured by an older version: usable for now, measured again on the next scan
+            ringMs = decayMs * 1.8f;
+            measureVersion = 1;
+        }
         return path.isNotEmpty();
     }
 
