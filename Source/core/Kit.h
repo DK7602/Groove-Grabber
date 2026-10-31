@@ -51,9 +51,11 @@ namespace gg
     // Your saved kits (Documents/Groove Grabber/Kits/*.ggkit) and the recent ones (app data)
     namespace kitstore
     {
+        // Saved kits live in a folder per genre: Documents/Groove Grabber/Kits/Hip-Hop/90s Westside Classic.ggkit
+        juce::File folderFor (Genre);
         juce::File save (const Kit&);                         // returns the file
-        std::vector<std::pair<juce::File, Kit>> listSaved();
-        bool remove (const juce::File&);
+        std::vector<std::pair<juce::File, Kit>> listSaved();  // every genre folder, newest first (older loose kits are filed first)
+        bool remove (const juce::File&);                      // and its genre folder, once empty
         void addToHistory (const std::vector<Kit>&);
         std::vector<Kit> history();
     }

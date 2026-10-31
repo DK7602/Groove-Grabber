@@ -113,12 +113,46 @@ namespace gg
     //==============================================================================
     namespace kitstore
     {
+        juce::File folderFor (Genre g)
+        {
+            return paths::kitsDir().getChildFile (genreFolderName (g));
+        }
+
+        static void removeFolderIfEmpty (const juce::File& dir)
+        {
+            const auto root = paths::kitsDir();
+            if (dir != root && dir.isAChildOf (root) && dir.isDirectory()
+                 && dir.getNumberOfChildFiles (juce::File::findFilesAndDirectories) == 0)
+                dir.deleteFile();
+        }
+
+        // kits saved before genre folders sit loose in Kits/: file each one in its genre's folder
+        static void fileLooseKits()
+        {
+            juce::Array<juce::File> loose;
+            for (const auto& e : juce::RangedDirectoryIterator (paths::kitsDir(), false, "*.ggkit", juce::File::findFiles))
+                loose.add (e.getFile());
+            for (auto& f : loose)
+            {
+                const auto k = Kit::fromVar (juce::JSON::parse (f));
+                if (! k.isValid()) continue;
+                auto dir = folderFor (k.genre);
+                if (dir.createDirectory())
+                    f.moveFileTo (dir.getNonexistentChildFile (f.getFileNameWithoutExtension(), ".ggkit", false));
+            }
+        }
+
         juce::File save (const Kit& k)
         {
-            auto dir = paths::kitsDir();
-            // one file per kit id, named after the kit
+            // one file per kit id, named after the kit, in its genre's folder
             for (auto& [file, kit] : listSaved())
-                if (kit.id == k.id) file.deleteFile();
+                if (kit.id == k.id)
+                {
+                    file.deleteFile();
+                    if (kit.genre != k.genre) removeFolderIfEmpty (file.getParentDirectory());
+                }
+            auto dir = folderFor (k.genre);
+            if (! dir.createDirectory()) dir = paths::kitsDir();
             auto f = dir.getNonexistentChildFile (paths::safeFileName (k.name.isNotEmpty() ? k.name : "Kit"), ".ggkit", false);
             f.replaceWithText (juce::JSON::toString (k.toVar()));
             return f;
@@ -126,8 +160,9 @@ namespace gg
 
         std::vector<std::pair<juce::File, Kit>> listSaved()
         {
+            fileLooseKits();
             std::vector<std::pair<juce::File, Kit>> out;
-            for (const auto& e : juce::RangedDirectoryIterator (paths::kitsDir(), false, "*.ggkit", juce::File::findFiles))
+            for (const auto& e : juce::RangedDirectoryIterator (paths::kitsDir(), true, "*.ggkit", juce::File::findFiles))
             {
                 auto k = Kit::fromVar (juce::JSON::parse (e.getFile()));
                 if (k.isValid()) out.emplace_back (e.getFile(), k);
@@ -136,7 +171,12 @@ namespace gg
             return out;
         }
 
-        bool remove (const juce::File& f)   { return f.deleteFile(); }
+        bool remove (const juce::File& f)
+        {
+            const bool ok = f.deleteFile();
+            removeFolderIfEmpty (f.getParentDirectory());
+            return ok;
+        }
 
         static juce::File historyFile()     { return paths::appDataDir().getChildFile ("history.json"); }
 

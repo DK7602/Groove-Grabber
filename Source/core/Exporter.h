@@ -22,6 +22,7 @@ namespace gg
         bool mpcProgram = true;
         bool grooveMidi = true;
         bool placeholders = true;        // silent files for empty pads
+        bool genreFolder = true;         // inside a folder per genre: Exports/Hip-Hop/<kit>
         int bitDepth = 24;
         double sampleRate = 44100;
         juce::String grooveId;

@@ -535,6 +535,48 @@ namespace
         juce::MidiFile mf;
         check (mf.readFrom (mis) && mf.getNumTracks() == 1 && mf.getTrack (0)->getNumEvents() > 20, "groove MIDI readable");
         check (res.infoFile.loadFileAsString().contains ("LOAD INTO GROOVE AGENT"), "kit info written");
+        check (res.folder.getParentDirectory() == eo.destination.getChildFile (gg::genreFolderName (kits[0].genre)),
+               "export lands in its genre folder (" + res.folder.getParentDirectory().getFileName() + ")");
+        {
+            auto flat = eo;
+            flat.genreFolder = false;
+            flat.destination = testRoot().getChildFile ("ExportsFlat");
+            auto fr = gg::exportKit (kits[0], flat);
+            check (fr.ok && fr.folder.getParentDirectory() == flat.destination, "genre folder off: straight into the export folder");
+        }
+
+        // saved kits: a folder per genre; older loose kits get filed; empty genre folders go away
+        {
+            auto rockKit = kits[0];
+            rockKit.id = juce::Uuid().toString();
+            rockKit.genre = gg::Genre::rock;
+            rockKit.name = "Folder Test Rock";
+            const auto saved = gg::kitstore::save (rockKit);
+            check (saved.getParentDirectory() == gg::paths::kitsDir().getChildFile ("Rock"), "saved in Kits/Rock");
+
+            auto loose = rockKit;
+            loose.id = juce::Uuid().toString();
+            loose.genre = gg::Genre::country;
+            loose.name = "Loose Country";
+            gg::paths::kitsDir().getChildFile ("Loose Country.ggkit").replaceWithText (juce::JSON::toString (loose.toVar()));
+            bool foundLoose = false, foundRock = false;
+            juce::File looseNow;
+            for (auto& [file, kit] : gg::kitstore::listSaved())
+            {
+                if (kit.id == loose.id) { foundLoose = true; looseNow = file; }
+                if (kit.id == rockKit.id) foundRock = true;
+            }
+            check (foundLoose && foundRock && looseNow.getParentDirectory().getFileName() == "Country"
+                   && ! gg::paths::kitsDir().getChildFile ("Loose Country.ggkit").exists(), "an older loose kit is filed under Country");
+
+            rockKit.genre = gg::Genre::pop;            // saved again in another genre: it moves
+            const auto moved = gg::kitstore::save (rockKit);
+            check (moved.getParentDirectory().getFileName() == "Pop" && ! saved.exists(), "re-saved kit moves to its new genre folder");
+            check (! gg::paths::kitsDir().getChildFile ("Rock").exists(), "the empty Rock folder is gone");
+            gg::kitstore::remove (moved);
+            gg::kitstore::remove (looseNow);
+            check (! gg::paths::kitsDir().getChildFile ("Country").exists(), "deleting the last kit removes its genre folder");
+        }
         {
             juce::AudioFormatManager fm;
             fm.registerBasicFormats();

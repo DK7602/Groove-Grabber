@@ -97,6 +97,25 @@ namespace gg
         return {};
     }
 
+    juce::String genreFolderName (Genre g)
+    {
+        switch (g)
+        {
+            case Genre::trap:      return "Trap";
+            case Genre::boomBap:   return "Hip-Hop";
+            case Genre::rnb:       return "R&B";
+            case Genre::pop:       return "Pop";
+            case Genre::rock:      return "Rock";
+            case Genre::country:   return "Country";
+            case Genre::worship:   return "Worship";
+            case Genre::edm:       return "EDM";
+            case Genre::lofi:      return "Lo-Fi";
+            case Genre::cinematic: return "Cinematic";
+            default:               break;
+        }
+        return "Other";
+    }
+
     juce::String genreId (Genre g)
     {
         switch (g)

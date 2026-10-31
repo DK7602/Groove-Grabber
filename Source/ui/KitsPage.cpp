@@ -99,8 +99,27 @@ namespace ggui
 
     KitsPage::KitsPage (GrooveGrabberProcessor& p) : proc (p)
     {
-        view.onChange = [this] (int) { rebuild(); };
+        view.onChange = [this] (int) { rebuild (false); };
         addAndMakeVisible (view);
+
+        search.setTextToShowWhenEmpty ("Search kits: name, style, decade, key, BPM...", pal().faint);
+        search.setFont (uiFont (16.0f, false));
+        search.setBorder (juce::BorderSize<int> (4, 10, 4, 10));
+        search.setTooltip ("Every word must match: \"g-funk 90\", \"A minor\", \"westside\", \"92 BPM\"");
+        search.onTextChange = [this] { rebuild (false); };
+        search.onEscapeKey = [this] { search.clear(); rebuild (false); };
+        addAndMakeVisible (search);
+
+        // ALL, then a chip per genre; a chip shows only when that genre has kits here
+        for (int i = -1; i < gg::numGenres; ++i)
+        {
+            auto* b = genreChips.add (new juce::TextButton (i < 0 ? juce::String ("ALL") : gg::genreFolderName ((gg::Genre) i).toUpperCase()));
+            b->getProperties().set ("style", "segment");
+            b->setTooltip (i < 0 ? juce::String ("Every genre") : "Only " + gg::genreName ((gg::Genre) i) + " kits");
+            b->onClick = [this, i] { genreFilter = i; rebuild (false); };
+            addChildComponent (b);
+        }
+
         viewport.setViewedComponent (&content, false);
         viewport.setScrollBarsShown (true, false);
         addAndMakeVisible (viewport);
@@ -121,25 +140,62 @@ namespace ggui
         rebuild();
     }
 
-    void KitsPage::rebuild()
+    bool KitsPage::matchesSearch (const gg::Kit& k) const
     {
+        const auto words = juce::StringArray::fromTokens (search.getText().toLowerCase(), " ,", "\"");
+        if (words.isEmpty()) return true;
+        juce::String hay;
+        hay << k.name << " " << k.blurb << " " << gg::genreName (k.genre) << " " << gg::genreFolderName (k.genre) << " " << k.description;
+        if (const int si = gg::styleIndex (k.genre, k.styleId); si > 0) hay << " " << gg::styleFor (k.genre, si).name;
+        if (k.era >= 0) hay << " " << gg::eraName (k.era);
+        if (k.key >= 0) hay << " " << gg::keyName (k.key);
+        if (k.bpm > 0) hay << " " << juce::String (k.bpm, 0) << " bpm";
+        hay = hay.toLowerCase().replaceCharacter ('-', ' ');
+        for (auto w : words)
+        {
+            w = w.replaceCharacter ('-', ' ').trim();
+            if (w.isNotEmpty() && ! hay.contains (w)) return false;
+        }
+        return true;
+    }
+
+    void KitsPage::rebuild (bool keepScroll)
+    {
+        const int scrollY = keepScroll ? viewport.getViewPositionY() : 0;
         rows.clear();
-        if (view.getSelected() == 0)
+
+        std::vector<std::pair<juce::File, gg::Kit>> list;
+        if (view.getSelected() == 0) list = gg::kitstore::listSaved();
+        else for (auto& kit : gg::kitstore::history()) list.emplace_back (juce::File(), kit);
+
+        std::array<int, gg::numGenres> counts {};
+        for (auto& [file, kit] : list) ++counts[(size_t) kit.genre];
+        if (genreFilter >= 0 && counts[(size_t) genreFilter] == 0) genreFilter = -1;
+        kitsInView = (int) list.size();
+
+        for (int i = 0; i < genreChips.size(); ++i)
         {
-            for (auto& [file, kit] : gg::kitstore::listSaved())
+            const int g = i - 1;
+            const int n = g < 0 ? kitsInView : counts[(size_t) g];
+            auto* b = genreChips[i];
+            b->setButtonText ((g < 0 ? juce::String ("ALL") : gg::genreFolderName ((gg::Genre) g).toUpperCase()) + "  " + juce::String (n));
+            b->setVisible (n > 0);
+            b->setToggleState (g == genreFilter, juce::dontSendNotification);
+        }
+
+        for (auto& [file, kit] : list)
+            if ((genreFilter < 0 || (int) kit.genre == genreFilter) && matchesSearch (kit))
                 content.addAndMakeVisible (rows.add (new KitRow (proc, kit, file, *this, onExport, onLoaded)));
-        }
-        else
-        {
-            for (auto& kit : gg::kitstore::history())
-                content.addAndMakeVisible (rows.add (new KitRow (proc, kit, {}, *this, onExport, onLoaded)));
-        }
         resized();
+        viewport.setViewPosition (0, scrollY);
         repaint();
     }
 
     void KitsPage::refresh()
     {
+        search.setColour (juce::TextEditor::backgroundColourId, pal().sunken);
+        search.applyColourToAllText (pal().text);
+        search.setTextToShowWhenEmpty ("Search kits: name, style, decade, key, BPM...", pal().faint);
         rebuild();
     }
 
@@ -150,7 +206,19 @@ namespace ggui
         auto top = r.removeFromTop (32);
         view.setBounds (top.removeFromLeft (220));
         openFile.setBounds (top.removeFromRight (160));
+        top.removeFromRight (12);
+        top.removeFromLeft (12);
+        search.setBounds (top.removeFromRight (juce::jmin (380, top.getWidth())));
         r.removeFromTop (10);
+        auto chips = r.removeFromTop (30);
+        for (auto* b : genreChips)
+        {
+            if (! b->isVisible()) continue;
+            const int w = juce::jmin (chips.getWidth(), 28 + 8 * b->getButtonText().length());
+            b->setBounds (chips.removeFromLeft (w));
+            chips.removeFromLeft (4);
+        }
+        r.removeFromTop (8);
         viewport.setBounds (r);
         const int rowH = 74;
         content.setSize (r.getWidth() - 12, juce::jmax (r.getHeight(), rowH * rows.size()));
@@ -168,9 +236,10 @@ namespace ggui
         {
             g.setColour (p.dim);
             g.setFont (uiFont (16.0f, false));
-            g.drawFittedText (view.getSelected() == 0 ? "No saved kits yet. Press the heart on a kit, or SAVE KIT, to keep it here."
-                                                      : "Kits you generate show up here.",
-                              viewport.getBounds(), juce::Justification::centred, 2);
+            const juce::String text = kitsInView > 0 ? "No kits match. Clear the search or pick ALL."
+                                    : view.getSelected() == 0 ? "No saved kits yet. Press the heart on a kit, or SAVE KIT, to keep it here."
+                                                              : "Kits you generate show up here.";
+            g.drawFittedText (text, viewport.getBounds(), juce::Justification::centred, 2);
         }
     }
 }

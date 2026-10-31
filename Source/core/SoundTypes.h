@@ -37,6 +37,7 @@ namespace gg
     };
     constexpr int numGenres = (int) Genre::count;
     juce::String genreName (Genre);
+    juce::String genreFolderName (Genre);     // short, safe for a folder: "Hip-Hop", "R&B", "EDM"
     juce::String genreId (Genre);
     Genre genreFromId (const juce::String&, Genre fallback = Genre::boomBap);
 

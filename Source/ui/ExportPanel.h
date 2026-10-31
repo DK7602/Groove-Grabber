@@ -22,7 +22,8 @@ namespace ggui
         gg::Kit kit;
         juce::TextEditor name;
         juce::ToggleButton mpc { "MPC program (.pgm) - Groove Agent can import it" }, midi { "Groove MIDI file (the preview groove)" },
-                           placeholders { "Silent files for empty pads (keeps the numbering)" };
+                           placeholders { "Silent files for empty pads (keeps the numbering)" },
+                           genreFolder { "In a genre folder (Exports > Hip-Hop > your kit)" };
         Segmented bits { { "16-BIT", "24-BIT" } }, rate { { "44.1 kHz", "48 kHz" } };
         juce::TextButton go { "EXPORT KIT" }, close { "CLOSE" }, reveal { "SHOW FOLDER" }, change { "CHANGE..." };
         std::unique_ptr<juce::FileChooser> chooser;

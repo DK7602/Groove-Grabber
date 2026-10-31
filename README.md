@@ -36,6 +36,8 @@ then drop the kit straight onto Groove Agent.
    **alternatives** that fit the rest of the kit; click one to hear it, **USE** to swap. TUNE / START / LENGTH /
    GAIN / REVERSE shape each pad. Drop any audio file on a pad to use it, or drag a pad into your DAW.
 5. **EXPORT** for Groove Agent, then drag the kit onto pad 1 (see below).
+6. **MY KITS:** every kit you save, filed by genre. Tap a genre (HIP-HOP, ROCK, COUNTRY...) or search by name,
+   style, decade, key or BPM ("g-funk 90", "A minor").
 
 **Kit chemistry.** Sounds aren't just picked one by one. The open hat comes from the same pack as the closed hat,
 toms step apart in pitch, the percussion pads are different kinds (shaker, tambourine, conga...), the kick leaves
@@ -69,8 +71,11 @@ LIBRARY > HARVEST.
 
 **EXPORT** writes a folder:
 
+Saved kits live in `Documents/Groove Grabber/Kits/<genre>/` and exports in `Documents/Groove Grabber/Exports/<genre>/<kit>/`
+(switch the genre folder off in the export panel if you'd rather not).
+
 ```
-90s Westside Classic/
+Exports/Hip-Hop/90s Westside Classic/
   01 Kick.wav  02 Rim.wav  03 Snare.wav  04 Clap.wav  05 Snare 2.wav ... 17 808.wav ... 22 FX 2.wav
   90s Westside Classic.pgm          MPC 1000 program with every pad and note set
   90s Westside Classic Groove.mid   the preview groove on the same notes

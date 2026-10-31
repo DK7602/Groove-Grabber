@@ -147,6 +147,8 @@ namespace gg
     }
     void Settings::setKeyCompassDir (const juce::File& f) { const juce::ScopedLock sl (lock); props->setValue ("keyCompassDir", f.getFullPathName()); }
 
+    bool Settings::getExportGenreFolders() const     { const juce::ScopedLock sl (lock); return props->getBoolValue ("genreFolders", true); }
+    void Settings::setExportGenreFolders (bool b)    { const juce::ScopedLock sl (lock); props->setValue ("genreFolders", b); }
     int Settings::getExportBitDepth() const          { const juce::ScopedLock sl (lock); return props->getIntValue ("bits", 24) == 16 ? 16 : 24; }
     void Settings::setExportBitDepth (int b)         { const juce::ScopedLock sl (lock); props->setValue ("bits", b); }
     double Settings::getExportSampleRate() const     { const juce::ScopedLock sl (lock); return props->getDoubleValue ("rate", 44100.0) > 46000 ? 48000.0 : 44100.0; }

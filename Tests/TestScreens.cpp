@@ -44,6 +44,22 @@ int runScreenshots (const juce::File& outDir)
     proc.generate (false);
     proc.selectedSlot = gg::Slot::bass808;
     for (int i = 0; i < 3 && i < (int) proc.kits.size(); ++i) { auto k = proc.kits[(size_t) i]; k.favorite = i == 0; gg::kitstore::save (k); }
+    if (! proc.kits.empty())
+    {
+        // a few more genres, so MY KITS shows its genre chips
+        struct G { gg::Genre genre; const char* style; const char* name; };
+        for (const auto& x : { G { gg::Genre::rock, "rock.hard", "Rock Hard Hitter" }, G { gg::Genre::country, "country.classic", "Honky Tonk Classic" },
+                               G { gg::Genre::trap, "trap.atlanta", "ATL Trap House" }, G { gg::Genre::rock, "rock.hard", "80s Arena Hard Rock" } })
+        {
+            auto k = proc.kits.front();
+            k.id = juce::Uuid().toString();
+            k.genre = x.genre;
+            k.styleId = x.style;
+            k.name = x.name;
+            k.favorite = false;
+            gg::kitstore::save (k);
+        }
+    }
     pump (1500);
 
     for (bool light : { false, true })

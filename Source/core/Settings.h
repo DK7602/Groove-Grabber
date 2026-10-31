@@ -44,6 +44,8 @@ namespace gg
         juce::File getKeyCompassDir() const;
         void setKeyCompassDir (const juce::File&);
 
+        bool getExportGenreFolders() const;   // exports go in Exports/<genre>/
+        void setExportGenreFolders (bool);
         int getExportBitDepth() const;        // 16 or 24
         void setExportBitDepth (int);
         double getExportSampleRate() const;   // 44100 or 48000

@@ -7,12 +7,14 @@ namespace ggui
     {
         name.setFont (uiFont (17.0f));
         name.setBorder (juce::BorderSize<int> (4, 10, 4, 10));
+        name.onTextChange = [this] { repaint(); };
         addAndMakeVisible (name);
-        for (auto* t : { &mpc, &midi, &placeholders })
+        for (auto* t : { &mpc, &midi, &placeholders, &genreFolder })
         {
             t->setToggleState (true, juce::dontSendNotification);
             addAndMakeVisible (*t);
         }
+        genreFolder.onClick = [this] { proc.getSettings().setExportGenreFolders (genreFolder.getToggleState()); repaint(); };
         addAndMakeVisible (bits);
         addAndMakeVisible (rate);
         go.getProperties().set ("style", "primary");
@@ -45,6 +47,8 @@ namespace ggui
         name.applyColourToAllText (pal().text);
         bits.setSelected (proc.getSettings().getExportBitDepth() == 16 ? 0 : 1);
         rate.setSelected (proc.getSettings().getExportSampleRate() > 46000 ? 1 : 0);
+        genreFolder.setToggleState (proc.getSettings().getExportGenreFolders(), juce::dontSendNotification);
+        genreFolder.setButtonText ("In a genre folder (Exports > " + gg::genreFolderName (k.genre) + " > your kit)");
         reveal.setVisible (false);
         setVisible (true);
         toFront (true);
@@ -66,6 +70,7 @@ namespace ggui
         o.mpcProgram = mpc.getToggleState();
         o.grooveMidi = midi.getToggleState();
         o.placeholders = placeholders.getToggleState();
+        o.genreFolder = genreFolder.getToggleState();
         o.bitDepth = bits.getSelected() == 0 ? 16 : 24;
         o.sampleRate = rate.getSelected() == 1 ? 48000.0 : 44100.0;
         o.grooveId = proc.grooveId;
@@ -103,7 +108,7 @@ namespace ggui
         fmt.removeFromLeft (12);
         rate.setBounds (fmt);
         r.removeFromTop (10);
-        for (auto* t : { &mpc, &midi, &placeholders }) { t->setBounds (r.removeFromTop (26)); }
+        for (auto* t : { &mpc, &midi, &placeholders, &genreFolder }) { t->setBounds (r.removeFromTop (26)); }
         r.removeFromTop (14);
         auto buttons = r.removeFromBottom (44);
         close.setBounds (buttons.removeFromRight (100));
@@ -125,7 +130,9 @@ namespace ggui
 
         g.setColour (p.dim);
         g.setFont (uiFont (14.5f, false));
-        g.drawFittedText ("To:  " + proc.getSettings().getExportDir().getFullPathName() + "/" + gg::paths::safeFileName (name.getText(), 48),
+        auto dest = proc.getSettings().getExportDir();
+        if (genreFolder.getToggleState()) dest = dest.getChildFile (gg::genreFolderName (kit.genre));
+        g.drawFittedText ("To:  " + dest.getChildFile (gg::paths::safeFileName (name.getText(), 48)).getFullPathName(),
                           destRow.withTrimmedRight (110), juce::Justification::centredLeft, 1, 0.6f);
 
         // the result / drag area

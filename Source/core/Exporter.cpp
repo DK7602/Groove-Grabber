@@ -71,6 +71,9 @@ namespace gg
     {
         ExportResult r;
         auto base = o.destination.isDirectory() || o.destination.createDirectory() ? o.destination : paths::exportsDir();
+        if (o.genreFolder)
+            if (auto g = base.getChildFile (genreFolderName (kit.genre)); g.isDirectory() || g.createDirectory())
+                base = g;
         const auto kitName = paths::safeFileName (kit.name.isNotEmpty() ? kit.name : "Groove Grabber Kit", 48);
         r.folder = base.getNonexistentChildFile (kitName, {}, true);
         if (! r.folder.createDirectory())
