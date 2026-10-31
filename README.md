@@ -25,12 +25,13 @@ then drop the kit straight onto Groove Agent.
    room, vintage, aggression, live feel), its pitch, and whether it's clipped or hissy. It remembers everything,
    so after the first scan only new files are analysed. Scanning runs in the background on at most half your
    cores, so your session keeps playing.
-2. **BUILD:** type what you're making, for example *"dark 90s boom bap, punchy but warm, vinyl vibe, 88 BPM in A minor"*
-   or *"modern country rock, 108 BPM, live drums with a little hip-hop influence"*. The genre, character sliders,
+2. **BUILD:** type what you're making, for example *"dark 90s boom bap, punchy but warm, vinyl vibe, 88 BPM in A minor"*,
+   *"80s pop rock"*, *"like Dr. Dre"* or *"Metro Boomin type beat"*. The genre, style, decade, character sliders,
    tempo, key and options set themselves from it (it shows what it understood), and you can fine-tune them.
-3. **GENERATE KITS:** four kits, each a different take on your genre (for rock: *Studio Tight, Arena Thunder,
-   Garage Grit, Modern Hybrid*). They're steered apart so they don't share their main sounds. Click a kit to hear
-   it play a groove at your tempo. Every kit is level-matched, so a louder kit never wins just for being louder.
+3. **GENERATE KITS:** four kits, each a different take on your style, named for it (90s G-Funk: *90s Westside
+   Classic, 90s Sunset G-Funk, 90s Westside Knock, 90s G-Funk Machine*; Hard Rock: *Rock Hard Hitter, Arena Hard
+   Rock...*). They're steered apart so they don't share their main sounds. Click a kit to hear it play a groove at
+   your tempo. Every kit is level-matched, so a louder kit never wins just for being louder. Saved kits keep the name.
 4. **Edit:** click any pad to hear it. **Lock** the ones you love and **REGENERATE** the rest. Every pad shows five
    **alternatives** that fit the rest of the kit; click one to hear it, **USE** to swap. TUNE / START / LENGTH /
    GAIN / REVERSE shape each pad. Drop any audio file on a pad to use it, or drag a pad into your DAW.
@@ -43,21 +44,38 @@ room for the 808, and the whole kit agrees on how vintage and roomy it is.
 **Tuned to your key.** With a key set, the 808 lands on the root, the kick on the root or fifth (only when it's
 close), and the toms on notes of the scale. The pad shows how far each one moved.
 
-**Genres:** Trap / Drill, Hip-Hop / Boom Bap, R&B / Soul, Pop, Rock, Country, Worship / Gospel, EDM / Dance,
-Lo-Fi, Cinematic. Each has four directions and preview grooves. Mention a second genre ("...with a little trap")
+**Genres and styles:** Hip-Hop (East Coast / Boom Bap, West Coast / G-Funk, Memphis / Phonk, Southern / Crunk,
+Old School / Electro), Trap (Atlanta, UK Drill, NY Drill, Rage, Plugg), R&B (90s / New Jack, Neo Soul, Alt R&B,
+Funk / Motown), Pop (Synth Pop / 80s, Dance Pop, Pop Rock, Indie), Rock (Classic, Hard Rock, Metal, Alt / Grunge,
+Punk), Country (Classic / Honky Tonk, Modern Nashville, Country Rap, Americana), Worship (Modern, Gospel, Ambient),
+EDM (House, Techno, Drum & Bass, Dubstep, Disco), Lo-Fi (Jazz Hop, Lo-Fi Trap) and Cinematic (Trailer, Horror, World).
+Each style has four directions, its own tempo and preview grooves. Mention a second genre ("...with a little trap")
 and its character is blended in.
+
+**Decades.** "60s" ... "90s", "2000s", "2010s", "today" move all four kits toward that decade's sound (80s: gated
+rooms and drum machines; 70s: dry, warm, live) and, with just a genre, pick the style the decade is known for
+("80s pop" -> Synth Pop / 80s, "90s r&b" -> New Jack).
+
+**Artists and songs.** Name one: *"like Dr. Dre"*, *"Still D.R.E."*, *"Bon Jovi drums"*, *"Morgan Wallen"*,
+*"Kirk Franklin"*. Hundreds of artists and producers and about 90 songs across every genre are built in; each maps to the style, decade
+and character its drums are known for, and kit 1 becomes that artist's own direction (Dr. Dre -> 90s West Coast,
+kit 1 *Westside Knock*). The genre you pick decides which side of an artist you get (Post Malone: trap, pop, country
+or rock); an artist from another genre lends their decade and feel ("Dr. Dre" on Rock: 90s alt rock with a little
+hip-hop). Names that are also ordinary words need a cue: *"like Future"*, *"Prince type beat"*. Nothing is
+downloaded: Groove Grabber matches names to sounds you already have. For a song's actual drums, drop the song on
+LIBRARY > HARVEST.
 
 ## Groove Agent
 
 **EXPORT** writes a folder:
 
 ```
-Street Classic/
+90s Westside Classic/
   01 Kick.wav  02 Rim.wav  03 Snare.wav  04 Clap.wav  05 Snare 2.wav ... 17 808.wav ... 22 FX 2.wav
-  Street Classic.pgm          MPC 1000 program with every pad and note set
-  Street Classic Groove.mid   the preview groove on the same notes
-  Kit Info.txt                where every sound came from + the loading steps
-  Street Classic.ggkit        open it again in Groove Grabber
+  90s Westside Classic.pgm          MPC 1000 program with every pad and note set
+  90s Westside Classic Groove.mid   the preview groove on the same notes
+  Kit Info.txt                      where every sound came from + the loading steps
+  90s Westside Classic.ggkit        open it again in Groove Grabber
 ```
 
 The WAVs are numbered in **General MIDI order from C1 (note 36)**, already trimmed, tuned and level-matched.

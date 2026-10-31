@@ -19,7 +19,8 @@ namespace ggui
         void syncDescription();
         GrooveGrabberProcessor& proc;
         juce::TextEditor description;
-        juce::ComboBox genre;
+        juce::ComboBox genre, styleBox, era;
+        gg::Genre stylesShownFor = gg::Genre::count;
         juce::OwnedArray<juce::Slider> traits;
         Segmented feel { { "AUTO", "LIVE", "HYBRID", "PROG" } }, lowEnd { { "AUTO", "KICK", "KICK + 808" } },
                   perc { { "AUTO", "0", "1", "2", "3" } };

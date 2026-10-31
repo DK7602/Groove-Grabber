@@ -70,6 +70,8 @@ namespace ggui
                 g.setColour (p.dim);
                 g.setFont (uiFont (14.0f, false));
                 juce::String info = gg::genreName (kit.genre);
+                if (const int si = gg::styleIndex (kit.genre, kit.styleId); si > 0) info << ": " << gg::styleFor (kit.genre, si).name;
+                if (kit.era >= 0) info << "  -  " << gg::eraName (kit.era);
                 if (kit.key >= 0) info << "  -  " << gg::keyName (kit.key);
                 if (kit.bpm > 0) info << "  -  " << juce::String (kit.bpm, 0) << " BPM";
                 info << "  -  " << kit.numFilled() << " pads";

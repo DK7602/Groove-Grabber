@@ -47,5 +47,6 @@ namespace gg
         const GenreStyle& style;
         std::array<std::vector<int>, numCats> pools;
         std::unordered_map<juce::String, int> byPath;
+        std::vector<float> pathBonus;      // per sound: its folders name the style or the era
     };
 }

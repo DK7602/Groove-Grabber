@@ -57,7 +57,7 @@ namespace gg
 
     //==============================================================================
     KitGenerator::KitGenerator (SoundListPtr s, const KitOptions& o)
-        : sounds (std::move (s)), opts (o), style (styleFor (o.genre))
+        : sounds (std::move (s)), opts (o), style (styleFor (o.genre, o.subStyle))
     {
         if (sounds == nullptr) sounds = std::make_shared<const SoundList>();
         for (int i = 0; i < (int) sounds->size(); ++i)
@@ -68,6 +68,23 @@ namespace gg
             if (! opts.sources[(size_t) snd.source]) continue;
             pools[(size_t) snd.cat].push_back (i);
         }
+
+        // a pack named after the style ("West Coast Drums", "Phonk Kit") or the era ("80s Drum Machines")
+        pathBonus.assign (sounds->size(), 0.0f);
+        const auto eraWords = eraPathWords (opts.era);
+        if (opts.subStyle > 0 || ! eraWords.isEmpty())
+            for (auto& pool : pools)
+                for (int idx : pool)
+                {
+                    const auto lower = " " + (*sounds)[(size_t) idx].path.toLowerCase().replaceCharacters ("_-./\\", "      ") + " ";
+                    float b = 0;
+                    if (opts.subStyle > 0)
+                        for (auto& kw : style.keywords)
+                            if (lower.contains (" " + kw + " ") || lower.contains (" " + kw.removeCharacters (" ") + " ")) { b += 0.12f; break; }
+                    for (auto& w : eraWords)
+                        if (lower.contains (" " + w + " ")) { b += 0.08f; break; }
+                    pathBonus[(size_t) idx] = b;
+                }
     }
 
     int KitGenerator::totalUsable() const noexcept
@@ -111,6 +128,8 @@ namespace gg
             wsum += w[(size_t) i];
         }
         float score = std::exp (-(dist / wsum) / 0.045f);
+        if (auto it = byPath.find (s.path); it != byPath.end() && (size_t) it->second < pathBonus.size())
+            score += pathBonus[(size_t) it->second];
 
         // genre tags in the path ("Trap Essentials/...")
         if (s.genreTags != 0)
@@ -267,10 +286,15 @@ namespace gg
 
         Kit kit;
         kit.id = Kit::newId();
+        // "90s" + "Westside Classic" -> "90s Westside Classic" (not when the name already says it: "70s Stadium Rock")
         kit.name = dir.name;
+        if (opts.era >= 0 && ! dir.name.containsIgnoreCase (eraName (opts.era)))
+            kit.name = eraName (opts.era) + " " + dir.name;
         kit.blurb = dir.blurb;
         kit.directionId = dir.id;
         kit.genre = opts.genre;
+        kit.styleId = style.id;
+        kit.era = opts.era;
         kit.target = opts.targetFor (dir);
         kit.key = opts.key;
         kit.bpm = opts.bpm > 0 ? opts.bpm : style.bpm;
@@ -331,7 +355,7 @@ namespace gg
         for (int d = 0; d < n; ++d)
         {
             const Kit* prev = previous != nullptr && d < (int) previous->size() ? &(*previous)[(size_t) d] : nullptr;
-            kits.push_back (generate (d, seed, temperature, prev, kits));
+            kits.push_back (generate (opts.directionFor (d), seed, temperature, prev, kits));
         }
         return kits;
     }

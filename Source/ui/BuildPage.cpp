@@ -8,18 +8,33 @@ namespace ggui
         description.setMultiLine (true, true);
         description.setReturnKeyStartsNewLine (false);
         description.setFont (bodyFont (16.5f));
-        description.setTextToShowWhenEmpty ("Describe your song...  e.g. \"dark 90s boom bap, punchy but warm, vinyl vibe, 88 BPM in A minor\"",
+        description.setTextToShowWhenEmpty ("Describe your song...  e.g. \"dark 90s boom bap, punchy but warm, 88 BPM in A minor\"  or  \"like Dr. Dre\", \"Bon Jovi drums\"",
                                             pal().faint);
         description.setBorder (juce::BorderSize<int> (8, 10, 8, 10));
         description.onReturnKey = [this] { syncDescription(); proc.generate (false); };
         description.onFocusLost = [this] { if (description.getText() != proc.description) proc.applyDescription (description.getText()); };
         description.onTextChange = [this] { proc.applyDescription (description.getText()); };
+        description.setTooltip ("Genre, style, decade, feel, tempo and key in your own words. Name an artist or a song too "
+                                "(\"like Dr. Dre\", \"Metro Boomin type beat\", \"Still D.R.E.\", \"Morgan Wallen\"): kit 1 takes their sound, "
+                                "inside the genre you pick.");
         addAndMakeVisible (description);
 
         for (int i = 0; i < gg::numGenres; ++i) genre.addItem (gg::genreName ((gg::Genre) i), i + 1);
         genre.onChange = [this] { if (! updating) proc.setGenre ((gg::Genre) (genre.getSelectedId() - 1)); };
-        genre.setTooltip ("The genre: picks the four kit directions and the preview groove");
+        genre.setTooltip ("The genre");
         addAndMakeVisible (genre);
+
+        styleBox.onChange = [this] { if (! updating && styleBox.getSelectedId() > 0) proc.setStyle (styleBox.getSelectedId() - 1); };
+        styleBox.setTooltip ("The style within the genre: picks the four kit directions, the tempo and the preview groove "
+                             "(type it too: \"g-funk\", \"uk drill\", \"honky tonk\", \"pop rock\"...)");
+        addAndMakeVisible (styleBox);
+
+        era.addItem ("Any era", 1);
+        for (int e = 0; e < gg::numEras; ++e) era.addItem (gg::eraName (e), e + 2);
+        era.onChange = [this] { if (! updating) proc.setEra (era.getSelectedId() - 2); };
+        era.setTooltip ("The decade: 70s = dry, warm, live; 80s = gated rooms and drum machines; 90s = punchy samplers; "
+                        "today = clean, hard, polished. Type it too (\"80s pop rock\").");
+        addAndMakeVisible (era);
 
         static const char* tips[] = {
             "Punch: sharp, fast attacks vs soft ones", "Warmth: full low-mids vs thin", "Brightness: crisp top end vs dark",
@@ -105,8 +120,18 @@ namespace ggui
         description.setColour (juce::TextEditor::backgroundColourId, pal().sunken);
         description.setColour (juce::TextEditor::textColourId, pal().text);
         description.applyColourToAllText (pal().text);
-        description.setTextToShowWhenEmpty ("Describe your song...  e.g. \"dark 90s boom bap, punchy but warm, vinyl vibe, 88 BPM in A minor\"", pal().faint);
+        description.setTextToShowWhenEmpty ("Describe your song...  e.g. \"dark 90s boom bap, punchy but warm, 88 BPM in A minor\"  or  \"like Dr. Dre\", \"Bon Jovi drums\"", pal().faint);
         genre.setSelectedId ((int) o.genre + 1, juce::dontSendNotification);
+        if (stylesShownFor != o.genre)
+        {
+            stylesShownFor = o.genre;
+            styleBox.clear (juce::dontSendNotification);
+            const auto& list = gg::stylesOf (o.genre);
+            for (int i = 0; i < (int) list.size(); ++i)
+                styleBox.addItem (i == 0 ? "General " + gg::genreName (o.genre) : list[(size_t) i].name, i + 1);
+        }
+        styleBox.setSelectedId (o.subStyle + 1, juce::dontSendNotification);
+        era.setSelectedId (o.era + 2, juce::dontSendNotification);
         const juce::Colour accents[] = { pal().orange, pal().orange, pal().amber, pal().blue, pal().purple, pal().red, pal().green };
         for (int i = 0; i < traits.size(); ++i)
         {
@@ -143,7 +168,14 @@ namespace ggui
         description.setBounds (r.removeFromTop (getHeight() < 760 ? 62 : 86));
         understoodArea = r.removeFromTop (24);
         r.removeFromTop (4);
-        genre.setBounds (r.removeFromTop (30));
+        {
+            auto row = r.removeFromTop (30);
+            era.setBounds (row.removeFromRight (row.getWidth() * 40 / 100));
+            row.removeFromRight (6);
+            genre.setBounds (row);
+        }
+        r.removeFromTop (6);
+        styleBox.setBounds (r.removeFromTop (30));
         r.removeFromTop (10);
 
         auto bottom = r.removeFromBottom (48);
@@ -463,6 +495,8 @@ namespace ggui
             g.setColour (p.dim);
             g.setFont (uiFont (14.0f, false));
             juce::String info = gg::genreName (k->genre);
+            if (const int si = gg::styleIndex (k->genre, k->styleId); si > 0) info << ": " << gg::styleFor (k->genre, si).name;
+            if (k->era >= 0) info << "  -  " << gg::eraName (k->era);
             if (k->key >= 0) info << "  -  " << gg::keyName (k->key);
             if (k->bpm > 0) info << "  -  " << juce::String (k->bpm, 0) << " BPM";
             info << "  -  " << k->numFilled() << " pads";

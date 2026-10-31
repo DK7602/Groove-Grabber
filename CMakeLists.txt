@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(GrooveGrabber VERSION 1.0.1 LANGUAGES C CXX)
+project(GrooveGrabber VERSION 1.0.2 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -71,6 +71,7 @@ set(GG_CORE_SOURCES
     Source/core/Analyzer.cpp
     Source/core/Library.cpp
     Source/core/Styles.cpp
+    Source/core/References.cpp
     Source/core/SongContext.cpp
     Source/core/Kit.cpp
     Source/core/KitGenerator.cpp

@@ -109,5 +109,31 @@ int runScreenshots (const juce::File& outDir)
         pump (300);
         std::cout << "  state round trip and damaged state ok" << std::endl;
     }
+
+    // the genre box and the description together
+    {
+        GrooveGrabberProcessor p;
+        auto expect = [&failures] (bool ok, const juce::String& what)
+        {
+            std::cout << (ok ? "  ok: " : "  FAIL: ") << what << std::endl;
+            if (! ok) ++failures;
+        };
+        p.applyDescription ("90s g-funk");
+        p.setGenre (gg::Genre::boomBap);
+        expect (p.options.style().id == "hiphop.west", "typed g-funk, then picked Hip-Hop: still West Coast (" + p.options.style().id + ")");
+        p.applyDescription ("");
+        p.applyDescription ("like Dr. Dre");
+        expect (p.options.genre == gg::Genre::boomBap && p.options.style().id == "hiphop.west" && p.options.era == 3
+                && p.options.directionFor (0) == gg::directionIndex (p.options.style(), "west.knock"), "like Dr. Dre: 90s West Coast, kit 1 Westside Knock");
+        p.setGenre (gg::Genre::rock);
+        expect (p.options.genre == gg::Genre::rock && p.options.leadDirection < 0 && p.options.secondaryGenre == (int) gg::Genre::boomBap,
+                "Dr. Dre, then Rock picked: rock with a little hip-hop");
+        p.applyDescription ("Post Malone");
+        expect (p.options.genre == gg::Genre::rock && p.options.directionFor (0) == gg::directionIndex (p.options.style(), "rock.hybrid"),
+                "Post Malone with Rock picked: his rock take");
+        p.applyDescription ("");
+        p.applyDescription ("Morgan Wallen");
+        expect (p.options.genre == gg::Genre::country, "cleared, then Morgan Wallen: Country");
+    }
     return failures;
 }

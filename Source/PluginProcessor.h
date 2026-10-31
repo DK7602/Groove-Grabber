@@ -41,10 +41,14 @@ public:
     juce::String description;
     gg::ParsedDescription understood;
     juce::String songName;                         // from Key Compass, if picked there
+    bool genreByHand = false;                      // picked in the genre box: artists are read inside it
     void applyDescription (const juce::String& text);
     void setGenre (gg::Genre);
+    void setStyle (int subStyle);
+    void setEra (int era);
     void setKey (int key);
     void setBpm (double bpm);
+    juce::String firstGroove() const;              // kit 1's preview groove
 
     // ---- the four kits ----
     std::vector<gg::Kit> kits;
@@ -84,6 +88,7 @@ private:
     void renderKits();
     void notify (const juce::String& message = {});
     gg::KitGenerator makeGenerator() const;
+    void resetCharacter();          // the sliders back to style + era + what the description said
 
     juce::ThreadPool worker { juce::ThreadPoolOptions{}.withThreadName ("GG render").withNumberOfThreads (2)
                                                        .withDesiredThreadPriority (juce::Thread::Priority::low) };

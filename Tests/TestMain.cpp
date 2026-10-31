@@ -2,6 +2,7 @@
 //   GGTests              run everything
 //   GGTests --engine     engine tests only
 //   GGTests --shots DIR  also write screenshots to DIR (default: build folder)
+#include <set>
 #include "TestSounds.h"
 #include "core/Analyzer.h"
 #include "core/Library.h"
@@ -192,6 +193,123 @@ namespace
         check (std::abs (p.bpm - 140) < 0.1, "140bpm without a space");
         check (p.key == 18, "F# minor, got " + juce::String (p.key));
 
+        // styles and eras
+        {
+            struct S { const char* text; gg::Genre genre; const char* style; int era; };
+            const S cases[] = {
+                { "90s g-funk", gg::Genre::boomBap, "hiphop.west", 3 },
+                { "90's west coast with a talkbox", gg::Genre::boomBap, "hiphop.west", 3 },
+                { "80s pop rock", gg::Genre::pop, "pop.rock", 2 },
+                { "80s pop", gg::Genre::pop, "pop.synth", 2 },
+                { "uk drill 142 bpm", gg::Genre::trap, "trap.ukdrill", -1 },
+                { "modern country rap with 808s", gg::Genre::country, "country.rap", -1 },
+                { "70s classic rock", gg::Genre::rock, "rock.classic", 1 },
+                { "dark 90s boom bap, punchy but warm", gg::Genre::boomBap, "hiphop.east", 3 },
+                { "memphis phonk with cowbells", gg::Genre::boomBap, "hiphop.memphis", -1 },
+                { "honky tonk shuffle", gg::Genre::country, "country.classic", -1 },
+                { "90s r&b", gg::Genre::rnb, "rnb.newjack", 3 },
+                { "deep house", gg::Genre::edm, "edm.house", -1 },
+                { "trap", gg::Genre::trap, "trap", -1 },
+            };
+            for (auto& c : cases)
+            {
+                auto q = gg::parseDescription (c.text);
+                const auto& st = gg::styleFor (q.genre, juce::jmax (0, q.subStyle));
+                check (q.genre == c.genre && st.id == c.style && q.era == c.era,
+                       juce::String ("\"") + c.text + "\" -> " + gg::genreName (q.genre) + " / " + st.id + " / era " + juce::String (q.era)
+                       + " (wanted " + c.style + ", era " + juce::String (c.era) + ")");
+            }
+            auto g = gg::parseDescription ("90s g-funk");
+            check (g.secondaryGenre < 0, "g-funk isn't also R&B (funk)");
+            gg::KitOptions any, eighties;
+            eighties.era = 2;
+            check (eighties.center().room > any.center().room + 0.1f && eighties.center().organic < any.center().organic, "80s: roomier, more drum machine");
+        }
+
+        // artists and songs
+        {
+            const auto problems = gg::referenceTableProblems();
+            check (problems.isEmpty(), "reference table: " + problems.joinIntoString (" | "));
+            check (gg::allReferences().size() > 250, "lots of artists and songs (" + juce::String ((int) gg::allReferences().size()) + ")");
+
+            struct R { const char* text; gg::Genre genre; const char* style; int era; const char* lead; };
+            const R cases[] = {
+                { "like Dr. Dre",                      gg::Genre::boomBap,   "hiphop.west",       3, "west.knock" },
+                { "Still D.R.E. vibe, 93 bpm",         gg::Genre::boomBap,   "hiphop.west",       3, "west.knock" },
+                { "something like Dre's old stuff",    gg::Genre::boomBap,   "hiphop.west",       3, "west.knock" },
+                { "80s Dr. Dre",                       gg::Genre::boomBap,   "hiphop.west",       2, "west.knock" },
+                { "Dr. Dre but boom bap",              gg::Genre::boomBap,   "hiphop.east",       3, "" },
+                { "Metro Boomin type beat",            gg::Genre::trap,      "trap.atlanta",      5, "atl.house" },
+                { "dark Future type beat",             gg::Genre::trap,      "trap.atlanta",      5, "atl.house" },
+                { "Pop Smoke",                         gg::Genre::trap,      "trap.nydrill",      6, "ny.brooklyn" },
+                { "Daft Punk",                         gg::Genre::edm,       "edm.house",         3, "house.disco" },
+                { "Bon Jovi drums",                    gg::Genre::rock,      "rock.hard",         2, "hard.arena" },
+                { "Livin' on a Prayer",                gg::Genre::rock,      "rock.hard",         2, "hard.arena" },
+                { "hard rock",                         gg::Genre::rock,      "rock.hard",        -1, "" },
+                { "Morgan Wallen",                     gg::Genre::country,   "country.modern",    6, "mc.radio" },
+                { "In the Air Tonight",                gg::Genre::pop,       "pop.synth",         2, "synth.gated" },
+                { "Hillsong",                          gg::Genre::worship,   "worship.modern",    5, "mw.anthem" },
+                { "Kirk Franklin",                     gg::Genre::worship,   "worship.gospel",    3, "gos.chops" },
+                { "Mötley Crüe",                       gg::Genre::rock,      "rock.hard",         2, "hard.glam" },
+                { "AC/DC",                             gg::Genre::rock,      "rock.hard",         1, "hard.crunch" },
+            };
+            for (auto& c : cases)
+            {
+                auto q = gg::parseDescription (juce::String::fromUTF8 (c.text));
+                const auto& st = gg::styleFor (q.genre, juce::jmax (0, q.subStyle));
+                const juce::String lead = q.lead >= 0 ? st.directions[(size_t) q.lead].id : juce::String();
+                check (q.genre == c.genre && st.id == c.style && q.era == c.era && lead == c.lead,
+                       juce::String ("\"") + juce::String::fromUTF8 (c.text) + "\" -> " + gg::genreName (q.genre) + " / " + st.id + " / era "
+                       + juce::String (q.era) + " / kit 1 " + lead + " [" + q.understood.joinIntoString (", ") + "]");
+            }
+
+            // common words are only names with a cue
+            for (auto* text : { "future bass drop", "punchy kick for a prince", "queens hip hop", "a common snare", "dmx drum machine" })
+                check (gg::parseDescription (text).refs.empty(), juce::String ("no artist in \"") + text + "\"");
+            check (gg::parseDescription ("future bass drop").genre == gg::Genre::edm, "future bass is still EDM");
+            check (! gg::parseDescription ("like Prince").refs.empty(), "\"like Prince\" is an artist");
+
+            // names don't count as genres or character words
+            auto ps = gg::parseDescription ("Pop Smoke type beat");
+            check (ps.secondaryGenre < 0 && ps.said.hasGenre == false, "Pop Smoke isn't Pop");
+            auto bd = gg::parseDescription ("Big Daddy Kane");
+            check (std::abs (bd.said.nudge[(size_t) 3]) < 1.0e-6f, "Big Daddy Kane isn't 'big'");
+
+            // the genre you picked decides which take: Post Malone in Country, Trap by default
+            auto pm = gg::parseDescription ("Post Malone");
+            check (pm.genre == gg::Genre::trap, "Post Malone alone -> Trap");
+            gg::resolveDescription (pm, (int) gg::Genre::country, true, false);
+            check (pm.genre == gg::Genre::country && gg::styleFor (pm.genre, pm.subStyle).id == "country.modern" && pm.referenceInGenre,
+                   "Post Malone with Country picked -> Modern Nashville");
+
+            // an artist from another genre: their era and feel on your genre
+            auto dr = gg::parseDescription ("like Dr. Dre");
+            gg::resolveDescription (dr, (int) gg::Genre::rock, true, false);
+            check (dr.genre == gg::Genre::rock && ! dr.referenceInGenre && dr.era == 3 && dr.secondaryGenre == (int) gg::Genre::boomBap
+                   && gg::styleFor (dr.genre, dr.subStyle).id == "rock.alt" && dr.lead < 0,
+                   "Dr. Dre on Rock -> 90s Alt rock with a little hip-hop [" + dr.understood.joinIntoString (", ") + "]");
+            check (dr.understood.contains ("Dr. Dre feel"), "shows 'Dr. Dre feel'");
+
+            // a genre typed in the text wins over the artist's own
+            auto rk = gg::parseDescription ("Dr. Dre style rock song");
+            check (rk.genre == gg::Genre::rock && ! rk.referenceInGenre, "typed Rock wins over Dr. Dre's genre");
+
+            // picking the genre keeps a style you typed for it
+            auto gf = gg::parseDescription ("90s g-funk");
+            gg::resolveDescription (gf, (int) gg::Genre::boomBap, true, true);
+            check (gg::styleFor (gf.genre, gf.subStyle).id == "hiphop.west" && ! gf.styleFromEra, "90s g-funk + Hip-Hop picked stays West Coast");
+
+            // kit 1 is the artist's direction, the other three follow
+            gg::KitOptions o;
+            gg::applyDescription (gg::parseDescription ("like Dr. Dre"), o);
+            check (o.leadDirection == gg::directionIndex (o.style(), "west.knock") && o.directionFor (0) == o.leadDirection, "kit 1 = Westside Knock");
+            std::set<int> dirs;
+            for (int i = 0; i < 4; ++i) dirs.insert (o.directionFor (i));
+            check (dirs.size() == 4, "all four directions still used");
+            check (o.character.punch > o.center().punch, "Dr. Dre: punchier than the style's center");
+            check (gg::KitOptions::fromVar (o.toVar()).leadDirection == o.leadDirection, "kit-1 direction saved with the options");
+        }
+
         check (gg::keyFromChords (juce::StringArray::fromTokens ("Am F C G", " ", "")) == 21, "Am F C G -> A minor");
         check (gg::keyFromChords (juce::StringArray::fromTokens ("C G Am F", " ", "")) == 0, "C G Am F -> C major");
         check (gg::keyFromChords (juce::StringArray::fromTokens ("Em7 Cmaj7 G D", " ", "")) == 16, "Em7 Cmaj7 G D -> E minor");
@@ -309,7 +427,7 @@ namespace
         check (snares.size() >= 3, "kits use different snares (" + juce::String (snares.size()) + ")");
 
         // Dusty Vinyl should lean on the dusty pack
-        const auto& dusty = kits[1];
+        const auto& dusty = kits[1];      // "Dusty Hip-Hop"
         int dustyCount = 0;
         for (auto sl : { gg::Slot::kick, gg::Slot::snare, gg::Slot::closedHat })
             if (gen.find (dusty[sl].path)->pack == "Dusty Boom Bap") ++dustyCount;
@@ -343,6 +461,37 @@ namespace
 
         auto alts = gen.alternatives (k0, gg::Slot::snare, 5);
         check (alts.size() >= 3 && ! alts.contains (k0[gg::Slot::snare].path), "alternatives exclude the current snare");
+
+        // a style + era: names and the style's directions
+        {
+            gg::KitOptions w;
+            w.genre = gg::Genre::boomBap;
+            w.subStyle = gg::styleIndex (w.genre, "hiphop.west");
+            w.era = 3;
+            w.character = w.center();
+            gg::KitGenerator wg (sounds, w);
+            auto wk = wg.generateAll (5);
+            check (wk.size() == 4 && wk[0].name == "90s Westside Classic" && wk[0].styleId == "hiphop.west" && wk[0].era == 3,
+                   "90s G-Funk kits are named and tagged (" + (wk.empty() ? juce::String() : wk[0].name) + ")");
+            check (! wk[0][gg::Slot::bass808].isEmpty(), "G-Funk kits have an 808");
+            for (auto& st : gg::stylesOf (gg::Genre::boomBap)) check (st.directions.size() == 4, st.name + " has 4 directions");
+
+            gg::KitOptions d;
+            gg::applyDescription (gg::parseDescription ("like Dr. Dre"), d);
+            gg::KitGenerator dg (sounds, d);
+            auto dk = dg.generateAll (5);
+            check (dk.size() == 4 && dk[0].name == "90s Westside Knock" && dk[1].name == "90s Westside Classic",
+                   "Dr. Dre: kit 1 is 90s Westside Knock (" + (dk.empty() ? juce::String() : dk[0].name + ", " + dk[1].name) + ")");
+            std::set<juce::String> names;
+            for (auto& k : dk) names.insert (k.name);
+            check (names.size() == 4, "four different kit names");
+        }
+        for (int gi = 0; gi < gg::numGenres; ++gi)
+            for (auto& st : gg::stylesOf ((gg::Genre) gi))
+            {
+                check (st.directions.size() == 4, st.id + ": 4 directions");
+                for (auto& dir : st.directions) check (gg::grooveFor (dir.groove).id == dir.groove, st.id + ": groove " + dir.groove + " exists");
+            }
 
         // rock: toms low -> high, no 808 by default
         gg::KitOptions r;

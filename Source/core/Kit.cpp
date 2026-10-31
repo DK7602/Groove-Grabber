@@ -63,6 +63,8 @@ namespace gg
         o->setProperty ("blurb", blurb);
         o->setProperty ("direction", directionId);
         o->setProperty ("genre", genreId (genre));
+        o->setProperty ("style", styleId);
+        o->setProperty ("era", era);
         o->setProperty ("target", target.toVar());
         o->setProperty ("key", key);
         o->setProperty ("bpm", bpm);
@@ -88,6 +90,8 @@ namespace gg
         k.blurb = v["blurb"].toString();
         k.directionId = v["direction"].toString();
         k.genre = genreFromId (v["genre"].toString());
+        k.styleId = v["style"].toString();
+        k.era = juce::jlimit (-1, numEras - 1, (int) v.getProperty ("era", -1));
         k.target = Traits::fromVar (v["target"]);
         k.key = juce::jlimit (-1, 23, (int) v.getProperty ("key", -1));
         k.bpm = (double) v.getProperty ("bpm", 0.0);

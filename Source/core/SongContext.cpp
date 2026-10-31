@@ -5,22 +5,80 @@ namespace gg
 {
     namespace
     {
-        juce::String normalise (const juce::String& s)
-        {
-            juce::String out;
-            const auto lower = s.toLowerCase();
-            for (auto p = lower.getCharPointer(); ! p.isEmpty(); ++p)
-            {
-                const auto c = *p;
-                out << (juce::CharacterFunctions::isLetterOrDigit (c) || c == '&' || c == '#' ? c : (juce::juce_wchar) ' ');
-            }
-            return " " + out.replace ("  ", " ") + " ";
-        }
-
         bool has (const juce::String& text, const char* phrase)
         {
             return text.contains (" " + juce::String (phrase) + " ");
         }
+
+        struct GW { const char* w; Genre g; };
+        static const GW genreWords[] = {
+            { "boom bap", Genre::boomBap }, { "boombap", Genre::boomBap }, { "hip hop", Genre::boomBap }, { "hiphop", Genre::boomBap },
+            { "rap", Genre::boomBap }, { "golden era", Genre::boomBap }, { "old school", Genre::boomBap },
+            { "trap", Genre::trap }, { "drill", Genre::trap }, { "rage", Genre::trap }, { "plugg", Genre::trap },
+            { "r&b", Genre::rnb }, { "r b", Genre::rnb }, { "rnb", Genre::rnb }, { "soul", Genre::rnb }, { "neo soul", Genre::rnb }, { "funk", Genre::rnb },
+            { "pop", Genre::pop }, { "synthpop", Genre::pop }, { "indie pop", Genre::pop },
+            { "rock", Genre::rock }, { "punk", Genre::rock }, { "metal", Genre::rock }, { "grunge", Genre::rock }, { "alt", Genre::rock },
+            { "alternative", Genre::rock }, { "indie rock", Genre::rock }, { "garage", Genre::rock },
+            { "country", Genre::country }, { "americana", Genre::country }, { "bluegrass", Genre::country }, { "folk", Genre::country },
+            { "nashville", Genre::country }, { "southern", Genre::country },
+            { "worship", Genre::worship }, { "gospel", Genre::worship }, { "church", Genre::worship }, { "praise", Genre::worship },
+            { "edm", Genre::edm }, { "house", Genre::edm }, { "techno", Genre::edm }, { "dance", Genre::edm }, { "dubstep", Genre::edm },
+            { "future bass", Genre::edm }, { "club", Genre::edm }, { "trance", Genre::edm },
+            { "lofi", Genre::lofi }, { "lo fi", Genre::lofi }, { "chillhop", Genre::lofi }, { "chill hop", Genre::lofi }, { "study", Genre::lofi },
+            { "cinematic", Genre::cinematic }, { "trailer", Genre::cinematic }, { "epic", Genre::cinematic }, { "film", Genre::cinematic },
+            { "score", Genre::cinematic }, { "soundtrack", Genre::cinematic },
+        };
+
+        enum { PUNCH, WARM, BRIGHT, ROOM, VINT, AGGR, ORG };
+        struct CW { const char* w; int trait; float amount; };
+        static const CW charWords[] = {
+            { "punchy", PUNCH, 0.2f }, { "punch", PUNCH, 0.18f }, { "knock", PUNCH, 0.2f }, { "knocking", PUNCH, 0.22f }, { "slap", PUNCH, 0.18f },
+            { "slapping", PUNCH, 0.2f }, { "hard hitting", PUNCH, 0.22f }, { "snappy", PUNCH, 0.15f }, { "tight", PUNCH, 0.12f },
+            { "soft", PUNCH, -0.2f }, { "gentle", PUNCH, -0.18f }, { "laid back", PUNCH, -0.15f }, { "mellow", PUNCH, -0.15f },
+            { "warm", WARM, 0.2f }, { "fat", WARM, 0.15f }, { "thick", WARM, 0.15f }, { "round", WARM, 0.12f }, { "cold", WARM, -0.18f }, { "thin", WARM, -0.18f },
+            { "dark", BRIGHT, -0.22f }, { "muffled", BRIGHT, -0.25f }, { "moody", BRIGHT, -0.12f }, { "bright", BRIGHT, 0.22f },
+            { "crisp", BRIGHT, 0.18f }, { "shiny", BRIGHT, 0.18f }, { "airy", BRIGHT, 0.15f }, { "sparkly", BRIGHT, 0.18f },
+            { "big", ROOM, 0.15f }, { "huge", ROOM, 0.22f }, { "massive", ROOM, 0.22f }, { "arena", ROOM, 0.28f }, { "stadium", ROOM, 0.28f },
+            { "roomy", ROOM, 0.25f }, { "ambient", ROOM, 0.2f }, { "spacious", ROOM, 0.2f }, { "reverb", ROOM, 0.15f }, { "anthemic", ROOM, 0.2f },
+            { "gated", ROOM, 0.18f }, { "dry", ROOM, -0.22f }, { "intimate", ROOM, -0.15f }, { "close", ROOM, -0.12f },
+            { "vintage", VINT, 0.25f }, { "vinyl", VINT, 0.28f }, { "dusty", VINT, 0.3f }, { "lofi", VINT, 0.25f }, { "lo fi", VINT, 0.25f },
+            { "tape", VINT, 0.2f }, { "retro", VINT, 0.22f }, { "old school", VINT, 0.25f }, { "classic", VINT, 0.15f }, { "gritty", VINT, 0.18f },
+            { "grimy", VINT, 0.2f }, { "crunchy", VINT, 0.18f },
+            { "modern", VINT, -0.25f }, { "clean", VINT, -0.22f }, { "polished", VINT, -0.2f }, { "pristine", VINT, -0.25f }, { "glossy", VINT, -0.2f },
+            { "aggressive", AGGR, 0.25f }, { "hard", AGGR, 0.18f }, { "heavy", AGGR, 0.22f }, { "angry", AGGR, 0.25f }, { "dirty", AGGR, 0.18f },
+            { "distorted", AGGR, 0.25f }, { "loud", AGGR, 0.15f }, { "driving", AGGR, 0.12f }, { "energetic", AGGR, 0.15f },
+            { "chill", AGGR, -0.2f }, { "smooth", AGGR, -0.2f }, { "relaxed", AGGR, -0.2f }, { "calm", AGGR, -0.2f }, { "dreamy", AGGR, -0.18f },
+            { "live", ORG, 0.25f }, { "acoustic", ORG, 0.3f }, { "organic", ORG, 0.28f }, { "real drums", ORG, 0.3f }, { "natural", ORG, 0.2f },
+            { "jazzy", ORG, 0.2f }, { "electronic", ORG, -0.28f }, { "programmed", ORG, -0.25f }, { "synthetic", ORG, -0.25f }, { "drum machine", ORG, -0.3f },
+        };
+
+        // genre words and style keywords: never read as an artist's name ("future bass", "queens")
+        const juce::StringArray& namePhrases()
+        {
+            static const juce::StringArray list = []
+            {
+                juce::StringArray l;
+                for (auto& gw : genreWords) l.addIfNotAlreadyThere (gw.w);
+                for (int g = 0; g < numGenres; ++g)
+                    for (auto& st : stylesOf ((Genre) g))
+                        for (auto& kw : st.keywords) l.addIfNotAlreadyThere (normaliseText (kw).trim());
+                return l;
+            }();
+            return list;
+        }
+
+        // an artist's describing words ("punchy clean dry") as slider moves
+        std::array<float, Traits::num> soundNudge (const juce::String& words)
+        {
+            std::array<float, Traits::num> n {};
+            const auto text = normaliseText (words);
+            for (auto& cw : charWords)
+                if (has (text, cw.w))
+                    n[(size_t) cw.trait] += cw.amount;
+            return n;
+        }
+
+        bool soundHas808 (const juce::String& words)    { return has (normaliseText (words), "808"); }
 
         int findKeyInText (const juce::String& original)
         {
@@ -90,28 +148,15 @@ namespace gg
     ParsedDescription parseDescription (const juce::String& raw)
     {
         ParsedDescription p;
-        const auto text = normalise (raw);
+        auto text = normaliseText (raw);
+
+        // ---- artists and songs ("like Dr. Dre", "Still D.R.E. vibe"): found first, then hidden, so the
+        // genre words in a name ("Pop Smoke", "Daft Punk", "Beach House") don't count as genres ----
+        p.refs = findReferences (text, namePhrases());
+        for (auto& h : p.refs)
+            text = text.replaceSection (h.start, h.end - h.start, juce::String::repeatedString (" ", h.end - h.start));
 
         // ---- genre: the first one mentioned wins; one mentioned with "influence / touch / hint" is a flavour ----
-        struct GW { const char* w; Genre g; };
-        static const GW genreWords[] = {
-            { "boom bap", Genre::boomBap }, { "boombap", Genre::boomBap }, { "hip hop", Genre::boomBap }, { "hiphop", Genre::boomBap },
-            { "rap", Genre::boomBap }, { "golden era", Genre::boomBap }, { "old school", Genre::boomBap },
-            { "trap", Genre::trap }, { "drill", Genre::trap }, { "rage", Genre::trap }, { "plugg", Genre::trap },
-            { "r&b", Genre::rnb }, { "r b", Genre::rnb }, { "rnb", Genre::rnb }, { "soul", Genre::rnb }, { "neo soul", Genre::rnb }, { "funk", Genre::rnb },
-            { "pop", Genre::pop }, { "synthpop", Genre::pop }, { "indie pop", Genre::pop },
-            { "rock", Genre::rock }, { "punk", Genre::rock }, { "metal", Genre::rock }, { "grunge", Genre::rock }, { "alt", Genre::rock },
-            { "alternative", Genre::rock }, { "indie rock", Genre::rock }, { "garage", Genre::rock },
-            { "country", Genre::country }, { "americana", Genre::country }, { "bluegrass", Genre::country }, { "folk", Genre::country },
-            { "nashville", Genre::country }, { "southern", Genre::country },
-            { "worship", Genre::worship }, { "gospel", Genre::worship }, { "church", Genre::worship }, { "praise", Genre::worship },
-            { "edm", Genre::edm }, { "house", Genre::edm }, { "techno", Genre::edm }, { "dance", Genre::edm }, { "dubstep", Genre::edm },
-            { "future bass", Genre::edm }, { "club", Genre::edm }, { "trance", Genre::edm },
-            { "lofi", Genre::lofi }, { "lo fi", Genre::lofi }, { "chillhop", Genre::lofi }, { "chill hop", Genre::lofi }, { "study", Genre::lofi },
-            { "cinematic", Genre::cinematic }, { "trailer", Genre::cinematic }, { "epic", Genre::cinematic }, { "film", Genre::cinematic },
-            { "score", Genre::cinematic }, { "soundtrack", Genre::cinematic },
-        };
-
         struct Match { int at; Genre g; bool flavour; };
         std::vector<Match> matches;
         for (auto& gw : genreWords)
@@ -130,46 +175,92 @@ namespace gg
             }
         }
         std::sort (matches.begin(), matches.end(), [] (const Match& a, const Match& b) { return a.at < b.at; });
+        auto& said = p.said;
         for (auto& m : matches)
-            if (! m.flavour) { p.genre = m.g; p.hasGenre = true; break; }
-        if (! p.hasGenre && ! matches.empty()) { p.genre = matches.front().g; p.hasGenre = true; }
+            if (! m.flavour) { said.genre = m.g; said.hasGenre = true; break; }
+        if (! said.hasGenre && ! matches.empty()) { said.genre = matches.front().g; said.hasGenre = true; }
         for (auto& m : matches)                                   // a flavour first, then any other genre named
-            if (m.flavour && m.g != p.genre) { p.secondaryGenre = (int) m.g; break; }
-        if (p.secondaryGenre < 0)
+            if (m.flavour && m.g != said.genre) { said.secondaryGenre = (int) m.g; break; }
+        if (said.secondaryGenre < 0)
             for (auto& m : matches)
-                if (m.g != p.genre) { p.secondaryGenre = (int) m.g; break; }
-        if (p.secondaryGenre >= 0) p.understood.add ("+ a little " + genreName ((Genre) p.secondaryGenre));
-        if (p.hasGenre) p.understood.insert (0, genreName (p.genre));
-        if (p.secondaryGenre == (int) p.genre) p.secondaryGenre = -1;
+                if (m.g != said.genre) { said.secondaryGenre = (int) m.g; break; }
+        // ---- a named style beats a plain genre ("g-funk", "uk drill", "pop rock", "honky tonk") ----
+        {
+            // the first style named wins; when two overlap ("modern country rap"), the one that ends later is
+            // the more specific ("country rap"), and at the same end the longer ("g funk" over "funk")
+            struct SM { int at, len; Genre g; int sub; };
+            std::vector<SM> found;
+            for (int gi = 0; gi < numGenres; ++gi)
+            {
+                const auto& list = stylesOf ((Genre) gi);
+                for (int si = 1; si < (int) list.size(); ++si)
+                    for (auto& kw : list[(size_t) si].keywords)
+                    {
+                        int at = text.indexOf (" " + kw + " ");
+                        while (at >= 0)
+                        {
+                            found.push_back ({ at, kw.length(), (Genre) gi, si });
+                            at = text.indexOf (at + 1, " " + kw + " ");
+                        }
+                    }
+            }
+            int bestAt = 1 << 30, bestLen = 0;
+            if (! found.empty())
+            {
+                std::sort (found.begin(), found.end(), [] (const SM& a, const SM& b) { return a.at != b.at ? a.at < b.at : a.len > b.len; });
+                SM best = found.front();
+                for (auto& f : found)
+                {
+                    const int bestEnd = best.at + best.len, end = f.at + f.len;
+                    if (f.at <= bestEnd && (end > bestEnd || (end == bestEnd && f.len > best.len)))
+                        best = f;
+                }
+                bestAt = best.at;
+                bestLen = best.len;
+                said.genre = best.g;
+                said.subStyle = best.sub;
+                said.hasGenre = true;
+            }
+            if (said.subStyle >= 0)
+            {
+                // genre words inside the style's own name ("country rap", "g funk") aren't a second genre
+                for (auto& m : matches)
+                    if (m.at >= bestAt && m.at <= bestAt + bestLen && (int) m.g == said.secondaryGenre)
+                        said.secondaryGenre = -1;
+                if (said.secondaryGenre < 0)
+                    for (auto& m : matches)
+                        if (m.g != said.genre && m.flavour && ! (m.at >= bestAt && m.at <= bestAt + bestLen)) { said.secondaryGenre = (int) m.g; break; }
+                if (said.secondaryGenre == (int) said.genre) said.secondaryGenre = -1;
+            }
+        }
+
+        // ---- the era ----
+        {
+            struct EW { const char* w; int era; };
+            static const EW eraWords[] = {
+                { "60s", 0 }, { "1960s", 0 }, { "sixties", 0 },
+                { "70s", 1 }, { "1970s", 1 }, { "seventies", 1 },
+                { "80s", 2 }, { "1980s", 2 }, { "eighties", 2 },
+                { "90s", 3 }, { "1990s", 3 }, { "nineties", 3 },
+                { "2000s", 4 }, { "00s", 4 }, { "y2k", 4 }, { "early 2000s", 4 }, { "mid 2000s", 4 },
+                { "2010s", 5 }, { "10s", 5 },
+                { "2020s", 6 }, { "today", 6 }, { "todays", 6 }, { "current", 6 }, { "nowadays", 6 },
+            };
+            int bestAt = 1 << 30;
+            for (auto& ew : eraWords)
+            {
+                const int at = text.indexOf (" " + juce::String (ew.w) + " ");
+                if (at >= 0 && at < bestAt) { bestAt = at; said.era = ew.era; }
+            }
+        }
+        if (said.secondaryGenre == (int) said.genre) said.secondaryGenre = -1;
 
         // ---- character words ----
-        enum { PUNCH, WARM, BRIGHT, ROOM, VINT, AGGR, ORG };
-        struct CW { const char* w; int trait; float amount; };
-        static const CW charWords[] = {
-            { "punchy", PUNCH, 0.2f }, { "punch", PUNCH, 0.18f }, { "knock", PUNCH, 0.2f }, { "knocking", PUNCH, 0.22f }, { "slap", PUNCH, 0.18f },
-            { "slapping", PUNCH, 0.2f }, { "hard hitting", PUNCH, 0.22f }, { "snappy", PUNCH, 0.15f }, { "tight", PUNCH, 0.12f },
-            { "soft", PUNCH, -0.2f }, { "gentle", PUNCH, -0.18f }, { "laid back", PUNCH, -0.15f }, { "mellow", PUNCH, -0.15f },
-            { "warm", WARM, 0.2f }, { "fat", WARM, 0.15f }, { "thick", WARM, 0.15f }, { "round", WARM, 0.12f }, { "cold", WARM, -0.18f }, { "thin", WARM, -0.18f },
-            { "dark", BRIGHT, -0.22f }, { "muffled", BRIGHT, -0.25f }, { "moody", BRIGHT, -0.12f }, { "bright", BRIGHT, 0.22f },
-            { "crisp", BRIGHT, 0.18f }, { "shiny", BRIGHT, 0.18f }, { "airy", BRIGHT, 0.15f }, { "sparkly", BRIGHT, 0.18f },
-            { "big", ROOM, 0.15f }, { "huge", ROOM, 0.22f }, { "massive", ROOM, 0.22f }, { "arena", ROOM, 0.28f }, { "stadium", ROOM, 0.28f },
-            { "roomy", ROOM, 0.25f }, { "ambient", ROOM, 0.2f }, { "spacious", ROOM, 0.2f }, { "reverb", ROOM, 0.15f }, { "anthemic", ROOM, 0.2f },
-            { "dry", ROOM, -0.22f }, { "intimate", ROOM, -0.15f }, { "close", ROOM, -0.12f },
-            { "vintage", VINT, 0.25f }, { "vinyl", VINT, 0.28f }, { "dusty", VINT, 0.3f }, { "lofi", VINT, 0.25f }, { "lo fi", VINT, 0.25f },
-            { "tape", VINT, 0.2f }, { "retro", VINT, 0.22f }, { "old school", VINT, 0.25f }, { "classic", VINT, 0.15f }, { "gritty", VINT, 0.18f },
-            { "grimy", VINT, 0.2f }, { "crunchy", VINT, 0.18f }, { "70s", VINT, 0.3f }, { "80s", VINT, 0.22f }, { "90s", VINT, 0.25f },
-            { "modern", VINT, -0.25f }, { "clean", VINT, -0.22f }, { "polished", VINT, -0.2f }, { "pristine", VINT, -0.25f }, { "glossy", VINT, -0.2f },
-            { "aggressive", AGGR, 0.25f }, { "hard", AGGR, 0.18f }, { "heavy", AGGR, 0.22f }, { "angry", AGGR, 0.25f }, { "dirty", AGGR, 0.18f },
-            { "distorted", AGGR, 0.25f }, { "loud", AGGR, 0.15f }, { "driving", AGGR, 0.12f }, { "energetic", AGGR, 0.15f },
-            { "chill", AGGR, -0.2f }, { "smooth", AGGR, -0.2f }, { "relaxed", AGGR, -0.2f }, { "calm", AGGR, -0.2f }, { "dreamy", AGGR, -0.18f },
-            { "live", ORG, 0.25f }, { "acoustic", ORG, 0.3f }, { "organic", ORG, 0.28f }, { "real drums", ORG, 0.3f }, { "natural", ORG, 0.2f },
-            { "jazzy", ORG, 0.2f }, { "electronic", ORG, -0.28f }, { "programmed", ORG, -0.25f }, { "synthetic", ORG, -0.25f }, { "drum machine", ORG, -0.3f },
-        };
         for (auto& cw : charWords)
             if (has (text, cw.w))
             {
-                p.nudge[(size_t) cw.trait] = juce::jlimit (-0.45f, 0.45f, p.nudge[(size_t) cw.trait] + cw.amount);
-                p.understood.addIfNotAlreadyThere (cw.w);
+                said.nudge[(size_t) cw.trait] = juce::jlimit (-0.45f, 0.45f, said.nudge[(size_t) cw.trait] + cw.amount);
+                p.extras.addIfNotAlreadyThere (cw.w);
             }
 
         // "punchy but warm" etc. are already covered; "not too bright" flips the next word
@@ -181,11 +272,11 @@ namespace gg
                 const auto word = text.substring (at + juce::String (neg).length()).upToFirstOccurrenceOf (" ", false, false);
                 for (auto& cw : charWords)
                     if (word == cw.w)
-                        p.nudge[(size_t) cw.trait] -= 2.0f * cw.amount;
+                        said.nudge[(size_t) cw.trait] -= 2.0f * cw.amount;
                 at = text.indexOf (at + 1, neg);
             }
         }
-        for (auto& n : p.nudge) n = juce::jlimit (-0.45f, 0.45f, n);
+        for (auto& n : said.nudge) n = juce::jlimit (-0.45f, 0.45f, n);
 
         // ---- feel ----
         if (has (text, "hybrid"))                                                 p.feel = 2;
@@ -193,8 +284,8 @@ namespace gg
         else if (has (text, "programmed") || has (text, "drum machine") || has (text, "electronic"))              p.feel = 3;
 
         // ---- options ----
-        if (has (text, "no 808") || has (text, "without 808") || has (text, "no 808s") || has (text, "kick only"))   p.lowEnd = 0;
-        else if (has (text, "808") || has (text, "808s") || has (text, "sub") || has (text, "slides"))                p.lowEnd = 1;
+        if (has (text, "no 808") || has (text, "without 808") || has (text, "no 808s") || has (text, "kick only"))   said.lowEnd = 0;
+        else if (has (text, "808") || has (text, "808s") || has (text, "sub") || has (text, "slides"))                said.lowEnd = 1;
         if (has (text, "fx") || has (text, "effects") || has (text, "risers") || has (text, "riser") || has (text, "sound effects")
              || has (text, "impacts") || has (text, "transitions"))
             p.fx = 1;
@@ -204,16 +295,112 @@ namespace gg
 
         p.bpm = findBpm (raw);
         p.key = findKeyInText (raw);
-        if (p.bpm > 0) p.understood.add (juce::String (p.bpm, 0) + " BPM");
-        if (p.key >= 0) p.understood.add (keyName (p.key));
+        if (p.bpm > 0) p.extras.add (juce::String (p.bpm, 0) + " BPM");
+        if (p.key >= 0) p.extras.add (keyName (p.key));
+        resolveDescription (p);
         return p;
+    }
+
+    void resolveDescription (ParsedDescription& p, int currentGenre, bool genreByHand, bool keepGenre)
+    {
+        const auto& said = p.said;
+        p.hasGenre = said.hasGenre;
+        p.genre = said.genre;
+        p.subStyle = said.subStyle;
+        p.styleFromEra = false;
+        p.era = said.era;
+        p.secondaryGenre = said.secondaryGenre;
+        p.nudge = said.nudge;
+        p.lowEnd = said.lowEnd;
+        p.lead = -1;
+        p.referenceInGenre = false;
+        const bool haveCurrent = currentGenre >= 0 && currentGenre < numGenres;
+        if (keepGenre && haveCurrent)
+        {
+            if (p.genre != (Genre) currentGenre) p.subStyle = -1;     // a style named for another genre doesn't carry over
+            p.genre = (Genre) currentGenre;
+        }
+
+        juce::StringArray head;
+        std::vector<int> named;
+        for (auto& h : p.refs)
+            if (std::find (named.begin(), named.end(), h.index) == named.end()) named.push_back (h.index);
+
+        auto addSound = [&p] (const juce::String& words, float amount)
+        {
+            const auto n = soundNudge (words);
+            for (size_t i = 0; i < n.size(); ++i) p.nudge[i] += amount * n[i];
+        };
+
+        if (! named.empty())
+        {
+            const auto& ref = allReferences()[(size_t) named.front()];
+            // the genre: one you picked or typed wins; otherwise the artist's own
+            Genre g;
+            if (keepGenre && haveCurrent)                                                    g = (Genre) currentGenre;
+            else if (said.hasGenre)                                                          g = said.genre;
+            else if (haveCurrent && (genreByHand || ref.takeFor ((Genre) currentGenre) != nullptr)) g = (Genre) currentGenre;
+            else                                                                             g = ref.takes.front().genre;
+            if (g != p.genre) p.subStyle = -1;
+            p.genre = g;
+            p.hasGenre = true;
+
+            if (const auto* take = ref.takeFor (g))
+            {
+                // their sound in this genre: their style (unless you named one), era, kit 1 and character
+                if (p.subStyle <= 0) p.subStyle = take->subStyle;
+                if (p.era < 0) p.era = take->era;
+                if (p.subStyle == take->subStyle) p.lead = take->lead;
+                addSound (take->sound, 1.0f);
+                if (p.lowEnd < 0 && soundHas808 (take->sound)) p.lowEnd = 1;
+                p.referenceInGenre = true;
+                head.add ("like " + ref.label());
+            }
+            else
+            {
+                // an artist from another genre: their era and character, and a little of their genre
+                const auto& main = ref.takes.front();
+                if (p.era < 0) p.era = main.era;
+                addSound (main.sound, 0.8f);
+                if (p.secondaryGenre < 0 && main.genre != g) p.secondaryGenre = (int) main.genre;
+                head.add (ref.label() + " feel");
+            }
+            for (size_t i = 1; i < named.size(); ++i)        // "Dr. Dre meets Metro Boomin": the others add a little
+            {
+                const auto& other = allReferences()[(size_t) named[i]];
+                const auto* take = other.takeFor (g);
+                const auto& t = take != nullptr ? *take : other.takes.front();
+                addSound (t.sound, 0.5f);
+                if (take == nullptr && p.secondaryGenre < 0 && t.genre != g) p.secondaryGenre = (int) t.genre;
+                head.add ("+ " + other.label());
+            }
+        }
+
+        // an era with a genre but no named style: the style that era is known for
+        if (p.hasGenre && p.subStyle < 0 && p.era >= 0)
+            if (const int s = styleForEra (p.genre, p.era); s > 0) { p.subStyle = s; p.styleFromEra = true; }
+        if (p.secondaryGenre == (int) p.genre) p.secondaryGenre = -1;
+        for (auto& n : p.nudge) n = juce::jlimit (-0.6f, 0.6f, n);
+
+        p.understood = head;
+        if (p.era >= 0) p.understood.add (eraName (p.era));
+        if (p.hasGenre) p.understood.add (genreName (p.genre));
+        if (p.subStyle > 0) p.understood.add (styleFor (p.genre, p.subStyle).name + (p.styleFromEra ? " (for the " + eraName (p.era) + ")" : juce::String()));
+        if (p.secondaryGenre >= 0) p.understood.add ("+ a little " + genreName ((Genre) p.secondaryGenre));
+        p.understood.addArray (p.extras);
     }
 
     void applyDescription (const ParsedDescription& p, KitOptions& o)
     {
-        if (p.hasGenre) o.genre = p.genre;
+        if (p.hasGenre)
+        {
+            o.genre = p.genre;
+            o.subStyle = juce::jmax (0, p.subStyle);
+        }
+        o.leadDirection = p.hasGenre ? p.lead : -1;
+        o.era = p.era;
         o.secondaryGenre = p.secondaryGenre;
-        const auto center = genreCenter (o.genre);
+        const auto center = o.center();
         for (int i = 0; i < Traits::num; ++i)
             o.character[i] = juce::jlimit (0.0f, 1.0f, center[i] + p.nudge[(size_t) i]);
         o.feel = p.feel;

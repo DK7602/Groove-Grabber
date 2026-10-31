@@ -83,7 +83,7 @@ namespace gg
         switch (g)
         {
             case Genre::trap:      return "Trap / Drill";
-            case Genre::boomBap:   return "Hip-Hop / Boom Bap";
+            case Genre::boomBap:   return "Hip-Hop";
             case Genre::rnb:       return "R&B / Soul";
             case Genre::pop:       return "Pop";
             case Genre::rock:      return "Rock";

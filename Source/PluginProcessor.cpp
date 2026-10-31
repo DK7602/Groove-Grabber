@@ -4,10 +4,10 @@
 GrooveGrabberProcessor::GrooveGrabberProcessor()
     : AudioProcessor (BusesProperties().withOutput ("Output", juce::AudioChannelSet::stereo(), true))
 {
-    options.character = gg::genreCenter (options.genre);
+    options.character = options.center();
     seed = (juce::uint32) juce::Time::currentTimeMillis();
     player.setGroove (&gg::grooveFor (grooveId));
-    player.setTempo (gg::styleFor (options.genre).bpm);
+    player.setTempo (options.style().bpm);
     library->addChangeListener (this);
     addChangeListener (this);       // keeps the state snapshot up to date
 }
@@ -97,25 +97,66 @@ void GrooveGrabberProcessor::runInBackground (std::function<void()> job)
 void GrooveGrabberProcessor::applyDescription (const juce::String& text)
 {
     description = text;
+    if (text.trim().isEmpty()) genreByHand = false;
     understood = gg::parseDescription (text);
+    // an artist or song is read inside the genre you picked (or the current one, if they have a take in it)
+    gg::resolveDescription (understood, (int) options.genre, genreByHand, false);
     gg::applyDescription (understood, options);
     if (understood.bpm > 0) setBpm (understood.bpm);
-    else if (understood.hasGenre) setBpm (gg::styleFor (options.genre).bpm);
+    else if (understood.hasGenre) setBpm (options.style().bpm);
     if (understood.hasGenre)
-    {
-        const auto& dirs = gg::styleFor (options.genre).directions;
-        setGrooveId (dirs.front().groove);
-    }
+        setGrooveId (firstGroove());
     notify();
+}
+
+juce::String GrooveGrabberProcessor::firstGroove() const
+{
+    return options.style().directions[(size_t) options.directionFor (0)].groove;
+}
+
+void GrooveGrabberProcessor::resetCharacter()
+{
+    options.character = options.center();
+    for (int i = 0; i < gg::Traits::num; ++i)
+        options.character[i] = juce::jlimit (0.0f, 1.0f, options.character[i] + understood.nudge[(size_t) i]);
 }
 
 void GrooveGrabberProcessor::setGenre (gg::Genre g)
 {
     options.genre = g;
-    options.character = gg::genreCenter (g);
+    genreByHand = true;
+    // re-read the description in this genre: a style you typed for it ("g-funk") stays, an artist's
+    // take for it is used ("Post Malone" in Country), else the era's style ("80s" + Pop -> Synth Pop / 80s)
+    gg::resolveDescription (understood, (int) g, true, true);
+    if (understood.subStyle >= 0 && ! understood.styleFromEra) options.subStyle = understood.subStyle;
+    else options.subStyle = gg::styleForEra (g, options.era);
+    options.leadDirection = options.subStyle == understood.subStyle ? understood.lead : -1;
+    options.secondaryGenre = understood.secondaryGenre;
+    resetCharacter();
+    setGrooveId (firstGroove());
+    notify();
+}
+
+void GrooveGrabberProcessor::setStyle (int sub)
+{
+    options.subStyle = juce::jlimit (0, (int) gg::stylesOf (options.genre).size() - 1, sub);
+    // the artist's kit 1 only when it's their style
+    options.leadDirection = understood.hasGenre && understood.genre == options.genre && understood.subStyle == options.subStyle
+                              ? understood.lead : -1;
+    resetCharacter();
+    setGrooveId (firstGroove());
+    if (understood.bpm <= 0) setBpm (options.style().bpm);
+    notify();
+}
+
+void GrooveGrabberProcessor::setEra (int era)
+{
+    // move the sliders by the difference between the eras, keeping your own tweaks
+    const auto before = gg::eraDelta (options.era);
+    options.era = juce::jlimit (-1, gg::numEras - 1, era);
+    const auto after = gg::eraDelta (options.era);
     for (int i = 0; i < gg::Traits::num; ++i)
-        options.character[i] = juce::jlimit (0.0f, 1.0f, options.character[i] + understood.nudge[(size_t) i]);
-    setGrooveId (gg::styleFor (g).directions.front().groove);
+        options.character[i] = juce::jlimit (0.0f, 1.0f, options.character[i] + after[(size_t) i] - before[(size_t) i]);
     notify();
 }
 
@@ -187,7 +228,7 @@ void GrooveGrabberProcessor::regenerateKit (int index, bool surprise)
     ++seed;
     std::vector<gg::Kit> others;
     for (int i = 0; i < (int) kits.size(); ++i) if (i != index) others.push_back (kits[(size_t) i]);
-    const auto& dirs = gg::styleFor (options.genre).directions;
+    const auto& dirs = options.style().directions;
     int dir = 0;
     for (int d = 0; d < (int) dirs.size(); ++d) if (dirs[(size_t) d].id == kits[(size_t) index].directionId) dir = d;
     auto fresh = gen.generate (dir, seed, surprise ? 0.14f : 0.06f, &kits[(size_t) index], others);
@@ -337,6 +378,7 @@ juce::String GrooveGrabberProcessor::makeState()
     auto* o = new juce::DynamicObject();
     o->setProperty ("version", 1);
     o->setProperty ("description", description);
+    o->setProperty ("genreByHand", genreByHand);
     o->setProperty ("song", songName);
     o->setProperty ("options", options.toVar());
     juce::Array<juce::var> k;
@@ -364,9 +406,11 @@ void GrooveGrabberProcessor::applyState (const juce::String& text)
     const auto v = juce::JSON::parse (text);
     if (! v.isObject()) return;
     description = v["description"].toString();
-    understood = gg::parseDescription (description);
+    genreByHand = (bool) v.getProperty ("genreByHand", false);
     songName = v["song"].toString();
     options = gg::KitOptions::fromVar (v["options"]);
+    understood = gg::parseDescription (description);
+    gg::resolveDescription (understood, (int) options.genre, genreByHand, true);
     kits.clear();
     if (auto* a = v["kits"].getArray())
         for (auto& item : *a)

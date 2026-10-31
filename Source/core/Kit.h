@@ -27,6 +27,8 @@ namespace gg
     {
         juce::String id, name, blurb, directionId;
         Genre genre = Genre::boomBap;
+        juce::String styleId;        // e.g. "hiphop.west"
+        int era = -1;
         Traits target;
         int key = -1;
         double bpm = 0;
