@@ -253,7 +253,7 @@ namespace gg
         for (double loop = firstLoop; loop * len < beatEnd; loop += 1.0)
             for (auto& h : g->hits)
             {
-                const double b = loop * len + swungBeat (h.beat, sw);
+                const double b = loop * len + swungBeat (h.beat, sw, g->swingEighths);
                 if (b >= beatStart && b < beatEnd)
                 {
                     const int offset = juce::jlimit (0, blockSamples - 1, (int) ((b - beatStart) * samplesPerBeat));

@@ -1,8 +1,55 @@
 #include "ExportPanel.h"
 #include "core/Settings.h"
+#include "core/Daws.h"
 
 namespace ggui
 {
+    namespace
+    {
+        // Wrapped text at the top of an area; returns the height used
+        int drawWrapped (juce::Graphics& g, const juce::String& text, const juce::Font& font, juce::Colour colour, juce::Rectangle<int> area)
+        {
+            juce::AttributedString as;
+            as.append (text, font, colour);
+            juce::TextLayout tl;
+            tl.createLayout (as, (float) area.getWidth());
+            const int h = (int) std::ceil (tl.getHeight());
+            tl.draw (g, area.withHeight (h).toFloat());
+            return h;
+        }
+
+        // The DAW's loading steps (and the hats tip), numbered, **bold** where marked; returns the height used
+        int drawSteps (juce::Graphics& g, const gg::DawGuide& guide, juce::Rectangle<int> area, int numPads)
+        {
+            const auto& p = pal();
+            juce::StringArray items;
+            for (auto st : guide.steps)
+                items.add (st.replace ("{FIRST}", gg::dawNoteName (36, guide)).replace ("{LAST}", gg::padFileName (numPads - 1, false))
+                             .replace ("{PADS}", juce::String (numPads)));
+            if (guide.hats.isNotEmpty()) items.add (guide.hats);
+            const int top = area.getY();
+            const auto normal = uiFont (14.0f, false), bold = uiFont (14.0f);
+            for (int i = 0; i < items.size() && area.getHeight() > 16; ++i)
+            {
+                juce::AttributedString as;
+                as.setLineSpacing (1.0f);
+                as.append (juce::String (i + 1) + ".  ", bold, p.orange);
+                bool isBold = false;
+                for (const auto& piece : juce::StringArray::fromTokens (items[i], "*", ""))
+                {
+                    if (piece.isEmpty()) { isBold = ! isBold; continue; }     // "**" gives an empty token between the stars
+                    as.append (piece, isBold ? bold : normal, isBold ? p.text : p.dim);
+                }
+                juce::TextLayout tl;
+                tl.createLayout (as, (float) area.getWidth());
+                const int h = (int) std::ceil (tl.getHeight());
+                tl.draw (g, area.removeFromTop (h).toFloat());
+                area.removeFromTop (5);
+            }
+            return area.getY() - top;
+        }
+    }
+
     ExportPanel::ExportPanel (GrooveGrabberProcessor& p) : proc (p)
     {
         name.setFont (uiFont (17.0f));
@@ -17,6 +64,16 @@ namespace ggui
         genreFolder.onClick = [this] { proc.getSettings().setExportGenreFolders (genreFolder.getToggleState()); repaint(); };
         addAndMakeVisible (bits);
         addAndMakeVisible (rate);
+        daw.setTooltip ("Which DAW the loading steps are for. Automatic picks the DAW Groove Grabber is running in.");
+        daw.onChange = [this]
+        {
+            const int id = daw.getSelectedId();
+            const auto& all = gg::dawGuides();
+            proc.getSettings().set ("daw", id <= 1 ? juce::String() : all[(size_t) juce::jlimit (0, (int) all.size() - 1, id - 2)].id);
+            if (gg::chosenDaw (proc.getSettings().get ("daw")) == "mpc") bits.setSelected (0);     // MPC hardware needs 16-bit
+            repaint();
+        };
+        addAndMakeVisible (daw);
         go.getProperties().set ("style", "primary");
         go.onClick = [this] { doExport(); };
         addAndMakeVisible (go);
@@ -38,14 +95,30 @@ namespace ggui
         };
     }
 
+    void ExportPanel::fillDaws()
+    {
+        daw.clear (juce::dontSendNotification);
+        const auto found = gg::detectedDaw();
+        daw.addItem (found.isNotEmpty() ? "Automatic: " + gg::dawGuide (found).name : juce::String ("Automatic (no DAW found: any sampler)"), 1);
+        const auto& all = gg::dawGuides();
+        for (int i = 0; i < (int) all.size(); ++i)
+            daw.addItem (all[(size_t) i].name + (all[(size_t) i].id != "other" ? "  -  " + all[(size_t) i].sampler : juce::String()), i + 2);
+        const auto setting = proc.getSettings().get ("daw");
+        int selected = 1;
+        for (int i = 0; i < (int) all.size(); ++i)
+            if (setting.isNotEmpty() && all[(size_t) i].id == setting) selected = i + 2;
+        daw.setSelectedId (selected, juce::dontSendNotification);
+    }
+
     void ExportPanel::show (const gg::Kit& k)
     {
+        fillDaws();
         kit = k;
         result = {};
         name.setText (k.name, false);
         name.setColour (juce::TextEditor::backgroundColourId, pal().sunken);
         name.applyColourToAllText (pal().text);
-        bits.setSelected (proc.getSettings().getExportBitDepth() == 16 ? 0 : 1);
+        bits.setSelected (proc.getSettings().getExportBitDepth() == 16 || gg::chosenDaw (proc.getSettings().get ("daw")) == "mpc" ? 0 : 1);
         rate.setSelected (proc.getSettings().getExportSampleRate() > 46000 ? 1 : 0);
         genreFolder.setToggleState (proc.getSettings().getExportGenreFolders(), juce::dontSendNotification);
         genreFolder.setButtonText ("In a genre folder (Exports > " + gg::genreFolderName (k.genre) + " > your kit)");
@@ -76,6 +149,7 @@ namespace ggui
         o.grooveId = proc.grooveId;
         o.bpm = proc.options.bpm > 0 ? proc.options.bpm : proc.player.getTempo();
         o.swing = proc.player.getSwing();
+        o.daw = gg::chosenDaw (proc.getSettings().get ("daw"));     // (resolved here: the export runs on another thread)
         proc.runInBackground ([this, k, o, safe = juce::Component::SafePointer<ExportPanel> (this)]
         {
             auto r = gg::exportKit (k, o);
@@ -95,13 +169,16 @@ namespace ggui
 
     void ExportPanel::resized()
     {
-        card = getLocalBounds().withSizeKeepingCentre (juce::jmin (640, getWidth() - 40), juce::jmin (600, getHeight() - 40));
+        card = getLocalBounds().withSizeKeepingCentre (juce::jmin (660, getWidth() - 40), juce::jmin (660, getHeight() - 40));
         auto r = card.reduced (26, 20);
         r.removeFromTop (34);
         name.setBounds (r.removeFromTop (36));
         r.removeFromTop (10);
         destRow = r.removeFromTop (30);
         change.setBounds (destRow.removeFromRight (100));
+        r.removeFromTop (8);
+        dawRow = r.removeFromTop (32);
+        daw.setBounds (dawRow.withTrimmedLeft (44));
         r.removeFromTop (12);
         auto fmt = r.removeFromTop (30);
         bits.setBounds (fmt.removeFromLeft (fmt.getWidth() / 2 - 6));
@@ -126,7 +203,11 @@ namespace ggui
         g.fillAll (juce::Colours::black.withAlpha (p.light ? 0.35f : 0.6f));
         drawPanel (g, card.toFloat(), 16.0f, true);
         auto r = card.reduced (26, 20);
-        drawSectionTitle (g, r.removeFromTop (24), "Export for Groove Agent", p.orange);
+        const auto& guide = gg::dawGuide (gg::chosenDaw (proc.getSettings().get ("daw")));
+        drawSectionTitle (g, r.removeFromTop (24), guide.id == "other" ? juce::String ("Export for your sampler") : "Export for " + guide.sampler, p.orange);
+        g.setColour (p.dim);
+        g.setFont (headFont (10.0f).withExtraKerningFactor (0.12f));
+        g.drawText ("FOR", dawRow.withWidth (40), juce::Justification::centredLeft);
 
         g.setColour (p.dim);
         g.setFont (uiFont (14.5f, false));
@@ -146,11 +227,12 @@ namespace ggui
         }
         if (result.folder == juce::File() && ! result.ok)
         {
-            g.setColour (p.dim);
-            g.setFont (uiFont (15.0f, false));
-            g.drawFittedText ("You get one WAV per pad, numbered in General MIDI order from C1 (01 Kick, 02 Rim, 03 Snare...), "
-                              "already tuned, trimmed and level matched. Drop them all on Groove Agent's first pad and every "
-                              "sound lands on the right note.", d.toNearestInt(), juce::Justification::centred, 4);
+            auto a = dragHandle.reduced (4, 0);
+            a.removeFromTop (drawWrapped (g, "You get one WAV per pad, numbered in General MIDI order from note 36 (01 Kick, 02 Rim, 03 Snare...), "
+                                             "already tuned, trimmed and level matched. Then, in " + (guide.id == "other" ? juce::String ("your DAW") : guide.name) + ":",
+                                          uiFont (14.5f, false), p.dim, a));
+            a.removeFromTop (10);
+            drawSteps (g, guide, a, gg::numPads);
             return;
         }
         if (! result.ok)
@@ -169,14 +251,15 @@ namespace ggui
         drawIcon (g, Icon::drag, handle.withSizeKeepingCentre (44, 44), p.orange);
         g.setColour (p.text);
         g.setFont (headFont (14.0f).withExtraKerningFactor (0.06f));
-        g.drawText ("DRAG TO GROOVE AGENT  -  PAD 1 (C1)", in.removeFromTop (24), juce::Justification::centredLeft);
+        g.drawText (guide.dragLabel.replace ("{FIRST}", gg::dawNoteName (36, guide)), in.removeFromTop (24), juce::Justification::centredLeft);
         g.setColour (p.dim);
         g.setFont (uiFont (14.5f, false));
-        g.drawFittedText ("Grab here and drop on Groove Agent's first pad: all " + juce::String (result.padFiles.size())
-                          + " pads fill in order. Then right-click the kit > Export Kit with Samples to keep it.\n"
-                          + juce::String (result.soundsWritten) + " sounds written to " + result.folder.getFileName()
-                          + (result.programFile.existsAsFile() ? ", plus an MPC program" : "") + (result.midiFile.existsAsFile() ? " and the groove MIDI" : "") + ".",
-                          in, juce::Justification::topLeft, 4);
+        in.removeFromTop (drawWrapped (g, juce::String (result.soundsWritten) + " sounds written to " + result.folder.getFileName()
+                                          + (result.programFile.existsAsFile() ? ", plus an MPC program" : "") + (result.midiFile.existsAsFile() ? " and the groove MIDI" : "")
+                                          + ". Grab here and drop all " + juce::String (result.padFiles.size()) + " files at once:",
+                                       uiFont (14.5f, false), p.dim, in));
+        in.removeFromTop (10);
+        drawSteps (g, guide, in, result.padFiles.size());
     }
 
     void ExportPanel::mouseDown (const juce::MouseEvent& e)

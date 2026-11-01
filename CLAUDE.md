@@ -1,6 +1,6 @@
 # Groove Grabber: notes for Claude
 
-Groove Grabber is a JUCE 8 plug-in and standalone app (VST3, AU, Standalone; LV2 on Linux). It builds four drum kits from the user's own sample library to fit a typed song description, and exports them for Groove Agent. The owner uses **Cubase on Windows**. They install builds from the GitHub Actions artifacts (Groove-Grabber-Windows). They make rap, rock, country and pop, and don't use profanity, so keep kit names, examples and UI text clean.
+Groove Grabber is a JUCE 8 plug-in and standalone app (VST3, AU, Standalone; LV2 on Linux). It builds four drum kits from the user's own sample library to fit a typed song description, and exports them for the DAW's drum sampler (Groove Agent, Drum Rack, FPC, Drum Machine Designer, Impact...). The SAUCE page teaches how the drums go in each genre, style and decade. The owner may sell it later, so keep it DAW-neutral: anything Cubase-only belongs in the Cubase guide in `Daws.cpp`. The owner uses **Cubase on Windows**. They install builds from the GitHub Actions artifacts (Groove-Grabber-Windows). They make rap, rock, country and pop, and don't use profanity, so keep kit names, examples and UI text clean.
 
 ## Build and test (Linux container)
 
@@ -43,9 +43,12 @@ xvfb-run -a ./build/GGTests_artefacts/Release/GGTests --host "build/GrooveGrabbe
 - `Source/core/KitNames.*`: a fresh name for each kit on every Build, from the style vocabulary, place and mood words in the description, and each kit's standout trait. Re-rolling one kit keeps its name.
 - `Source/core/Styles.*`: genres, sub-styles (four directions each), eras, KitOptions.
 - `Source/core/SongContext.*` and `References.*`: reading the description, and the artist/song table.
-- `Source/core/SampleRender.*`: trim, tune, length, level matching. `Exporter.*`: the Groove Agent / MPC export.
+- `Source/core/SampleRender.*`: trim, tune, length, level matching. `Exporter.*`: the WAV / MPC export and Kit Info.txt.
+- `Source/core/Daws.*`: one loading guide per DAW (steps, choke, saving, what the DAW calls note 36), host detection, the "daw" setting ("" = automatic). The manual's `{DAW_GUIDES}` is generated from it, so fix steps there, not in Manual.md.
+- `Source/core/Sauce.*` and `Resources/Sauce.md`: the SAUCE write-ups, one `@@ key` section per style id, decade (`era.N`) and decade per genre (`era.N.<genre>`). A new style needs a section (the tests check every one). Plain ASCII, clean words.
+- `Source/core/Grooves.*`: the preview grooves (16-step lanes). `swingEighths` makes a groove swing its 8ths (the country Shuffle).
 - `Source/core/Harvester.*`: cutting hits out of a drum bounce (audio-only classification).
-- `Source/ui/*`: pages (Build, Library, My Kits), HelpPanel (in-app manual and About), Theme.
+- `Source/ui/*`: pages (Build, Library, My Kits, Sauce), ExportPanel (the FOR picker and the DAW's steps), HelpPanel (in-app manual and About; its `DocView` also renders SAUCE), Theme.
 - `Tests/`:
   - `TestMain.cpp`: engine tests, plus a synthetic library from `TestSounds.cpp`, which must stay at 45/45 classified.
   - `TestScreens.cpp`: screenshots.
@@ -77,3 +80,4 @@ Before the 1.0.7 audit they were 61–79% with names and 34–37% from sound alo
 - Plain noise flutters, so the old burst counter called noisy snares claps. A burst needs a real gap (−6 dB and back up).
 - Ring time has to stop above the hiss floor, or hissy closed hats read as open.
 - "808" alone in a name can be the drum machine ("808 Cow", "TR-808 Kit"), not the bass.
+- DAWs spread a multi-file drop differently: Groove Agent needs the lowest of three drop icons (C1 is in pad group 3, files 13-22 go to group 4), Studio One's Impact needs Shift, Live / Bitwig / Logic spread on their own, FPC, REAPER's RS5K and Kong layer instead. Pro Tools can't load the plug-in (AAX only). Note 36 is C1 in most DAWs, C2 in REAPER, C3 in FL Studio.

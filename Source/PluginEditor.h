@@ -8,6 +8,7 @@
 #include "ui/KitsPage.h"
 #include "ui/ExportPanel.h"
 #include "ui/HelpPanel.h"
+#include "ui/SaucePage.h"
 
 class GrooveGrabberEditor : public juce::AudioProcessorEditor,
                             private juce::ChangeListener,
@@ -26,6 +27,8 @@ public:
     void parentHierarchyChanged() override;
     void showHelp (int page)      { help.show (page); }
     ggui::HelpPanel& getHelp()    { return help; }
+    ggui::SaucePage& getSauce()   { return sauce; }
+    ggui::ExportPanel& getExporter()   { return exporter; }
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
@@ -39,6 +42,7 @@ private:
     ggui::BuildPage build;
     ggui::LibraryPage library;
     ggui::KitsPage kitsPage;
+    ggui::SaucePage sauce;
     ggui::ExportPanel exporter;
     ggui::HelpPanel help;
     int tab = 0;

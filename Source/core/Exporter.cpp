@@ -3,6 +3,7 @@
 #include "Grooves.h"
 #include "MpcTemplate.h"
 #include "Settings.h"
+#include "Daws.h"
 #include <juce_audio_formats/juce_audio_formats.h>
 
 namespace gg
@@ -82,6 +83,7 @@ namespace gg
             return r;
         }
 
+        const auto& daw = dawGuide (chosenDaw (o.daw));
         std::array<juce::String, numPads> mpcNames;
         juce::String table;
         for (int i = 0; i < numPads; ++i)
@@ -114,7 +116,7 @@ namespace gg
             }
             r.padFiles.add (file);
 
-            table << noteName (pad.note).paddedRight (' ', 5) << juce::String (pad.note).paddedRight (' ', 5)
+            table << dawNoteName (pad.note, daw).paddedRight (' ', 5) << juce::String (pad.note).paddedRight (' ', 5)
                   << (name + ".wav").paddedRight (' ', 22);
             if (empty) table << "(empty)";
             else
@@ -154,19 +156,13 @@ namespace gg
              << "Format:   " << o.bitDepth << "-bit, " << juce::String (o.sampleRate / 1000.0, 1) << " kHz WAV\n\n"
              << "PADS (note, file, original sound)\n"
              << "---------------------------------\n" << table << "\n"
-             << "LOAD INTO GROOVE AGENT\n"
+             << "LOAD INTO " << (daw.id == "other" ? juce::String ("YOUR SAMPLER") : daw.sampler.toUpperCase() + " (" + daw.name.toUpperCase() + ")") << "\n"
              << "----------------------\n"
-             << "1. Open Groove Agent and pick an empty kit slot (Beat Agent).\n"
-             << "2. Select all the numbered WAV files in this folder (01 Kick ... " << padFileName (numPads - 1, false) << ")\n"
-             << "   and drop them onto the FIRST pad (C1). They fill the pads in order, so every sound lands\n"
-             << "   on its General MIDI note and Groove Agent's own grooves play the right drums.\n"
-             << "   (Or in Groove Grabber's EXPORT panel, drag the DRAG TO GROOVE AGENT handle onto pad 1.)\n"
-             << "3. Hats: set Closed Hat, Pedal Hat and Open Hat (pads 7, 9 and 11) to the same Exclusive Group,\n"
-             << "   so a closed hat cuts off an open one.\n"
-             << "4. Right-click the kit > Export Kit with Samples, and save it into Groove Agent's\n"
-             << "   preset folder. Then it's a normal Groove Agent kit you can load in any project.\n\n"
+             << dawGuideText (daw, numPads, padFileName (numPads - 1, false)) << "\n"
+             << (daw.id != "other" ? "Note names: " + daw.name + " calls MIDI note 36 " + dawNoteName (36, daw) + ".\n" : juce::String())
+             << "Another DAW? Every DAW's steps are in Groove Grabber's manual (F1 > Exporting to your DAW).\n\n"
              << "Other options: " << (o.mpcProgram ? "'" + r.programFile.getFileName() + "' is an MPC 1000 program with every pad and note\n"
-                                                    "already set; Groove Agent imports MPC programs (right-click the kit slot > Import).\n" : juce::String())
+                                                    "already set, for MPCs and samplers that import MPC programs.\n" : juce::String())
              << (o.grooveMidi ? "'" + r.midiFile.getFileName() + "' is the preview groove on the same notes: drag it onto the drum track.\n" : juce::String())
              << "\nThe original sounds are listed above so you always know which pack each one came from\n"
              << "(check each pack's licence before releasing music made with it).\n";

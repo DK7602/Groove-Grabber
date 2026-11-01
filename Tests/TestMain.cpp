@@ -15,6 +15,8 @@
 #include "core/Harvester.h"
 #include "core/SongAnalysis.h"
 #include "core/MpcTemplate.h"
+#include "core/Sauce.h"
+#include "core/Daws.h"
 #include <juce_events/juce_events.h>
 #include <cmath>
 #include <iostream>
@@ -622,7 +624,27 @@ namespace
         juce::FileInputStream mis (res.midiFile);
         juce::MidiFile mf;
         check (mf.readFrom (mis) && mf.getNumTracks() == 1 && mf.getTrack (0)->getNumEvents() > 20, "groove MIDI readable");
-        check (res.infoFile.loadFileAsString().contains ("LOAD INTO GROOVE AGENT"), "kit info written");
+        check (res.infoFile.loadFileAsString().contains ("LOAD INTO YOUR SAMPLER"), "kit info written (no DAW found: any sampler)");
+        {
+            // the loading steps and note names follow the DAW it's for
+            auto forLive = eo;
+            forLive.daw = "ableton";
+            forLive.destination = testRoot().getChildFile ("ExportsLive");
+            const auto info = gg::exportKit (kits[0], forLive).infoFile.loadFileAsString();
+            check (info.contains ("LOAD INTO DRUM RACK (ABLETON LIVE)") && info.contains ("onto the C1 pad") && ! info.contains ("**"),
+                   "kit info for Ableton: Drum Rack steps, no markdown");
+            auto forFL = eo;
+            forFL.daw = "fl";
+            forFL.destination = testRoot().getChildFile ("ExportsFL");
+            const auto flInfo = gg::exportKit (kits[0], forFL).infoFile.loadFileAsString();
+            check (flInfo.contains ("\nC3   36   01 Kick.wav") && flInfo.contains ("FPC"), "kit info for FL Studio: note 36 is C3, FPC steps");
+            auto forCubase = eo;
+            forCubase.daw = "cubase";
+            forCubase.destination = testRoot().getChildFile ("ExportsCubase");
+            const auto gaInfo = gg::exportKit (kits[0], forCubase).infoFile.loadFileAsString();
+            check (gaInfo.contains ("LOAD INTO GROOVE AGENT SE") && gaInfo.contains ("lowest") && gaInfo.contains ("pad group 3"),
+                   "kit info for Cubase: Groove Agent, the lowest drop icon, pad group 3");
+        }
         check (res.folder.getParentDirectory() == eo.destination.getChildFile (gg::genreFolderName (kits[0].genre)),
                "export lands in its genre folder (" + res.folder.getParentDirectory().getFileName() + ")");
         {
@@ -671,6 +693,68 @@ namespace
             std::unique_ptr<juce::AudioFormatReader> rd (fm.createReaderFor (res.padFiles[0]));
             check (rd != nullptr && rd->bitsPerSample == 24 && (int) rd->sampleRate == 44100 && rd->lengthInSamples > 1000, "kick WAV 24-bit 44.1k");
         }
+    }
+
+    void testSauceAndDaws()
+    {
+        section ("SAUCE and DAWs");
+        // every style and decade has its write-up, in the markdown the page can show
+        juce::StringArray missing, unclean;
+        for (int g = 0; g < gg::numGenres; ++g)
+        {
+            const auto& list = gg::stylesOf ((gg::Genre) g);
+            for (const auto& st : list)
+            {
+                const auto text = gg::sauceSection (st.id);
+                if (! text.startsWith ("**The pocket.**") || ! text.contains ("### Kick") || ! text.contains ("### Sauce tips")) missing.add (st.id);
+            }
+            for (int e = 0; e < gg::numEras; ++e)
+                if (gg::sauceSection ("era." + juce::String (e) + "." + list.front().id).isEmpty()) missing.add ("era." + juce::String (e) + "." + list.front().id);
+        }
+        for (int e = 0; e < gg::numEras; ++e)
+            if (! gg::sauceSection ("era." + juce::String (e)).contains ("### Get it in your DAW")) missing.add ("era." + juce::String (e));
+        check (missing.isEmpty(), "every style and decade has its SAUCE: " + missing.joinIntoString (", "));
+        for (const auto& k : gg::sauceKeys())
+        {
+            const auto t = gg::sauceSection (k);
+            for (auto c : t) if (c > 126 || (c < 32 && c != '\n' && c != '\t' && c != '\r')) { unclean.add (k); break; }
+            for (auto* w : { "damn", "hell ", "drug", "gang", " gun", "kill", "murder", "shit", "fuck" })
+                if (t.containsIgnoreCase (w)) unclean.add (k + " (" + w + ")");
+        }
+        check (unclean.isEmpty(), "SAUCE is plain ASCII and clean: " + unclean.joinIntoString (", "));
+        const auto md = gg::sauceMarkdown (gg::Genre::boomBap, gg::styleIndex (gg::Genre::boomBap, "hiphop.east"), 3);
+        check (md.startsWith ("**The pocket.**") && md.contains ("## In the 90s") && md.contains ("**Hip-hop in the 90s.**") && md.contains ("### Gear and sounds"),
+               "East Coast in the 90s: the style, then the decade in hip-hop, then the decade");
+        check (! gg::sauceMarkdown (gg::Genre::rock, 0, -1).contains ("## In the"), "any era: no decade part");
+        check (gg::sauceGrooves (gg::styleFor (gg::Genre::boomBap, 0)).size() == 2, "Hip-Hop General shows its two grooves");
+        for (int g = 0; g < gg::numGenres; ++g)
+            for (const auto& st : gg::stylesOf ((gg::Genre) g))
+                if (gg::sauceGrooves (st).empty()) check (false, "no groove for " + st.id);
+
+        // the shuffle swings its 8ths; 16th swing leaves 8ths alone
+        check (std::abs (gg::swungBeat (0.5, 0.5f, true) - 2.0 / 3.0) < 1.0e-9 && std::abs (gg::swungBeat (0.5, 0.5f, false) - 0.5) < 1.0e-9
+               && std::abs (gg::swungBeat (0.25, 0.5f, false) - (0.25 + 0.5 / 6.0)) < 1.0e-9 && std::abs (gg::swungBeat (1.0, 0.5f, true) - 1.0) < 1.0e-9,
+               "swing: 8ths for a shuffle, 16ths otherwise");
+        check (gg::grooveFor ("country2").swingEighths && ! gg::grooveFor ("boombap1").swingEighths, "the Shuffle groove swings its 8ths");
+
+        // DAWs: names for note 36, guides, picking one
+        check (gg::dawNoteName (36, gg::dawGuide ("cubase")) == "C1" && gg::dawNoteName (36, gg::dawGuide ("fl")) == "C3"
+               && gg::dawNoteName (36, gg::dawGuide ("reaper")) == "C2" && gg::dawNoteName (57, gg::dawGuide ("ableton")) == "A2"
+               && gg::dawNoteName (42, gg::dawGuide ("logic")) == "F#1", "note names: C1 in Cubase, C3 in FL Studio, C2 in REAPER");
+        check (gg::dawGuide ("nope").id == "other" && gg::dawGuides().back().id == "other", "an unknown DAW gets the general guide");
+        check (gg::chosenDaw ("bitwig") == "bitwig" && gg::chosenDaw ("") == (gg::detectedDaw().isNotEmpty() ? gg::detectedDaw() : juce::String ("other")),
+               "the setting picks the DAW; automatic falls back to the host, then any sampler");
+        juce::StringArray thin;
+        std::set<juce::String> ids;
+        for (const auto& d : gg::dawGuides())
+        {
+            ids.insert (d.id);
+            if (d.steps.size() < 2 || d.dragLabel.isEmpty() || d.dragHint.isEmpty() || d.name.isEmpty()) thin.add (d.id);
+        }
+        check (thin.isEmpty() && ids.size() == gg::dawGuides().size() && gg::dawGuides().size() >= 10, "every DAW guide is filled in: " + thin.joinIntoString (", "));
+        const auto manual = gg::dawGuidesMarkdown();
+        check (manual.contains ("**Ableton Live: Drum Rack**") && manual.contains ("**FL Studio: FPC**") && ! manual.contains ("{FIRST}"),
+               "the manual lists every DAW's steps");
     }
 
     void testPlayer (gg::SoundListPtr sounds)
@@ -861,6 +945,7 @@ int main (int argc, char** argv)
     const auto expected = makeLibrary (testRoot().getChildFile ("Library"));
     testNames();
     testDescriptions();
+    testSauceAndDaws();
     auto sounds = scanLibrary (expected);
     testGenerator (sounds);
     testPlayer (sounds);

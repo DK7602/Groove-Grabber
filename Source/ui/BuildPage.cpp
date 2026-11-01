@@ -399,7 +399,7 @@ namespace ggui
         regenerate.setTooltip ("New sounds for every unlocked pad of this kit");
         lockAll.setTooltip ("Lock / unlock every pad of this kit");
         saveKit.setTooltip ("Save this kit to MY KITS");
-        exportKit.setTooltip ("Export this kit for Groove Agent (numbered WAVs, MPC program, groove MIDI)");
+        exportKit.setTooltip ("Export this kit for your DAW's drum sampler (numbered WAVs, MPC program, groove MIDI)");
         regenerate.onClick = [this] { proc.regenerateKit (proc.activeKit, false); };
         lockAll.onClick = [this]
         {

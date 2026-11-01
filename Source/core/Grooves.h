@@ -19,13 +19,14 @@ namespace gg
         double bpm = 100;
         int bars = 2;
         float swing = 0;
+        bool swingEighths = false;       // swing moves the off-beat 8ths (a shuffle), not the 16ths
         std::vector<GrooveHit> hits;     // sorted by time, swing NOT applied
         double lengthBeats() const noexcept   { return bars * 4.0; }
     };
 
     const std::vector<Groove>& allGrooves();
     const Groove& grooveFor (const juce::String& id);          // falls back to the first
-    double swungBeat (double beat, float swing) noexcept;      // delays the off-beat 16ths
+    double swungBeat (double beat, float swing, bool eighths = false) noexcept;   // delays the off-beat 16ths (or 8ths)
 
     // A Standard MIDI File of the groove on GM drum notes (channel 10), repeated 'times'
     juce::MemoryBlock grooveToMidi (const Groove&, double bpm, float swing, int times = 2);

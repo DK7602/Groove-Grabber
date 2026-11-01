@@ -2,17 +2,18 @@
 
 ## Welcome
 
-Groove Grabber builds four drum kits for the song you're making, using only the sounds you already own. You describe the song, it picks kicks, 808s, snares, claps, hats, toms, cymbals, percussion and FX that fit together, tunes them to your key, matches their levels and exports the kit ready for Groove Agent.
+Groove Grabber builds four drum kits for the song you're making, using only the sounds you already own. You describe the song, it picks kicks, 808s, snares, claps, hats, toms, cymbals, percussion and FX that fit together, tunes them to your key, matches their levels and exports the kit ready for your DAW's drum sampler (Groove Agent, Drum Rack, FPC, Drum Machine Designer, Impact and more). The SAUCE page shows how the drums go in your style, so you can build the parts too.
 
 This manual covers version {VERSION}. Groove Grabber runs as a plug-in in your DAW (VST3, AU on Mac) and as a standalone app. Open this manual any time with the **?** button in the header or the **F1** key.
 
-The workflow in five steps:
+The workflow in six steps:
 
 1. **LIBRARY:** point it at your drum folders once. It listens to every sound and remembers it.
 2. **BUILD:** describe the song in your own words (genre, decade, feel, tempo, key, even an artist or song).
 3. **GENERATE KITS:** get four kits, each a different take on that style.
 4. **Edit:** lock the pads you love, regenerate the rest, swap in alternatives, tweak each pad.
-5. **EXPORT:** a numbered folder you drop straight onto pad 1 in Groove Agent.
+5. **EXPORT:** a numbered folder you drop straight onto your drum sampler's first pad, with steps for your DAW.
+6. **SAUCE:** how the drums are played in your genre, style and decade, with patterns to play and drag into your DAW.
 
 ## Install and first run
 
@@ -38,6 +39,7 @@ The Windows and Mac installers let you choose the parts. Pick "Plug-in + standal
 | What | Where |
 | --- | --- |
 | Exported kits | Documents\Groove Grabber\Exports\<genre>\<kit name> |
+| Patterns dragged from SAUCE | Documents\Groove Grabber\Sauce MIDI |
 | Saved kits | Documents\Groove Grabber\Kits\<genre> |
 | Harvested hits | Documents\Groove Grabber\Harvested |
 | Your own recordings | Documents\Groove Grabber\My Recordings |
@@ -45,14 +47,14 @@ The Windows and Mac installers let you choose the parts. Pick "Plug-in + standal
 
 ## The screen at a glance
 
-Everything sits on three pages under one header bar. Hover over almost anything to see a tip.
+Everything sits on four pages under one header bar. Hover over almost anything to see a tip.
 
 **The header, left to right**
 
 | Control | What it does |
 | --- | --- |
 | Logo | Click to switch between the dark and light look |
-| BUILD / LIBRARY / MY KITS | The three pages |
+| BUILD / LIBRARY / MY KITS / SAUCE | The four pages |
 | KEY | The song's key. The kick, 808 and toms are tuned to it. Minor keys are listed first. |
 | BPM | The song's tempo. Drag up or down, scroll, or double-click to type. |
 | KEY COMPASS | Takes the key and tempo from a Key Compass song or from a song file |
@@ -65,6 +67,7 @@ Everything sits on three pages under one header bar. Hover over almost anything 
 - **BUILD:** describe the song, generate the four kits, edit pads, save and export. It's where you spend most of your time.
 - **LIBRARY:** your sound folders, scanning, Harvest Hits, and a searchable list of every analysed sound.
 - **MY KITS:** kits you saved, plus recent ones, filed by genre and searchable.
+- **SAUCE:** how the drums go in a genre, style and decade: the patterns, and how to play and program them.
 
 The app opens on LIBRARY the very first time (nothing to build with yet) and on BUILD after that. The window can be resized from the bottom-right corner.
 
@@ -259,19 +262,21 @@ Each kit shows its genre, style, decade, key, BPM, how many pads it fills and wh
 
 **OPEN KIT FILE...** opens a .ggkit file. Every export folder has one, so you can reopen any exported kit. A kit file points at your original sounds, so keep your drum folders where they are.
 
-## Exporting to Groove Agent
+## Exporting to your DAW
 
-**EXPORT** writes the kit as one WAV per pad, numbered in General MIDI order from C1, already tuned, trimmed and level-matched. Drop them all on Groove Agent's first pad and every sound lands on the right note.
+**EXPORT** writes the kit as one WAV per pad, numbered in General MIDI order from note 36, already tuned, trimmed and level-matched. Drop them all on your drum sampler's first pad and every sound lands on the right note. Groove Agent, Drum Rack, FPC and the rest each take the files a little differently, so the export panel, Kit Info.txt and this page give the steps for your DAW.
 
 **In the EXPORT panel**
 
 - **Name:** the kit's name, which becomes the folder name. Change it if you like.
+- **FOR:** the DAW the loading steps are written for. **Automatic** picks the DAW Groove Grabber is running in (Cubase, Live, FL Studio, Logic, Studio One, REAPER, Bitwig, Reason...). Pick one by hand in the app, or to get another DAW's steps. MPC sets 16-bit for you.
 - **16-BIT / 24-BIT** and **44.1 kHz / 48 kHz.** Use 16-bit for MPCs and older samplers.
-- **MPC program (.pgm):** an MPC 1000 program, which Groove Agent can also import.
+- **MPC program (.pgm):** an MPC 1000 program with every pad and note set, for MPCs and samplers that import them.
 - **Groove MIDI file:** the preview groove on the same notes.
-- **Silent files for empty pads:** keeps the numbering steady when a kit doesn't fill every pad. Leave it on for Groove Agent.
+- **Silent files for empty pads:** keeps the numbering steady when a kit doesn't fill every pad. Leave it on.
 - **In a genre folder:** puts the kit in a folder for its genre, for example Exports\Hip-Hop\90s Westside Classic. On by default.
 - **CHANGE...** picks the export folder (default Documents\Groove Grabber\Exports). The "To:" line shows exactly where the kit will go. **EXPORT KIT** writes it, **SHOW FOLDER** opens it.
+- After exporting, grab the **drag handle** and drop all the files on your sampler in one go. It's labelled for your DAW, for example **DRAG TO GROOVE AGENT - PAD C1** or **DRAG TO DRUM RACK - PAD C1**.
 
 **What you get**
 
@@ -280,22 +285,50 @@ Exports/Hip-Hop/90s Westside Classic/
   01 Kick.wav  02 Rim.wav  03 Snare.wav ... 17 808.wav ... 22 FX 2.wav
   90s Westside Classic.pgm          MPC 1000 program
   90s Westside Classic Groove.mid   the preview groove
-  Kit Info.txt                      where every sound came from + the loading steps
+  Kit Info.txt                      where every sound came from + the steps for your DAW
   90s Westside Classic.ggkit        reopen it in Groove Grabber
 ```
 
-**Loading it into Groove Agent**
+**Note names differ between DAWs.** The files always sit on MIDI notes 36 to 57, but DAWs name those notes differently: note 36 is C1 in Cubase, Live, Logic, Studio One and Bitwig, C2 in REAPER and C3 in FL Studio. The export panel, Kit Info.txt and the SAUCE grid use your DAW's names.
 
-1. Open Groove Agent and pick an empty kit slot (Beat Agent).
-2. Drop all the numbered WAVs onto the **first pad (C1)**. Either select 01 Kick to 22 FX 2 in the folder and drag them in, or grab the **DRAG TO GROOVE AGENT - PAD 1 (C1)** handle in the export panel and drop it on pad 1. They fill the pads in order, so Groove Agent's own grooves play the right drums.
-3. Set Closed Hat, Pedal Hat and Open Hat (pads 7, 9 and 11) to the same Exclusive Group, so a closed hat cuts off an open one.
-4. Right-click the kit and choose **Export Kit with Samples**, saving into Groove Agent's preset folder. It's now a normal Groove Agent kit you can load in any project.
+**Loading the kit, DAW by DAW**
+
+{DAW_GUIDES}
+**Or skip the sampler.** Groove Grabber is a drum instrument too: put it on an instrument track and it plays the kit you're editing on notes 36 to 57, the same layout as the export. It's the quickest way to sketch, and the only way in GarageBand.
 
 **Other ways to use it**
 
-- **MPC program:** load the .pgm on an MPC, or in Groove Agent right-click the kit slot and choose Import. Every pad and note is already set.
 - **The groove:** drag the Groove .mid onto your drum track.
 - **Kit Info.txt** lists which pack every sound came from. Check each pack's licence before releasing music made with it.
+
+## SAUCE: how the drums go
+
+The SAUCE page explains how drums are played and programmed in a genre, style and decade, so you can build your own parts in your DAW. It opens on the genre, style and decade picked on BUILD, so it always starts with your song.
+
+**THE RECIPE** (left)
+
+- **Genre, decade and style** boxes: pick any other to read up on it. BUILD isn't changed.
+- When you're on another style, **MATCH BUILD** goes back to your song's, and **USE ON BUILD** sets BUILD to this style and takes you there to generate kits.
+- **At a glance:** the style's starting tempo, its low end (kick, or kick + 808), its usual percussion and the decades it's known for.
+- **Build it in your DAW:** the five steps from pattern to finished part.
+
+**THE PATTERN** (top)
+
+- The style's grooves as a step grid: one row per drum, 16 steps a bar, two bars. The beats are steps 1, 5, 9 and 13, counted 1 e & a. Brighter cells are harder hits, faded ones are soft ghost notes, and split cells are rolls.
+- Each row shows the note it plays in your DAW, for example "C1 (36)".
+- The buttons across the top pick between the style's grooves.
+- **Play** (or the Space bar) plays it with the kit you're editing on BUILD. It plays at your song's tempo while you're on your song's style, and at the groove's own tempo when you're reading up on another.
+- **DRAG MIDI** drags four bars of it into your DAW, on the same notes as every Groove Grabber kit. The files are kept in Documents\Groove Grabber\Sauce MIDI.
+
+**THE SAUCE** (bottom)
+
+- **The pocket:** what makes this style feel like itself, with its tempo, swing, time feel and low end.
+- **Kick, Snare and clap, Hats and cymbals, Percussion and toms, 808 and bass:** where each one goes and how it moves.
+- **Fills and changes:** what changes between verse, hook, bridge and drop.
+- **Sauce tips:** velocity, ghost notes, timing, layering and mix moves.
+- With a decade picked, **In the 90s** (or whichever) adds how that genre's drums sounded then, the gear of the time and how to get that sound in your DAW.
+
+Swing is given MPC-style: 50% is straight, about 54 to 58% light, 60 to 62% heavy and 66% a full triplet. DAWs name their swing controls differently, so match the feel rather than the number.
 
 ## Working with Key Compass and Sample Snagger
 
@@ -415,8 +448,10 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | The plug-in doesn't show up in your DAW | It's an instrument: look in your instrument list (Cubase: under Drum, by Grabber Audio). On Windows the VST3 is in C:\Program Files\Common Files\VST3. In Cubase, if it was ever blocked, open Studio > VST Plug-in Manager, show the blocklist, select Groove Grabber and click Reactivate. |
 | No sound from the standalone app | Gear menu, **Audio / MIDI settings...**, and pick your output device. |
 | The groove drifts from your song | Turn on **Follow DAW** in the groove bar. |
-| Groove Agent pads land on the wrong notes | Keep "Silent files for empty pads" on, and drop all 22 files on the first pad (C1). |
-| Open hats ring over closed hats in Groove Agent | Put pads 7, 9 and 11 in the same Exclusive Group. |
+| Sounds land on the wrong pads in your sampler | Keep "Silent files for empty pads" on, and drop all 22 files on the note 36 pad. In Groove Agent, drop on the lowest drop icon; in Studio One, hold Shift. See Exporting to your DAW. |
+| All the files stacked up on one pad | The sampler layered them. Drop them again the way your DAW spreads them (Exporting to your DAW), or one file per pad in FPC, REAPER and Kong. |
+| Note names in the steps don't match your DAW | Pick your DAW under FOR in the export panel. The notes are the same; only the names differ (note 36 is C1 in Cubase, C3 in FL Studio). |
+| Open hats ring over closed hats | Put the Closed Hat, Pedal Hat and Open Hat pads (notes 42, 44 and 46) in the same choke / exclusive group. |
 | You moved or renamed your drum folders | Remove the old folder on the LIBRARY page and add it again. Saved kits point at the old file locations. |
 | The first scan takes a while | Every sound is analysed once. Later scans only look at new files, and you can keep working meanwhile. |
 
@@ -427,7 +462,7 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | Do this | To |
 | --- | --- |
 | F1 or the ? button | Open this manual |
-| Space | Play / stop the preview groove |
+| Space | Play / stop the preview groove (on SAUCE: the pattern you're looking at) |
 | Enter (in the description box) | Generate kits |
 | Esc | Close the manual or the export panel |
 | Double-click a slider or knob | Reset it |
@@ -436,7 +471,7 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | Drag a pad to your DAW | Use that one sound |
 | Drop a file on a pad | Replace that pad's sound |
 
-**Pad map** (export file numbers and MIDI notes; C1 = MIDI note 36, as in Groove Agent)
+**Pad map** (export file numbers and MIDI notes; shown as C1 = MIDI note 36, the Cubase, Live and Logic naming)
 
 | File | Pad | Note |
 | --- | --- | --- |

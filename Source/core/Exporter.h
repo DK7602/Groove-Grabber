@@ -1,14 +1,14 @@
-// Groove Grabber - exports a kit, ready for Groove Agent (or any sampler / drum machine):
+// Groove Grabber - exports a kit, ready for your DAW's drum sampler (Groove Agent, Drum Rack, FPC, Drum Machine
+// Designer, Impact XT ... or any sampler / drum machine):
 //
 //   <Kit name>/
 //     01 Kick.wav ... 22 FX 2.wav   one file per pad, numbered in General MIDI pad order from C1 (note 36),
-//                                    so selecting them all and dropping them on Groove Agent's first pad puts
-//                                    every sound on the right note. Empty pads get a silent file so the
-//                                    numbering never shifts.
+//                                    so dropping them all on the sampler's first pad puts every sound on the
+//                                    right note. Empty pads get a silent file so the numbering never shifts.
 //     <Kit name>.pgm                 an Akai MPC 1000 program with every pad and note set (Groove Agent can
 //                                    import it: right-click the kit slot > Import)
 //     <Kit name> Groove.mid          the preview groove on the same notes
-//     Kit Info.txt                   where every sound came from, its tuning, and the loading steps
+//     Kit Info.txt                   where every sound came from, its tuning, and the loading steps for your DAW
 #pragma once
 
 #include "Kit.h"
@@ -28,6 +28,7 @@ namespace gg
         juce::String grooveId;
         double bpm = 0;
         float swing = 0;
+        juce::String daw;                // the DawGuide id the loading steps are written for ("" = automatic)
     };
 
     struct ExportResult
@@ -35,7 +36,7 @@ namespace gg
         bool ok = false;
         juce::String error;
         juce::File folder;
-        juce::Array<juce::File> padFiles;    // in pad order (what to drag onto Groove Agent)
+        juce::Array<juce::File> padFiles;    // in pad order (what to drag onto the sampler's first pad)
         juce::File programFile, midiFile, infoFile;
         int soundsWritten = 0;
     };

@@ -1,6 +1,7 @@
 #include "HelpPanel.h"
 #include "GGBinaryData.h"
 #include "../core/Settings.h"
+#include "../core/Daws.h"
 
 namespace ggui
 {
@@ -438,13 +439,14 @@ namespace ggui
         juce::ignoreUnused (proc);
         setWantsKeyboardFocus (true);
 
-        manual.setMarkdown (juce::String::fromUTF8 (GGBinary::Manual_md, GGBinary::Manual_mdSize).replace ("{VERSION}", GG_VERSION));
+        manual.setMarkdown (juce::String::fromUTF8 (GGBinary::Manual_md, GGBinary::Manual_mdSize).replace ("{VERSION}", GG_VERSION)
+                                .replace ("{DAW_GUIDES}", gg::dawGuidesMarkdown()));
 
         juce::String a;
         a << "# Groove Grabber\n\n"
           << "**Version " << GG_VERSION << "**\n\n"
           << "Your sounds. Your style. Your groove.\n\n"
-          << "Groove Grabber builds drum kits from your own library for the song you're making, and exports them ready for Groove Agent. "
+          << "Groove Grabber builds drum kits from your own library for the song you're making, and exports them ready for your DAW's drum sampler. "
           << "It never ships any drum sounds: every kit is made from sounds you already own.\n\n"
           << "## Credits and licences\n\n"
           << juce::String::fromUTF8 (GGBinary::THIRD_PARTY_NOTICES_txt, GGBinary::THIRD_PARTY_NOTICES_txtSize) << "\n\n"

@@ -69,8 +69,8 @@ namespace ggui
     //==============================================================================
     HeaderBar::HeaderBar (GrooveGrabberProcessor& p) : proc (p)
     {
-        const char* names[] = { "BUILD", "LIBRARY", "MY KITS" };
-        for (int i = 0; i < 3; ++i)
+        const char* names[] = { "BUILD", "LIBRARY", "MY KITS", "SAUCE" };
+        for (int i = 0; i < 4; ++i)
         {
             auto* b = tabs.add (new juce::TextButton (names[i]));
             b->getProperties().set ("style", "tab");
@@ -80,6 +80,7 @@ namespace ggui
         tabs[0]->setTooltip ("Describe the song, generate and edit kits");
         tabs[1]->setTooltip ("Your sound folders, scanning, and every analysed sound");
         tabs[2]->setTooltip ("Kits you saved, and recent ones");
+        tabs[3]->setTooltip ("How the drums go in your genre, style and decade: patterns to play and drag into your DAW");
 
         key.addItem ("No key", 1);
         for (int k = 0; k < 24; ++k)
@@ -150,11 +151,11 @@ namespace ggui
     void HeaderBar::resized()
     {
         auto r = getLocalBounds().reduced (14, 9);
-        const bool narrow = getWidth() < 1340;
+        const bool narrow = getWidth() < 1400;
         logoArea = r.removeFromLeft (narrow ? 280 : 340);
         r.removeFromLeft (narrow ? 4 : 10);
         auto tabRow = r.withSizeKeepingCentre (r.getWidth(), 44);
-        for (auto* t : tabs) { t->setBounds (tabRow.removeFromLeft (t == tabs[2] ? (narrow ? 96 : 108) : (narrow ? 86 : 100)).reduced (2, 2)); }
+        for (auto* t : tabs) { t->setBounds (tabRow.removeFromLeft (t == tabs[2] ? (narrow ? 96 : 108) : (narrow ? 84 : 98)).reduced (2, 2)); }
         r = r.withLeft (tabRow.getX());
 
         // right to left: light / dark, settings, Key Compass, BPM, key

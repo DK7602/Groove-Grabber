@@ -80,8 +80,48 @@ int runScreenshots (const juce::File& outDir)
         ed->showTab (2);
         pump (200);
         save (*ed, outDir.getChildFile ("kits" + suffix + ".png"));
+        ed->showTab (3);
+        pump (300);
+        save (*ed, outDir.getChildFile ("sauce" + suffix + ".png"));
+        if (! ed->getSauce().isFollowingBuild()) { std::cout << "  FAIL: SAUCE didn't open on BUILD's style" << std::endl; ++failures; }
         if (! light)
         {
+            // another style, read up on from SAUCE: BUILD stays where it was
+            ed->getSauce().choose (gg::Genre::trap, gg::styleIndex (gg::Genre::trap, "trap.ukdrill"), 5);
+            pump (200);
+            save (*ed, outDir.getChildFile ("sauce-drill.png"));
+            if (ed->getSauce().isFollowingBuild() || proc.options.genre != gg::Genre::boomBap)
+            { std::cout << "  FAIL: picking a style on SAUCE changed BUILD" << std::endl; ++failures; }
+            ed->setSize (1180, 760);
+            pump (200);
+            save (*ed, outDir.getChildFile ("sauce-small.png"));
+            ed->setSize (1440, 900);
+            ed->getSauce().choose (gg::Genre::trap, gg::styleIndex (gg::Genre::trap, "trap.atlanta"), 6);
+            pump (200);
+            save (*ed, outDir.getChildFile ("sauce-trap.png"));
+            if (ed->getSauce().getGrid().numLanes() < 5) { std::cout << "  FAIL: trap pattern grid" << std::endl; ++failures; }
+            ed->setSize (1440, 900);
+
+            // the export panel, written for Cubase: before and after exporting
+            proc.getSettings().set ("daw", "cubase");
+            ed->showTab (0);
+            if (auto* k = proc.getActiveKit()) ed->getExporter().show (*k);
+            pump (200);
+            save (*ed, outDir.getChildFile ("export.png"));
+            for (auto* c : ed->getExporter().getChildren())
+                if (auto* b = dynamic_cast<juce::TextButton*> (c); b != nullptr && b->getButtonText() == "EXPORT KIT") b->triggerClick();
+            for (int i = 0; i < 200 && ! ed->getExporter().getChildren().isEmpty(); ++i)
+            {
+                pump (50);
+                bool shown = false;
+                for (auto* c : ed->getExporter().getChildren())
+                    if (auto* b = dynamic_cast<juce::TextButton*> (c); b != nullptr && b->getButtonText() == "SHOW FOLDER" && b->isVisible()) shown = true;
+                if (shown) break;
+            }
+            pump (200);
+            save (*ed, outDir.getChildFile ("export-done.png"));
+            proc.getSettings().set ("daw", {});
+            ed->getExporter().setVisible (false);
             ed->setSize (1180, 760);
             ed->showTab (0);
             ed->refreshAll();

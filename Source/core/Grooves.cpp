@@ -152,6 +152,7 @@ namespace gg
                 "H:x-x-x-x-x-x-x-x-|x-x-x-x-x-x-x-x-",
                 "1:x-o-x-o-x-o-x-o-|x-o-x-o-x-o-x-o-",
                 "2:x-------x-------|x-------x-------" }));
+            v.back().swingEighths = true;     // a shuffle: the &s move toward the triplet
             v.push_back (make ("worship1", "Worship", 72, 0.0f, {
                 "K:x-------x-x-----|x-------x-------",
                 "S:----x-------x---|----x-------x---",
@@ -349,13 +350,14 @@ namespace gg
         return allGrooves().front();
     }
 
-    double swungBeat (double beat, float swing) noexcept
+    double swungBeat (double beat, float swing, bool eighths) noexcept
     {
-        // off-beat 16ths move later; 0.5 is roughly a triplet feel
-        const double sixteenth = beat * 4.0;
-        const double whole = std::floor (sixteenth + 1.0e-6);
-        if (((long long) whole) % 2 == 1 && std::abs (sixteenth - whole) < 1.0e-6)
-            return beat + swing * (1.0 / 6.0);
+        // off-beat 16ths (or 8ths, for a shuffle) move later; 0.5 is a triplet feel
+        const double unitsPerBeat = eighths ? 2.0 : 4.0;
+        const double pos = beat * unitsPerBeat;
+        const double whole = std::floor (pos + 1.0e-6);
+        if (((long long) whole) % 2 == 1 && std::abs (pos - whole) < 1.0e-6)
+            return beat + swing * (eighths ? 1.0 / 3.0 : 1.0 / 6.0);
         return beat;
     }
 
@@ -371,7 +373,7 @@ namespace gg
             {
                 const int note = mainNoteForSlot (h.slot);
                 if (note < 0) continue;
-                const double beat = rep * g.lengthBeats() + swungBeat (h.beat, swing);
+                const double beat = rep * g.lengthBeats() + swungBeat (h.beat, swing, g.swingEighths);
                 const double t = beat * ppq;
                 const auto vel = (juce::uint8) juce::jlimit (1, 127, (int) std::round (h.velocity * 118.0f + 6.0f));
                 seq.addEvent (juce::MidiMessage::noteOn (10, note, vel), t);

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 # Windows: link the C++ runtime into the plug-in itself, so a DAW's plug-in scanner never trips over missing runtime DLLs
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-project(GrooveGrabber VERSION 1.0.7 LANGUAGES C CXX)
+project(GrooveGrabber VERSION 1.0.8 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -66,7 +66,8 @@ juce_add_binary_data(GrooveGrabberBinaryData
         Resources/Fonts/Rajdhani-Bold.ttf
         Resources/badge_256.png
         Resources/THIRD_PARTY_NOTICES.txt
-        Resources/Manual.md)
+        Resources/Manual.md
+        Resources/Sauce.md)
 
 set(GG_CORE_SOURCES
     Source/core/SoundTypes.cpp
@@ -85,7 +86,9 @@ set(GG_CORE_SOURCES
     Source/core/Exporter.cpp
     Source/core/Harvester.cpp
     Source/core/SongAnalysis.cpp
-    Source/core/Settings.cpp)
+    Source/core/Settings.cpp
+    Source/core/Sauce.cpp
+    Source/core/Daws.cpp)
 
 set(GG_UI_SOURCES
     Source/PluginProcessor.cpp
@@ -99,7 +102,8 @@ set(GG_UI_SOURCES
     Source/ui/LibraryPage.cpp
     Source/ui/KitsPage.cpp
     Source/ui/ExportPanel.cpp
-    Source/ui/HelpPanel.cpp)
+    Source/ui/HelpPanel.cpp
+    Source/ui/SaucePage.cpp)
 
 add_library(GGShared INTERFACE)
 target_include_directories(GGShared INTERFACE Source)
