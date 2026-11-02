@@ -2,6 +2,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "core/Settings.h"
+#include "core/MyGrooves.h"
 #include <iostream>
 
 namespace
@@ -100,6 +101,36 @@ int runScreenshots (const juce::File& outDir)
                                 && (id != proc.grooveId || proc.player.getGroove() == proc.getGroove (id).get());
             std::cout << (edited ? "  ok: " : "  FAIL: ") << "pattern edited on SAUCE (" << id << "), and the preview plays the edit" << std::endl;
             if (! edited) ++failures;
+
+            // SAVE AS MY GROOVE: the name box, then the groove itself
+            sauce.startNaming();
+            pump (150);
+            save (*ed, outDir.getChildFile ("sauce-naming.png"));
+            sauce.finishNaming (true, "Late Kick Bounce");
+            pump (200);
+            const auto mine = sauce.getGrooveId();
+            save (*ed, outDir.getChildFile ("sauce-mine.png"));
+            const auto mg = gg::mygrooves::find (mine);
+            const bool saved = gg::mygrooves::isMine (mine) && mg != nullptr && mg->name == "Late Kick Bounce"
+                               && gg::sameHits (mg->hits, proc.getGroove (id)->hits);
+            std::cout << (saved ? "  ok: " : "  FAIL: ") << "saved as my groove, and SAUCE shows it" << std::endl;
+            if (! saved) ++failures;
+            sauce.getGrid().clickStep (0, 5, {});            // editing it saves it
+            const bool savesAsYouGo = gg::mygrooves::find (mine)->hits.size() == mg->hits.size() + 1;
+            // BUILD can play it; deleting it sends BUILD back to the style's groove
+            const auto buildGroove = proc.grooveId;
+            proc.setGrooveId (mine);
+            const bool plays = proc.grooveId == mine && proc.player.getGroove() == gg::mygrooves::find (mine).get();
+            proc.deleteMyGroove (mine);
+            pump (100);
+            const bool fellBack = proc.grooveId == proc.firstGroove() && proc.player.getGroove() != nullptr
+                                  && ! gg::mygrooves::isMine (proc.player.getGroove()->id) && ! gg::mygrooves::isMine (sauce.getGrooveId());
+            proc.setGrooveId ("my.gone-for-good");
+            const bool missing = proc.grooveId == proc.firstGroove();
+            proc.setGrooveId (buildGroove);
+            const bool ok = savesAsYouGo && plays && fellBack && missing;
+            std::cout << (ok ? "  ok: " : "  FAIL: ") << "my groove saves as you edit, plays on BUILD, and deleting it falls back" << std::endl;
+            if (! ok) ++failures;
         }
         if (! light)
         {

@@ -40,6 +40,7 @@ The Windows and Mac installers let you choose the parts. Pick "Plug-in + standal
 | --- | --- |
 | Exported kits | Documents\Groove Grabber\Exports\<genre>\<kit name> |
 | Patterns dragged from SAUCE | Documents\Groove Grabber\Sauce MIDI |
+| My grooves | Documents\Groove Grabber\My Grooves |
 | Saved kits | Documents\Groove Grabber\Kits\<genre> |
 | Harvested hits | Documents\Groove Grabber\Harvested |
 | Your own recordings | Documents\Groove Grabber\My Recordings |
@@ -331,6 +332,18 @@ The SAUCE page explains how drums are played and programmed in a genre, style an
 - **UNDO** takes back your last change. **RESET** goes back to the original pattern (and UNDO brings your version back).
 - An edited pattern shows **EDITED**. Your version is saved with your song (in your DAW project), plays while you edit, and is also what BUILD's preview groove plays and what goes into the export's Groove MIDI file. The groove list on BUILD marks it "edited".
 
+**My grooves: patterns you keep for every song**
+
+An edit belongs to one song. To keep a pattern for all your songs, save it as your own:
+
+1. Shape the pattern (or take a style's pattern as it is) and press **SAVE AS MY GROOVE**.
+2. Type a name ("Late Snare Bounce") and press Enter or **SAVE**. Esc or **CANCEL** leaves it.
+3. It's saved on your computer in Documents\Groove Grabber\My Grooves, with its tempo and swing.
+
+- **MY GROOVES** (next to the pattern buttons) lists your grooves, this genre's first and the rest under Other genres. Pick one to see it, play it, change it or drag it into your DAW.
+- While one of your grooves is showing, it's marked **MY GROOVE**. Changes save to it as you go (UNDO still works), **RENAME** gives it a new name, and **DELETE** removes it (click it twice: the first click asks SURE?).
+- BUILD's groove list has a **MY GROOVES** section in every song: pick one to hear new kits in your groove, and it's what goes into the export's Groove MIDI file. If you delete it, BUILD goes back to the style's own groove.
+
 **THE SAUCE** (bottom)
 
 - **The pocket:** what makes this style feel like itself, with its tempo, swing, time feel and low end.
@@ -465,6 +478,7 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | Open hats ring over closed hats | Put the Closed Hat, Pedal Hat and Open Hat pads (notes 42, 44 and 46) in the same choke / exclusive group. |
 | A pattern you dragged in from SAUCE doesn't play | It was dropped on empty space, so your DAW made a new track with no instrument. Drag the part onto your drum track (Groove Agent, Groove Grabber...), or set that track's output to your drum instrument. Next time, drop it straight on the drum track's lane. |
 | You changed a pattern on SAUCE and want the original back | Press RESET under the pattern. UNDO brings your version back. |
+| You want a pattern in every song, not just this one | SAUCE: SAVE AS MY GROOVE. It's then under MY GROOVES on SAUCE and in BUILD's groove list. |
 | You moved or renamed your drum folders | Remove the old folder on the LIBRARY page and add it again. Saved kits point at the old file locations. |
 | The first scan takes a while | Every sound is analysed once. Later scans only look at new files, and you can keep working meanwhile. |
 

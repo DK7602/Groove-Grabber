@@ -17,6 +17,7 @@
 #include "core/MpcTemplate.h"
 #include "core/Sauce.h"
 #include "core/Daws.h"
+#include "core/MyGrooves.h"
 #include <juce_events/juce_events.h>
 #include <cmath>
 #include <iostream>
@@ -783,6 +784,36 @@ namespace
             check (gg::sameHits (back, edited.hits), "edited hits survive saving");
             const auto junk = gg::hitsFromVar (juce::JSON::parse (R"([[1e9,"kick",1],["x","kick",1],[0.5,"nope",1],[0.5,"snare",5],"bad",[-1,"kick",1],[7.75,"clap",0.5]])"), bb);
             check (junk.size() == 2 && junk[0].slot == gg::Slot::snare && std::abs (junk[0].velocity - 1.0f) < 1.0e-6f, "saved hits are checked: junk left out");
+        }
+
+        // my grooves: saved on this computer, for every song
+        {
+            namespace mg = gg::mygrooves;
+            mg::folder().getChildFile ("junk.gggroove").replaceWithText ("{ not json");
+            mg::folder().getChildFile ("not mine.gggroove").replaceWithText (R"({"id": "boombap1", "name": "Sneaky"})");
+            mg::reloadForTests();
+            const auto before = mg::list().size();
+            auto start = gg::grooveFor ("boombap1");
+            start.hits = gg::withStep (start, gg::Slot::kick, 2, 1, gg::hardHit);
+            const auto id = mg::save (start, "  Late Kick Bounce  ", gg::Genre::boomBap, "hiphop.east");
+            const auto* e = mg::entry (id);
+            check (mg::isMine (id) && e != nullptr && e->file.existsAsFile() && e->groove->name == "Late Kick Bounce" && e->from == "boombap1"
+                   && e->styleId == "hiphop.east" && mg::list().size() == before + 1, "SAVE AS MY GROOVE: a file under your name");
+            const auto old = mg::update (id, gg::withStep (*mg::find (id), gg::Slot::snare, 7, 1, gg::softHit));
+            check (old != nullptr && old->hits.size() == start.hits.size() && mg::find (id)->hits.size() == start.hits.size() + 1,
+                   "editing my groove: a new version, the old one handed back");
+            check (mg::rename (id, "Bounce Two") != nullptr && mg::find (id)->name == "Bounce Two" && mg::entry (id)->file.getFileName() == "Bounce Two.gggroove",
+                   "renaming my groove renames its file");
+            mg::reloadForTests();
+            const auto back = mg::find (id);
+            check (back != nullptr && back->name == "Bounce Two" && gg::sameHits (back->hits, old->hits) == false && back->hits.size() == start.hits.size() + 1
+                   && std::abs (back->bpm - start.bpm) < 0.01 && mg::list().size() == before + 1,
+                   "my groove reads back from disk (junk files and non-'my.' ids left out)");
+            const auto gone = mg::remove (id);
+            check (gone != nullptr && mg::find (id) == nullptr && ! mg::folder().getChildFile ("Bounce Two.gggroove").exists(), "deleting my groove deletes its file");
+            check (mg::find ("boombap1") == nullptr && ! mg::isMine ("boombap1"), "built-in grooves aren't mine");
+            mg::folder().getChildFile ("junk.gggroove").deleteFile();
+            mg::folder().getChildFile ("not mine.gggroove").deleteFile();
         }
 
         // DAWs: names for note 36, guides, picking one

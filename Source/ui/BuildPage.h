@@ -49,6 +49,9 @@ namespace ggui
         juce::Slider swing, volume;
         juce::ToggleButton follow { "Follow DAW" };
         double lastBeat = -1;
+        void fillGrooves();                     // the built-in grooves, then MY GROOVES
+        juce::StringArray myIds;                // my grooves in the list (item id 1000 + index)
+        juce::String grooveListSignature;
     };
 
     class BuildPage : public juce::Component

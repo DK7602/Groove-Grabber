@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "core/KitNames.h"
+#include "core/MyGrooves.h"
 #include "PluginEditor.h"
 
 GrooveGrabberProcessor::GrooveGrabberProcessor()
@@ -180,8 +181,10 @@ void GrooveGrabberProcessor::setBpm (double bpm)
     notify();
 }
 
-void GrooveGrabberProcessor::setGrooveId (const juce::String& id)
+void GrooveGrabberProcessor::setGrooveId (const juce::String& wanted)
 {
+    // one of my grooves that's gone (deleted, or a song from another computer): the style's own groove
+    const auto id = gg::mygrooves::isMine (wanted) && gg::mygrooves::find (wanted) == nullptr ? firstGroove() : wanted;
     grooveId = id;
     const auto g = getGroove (id);
     player.setGroove (g.get());
@@ -192,6 +195,11 @@ void GrooveGrabberProcessor::setGrooveId (const juce::String& id)
 //==============================================================================
 std::shared_ptr<const gg::Groove> GrooveGrabberProcessor::getGroove (const juce::String& id) const
 {
+    if (gg::mygrooves::isMine (id))
+    {
+        if (auto mine = gg::mygrooves::find (id)) return mine;
+        return getGroove (firstGroove());
+    }
     if (const auto it = grooveEdits.find (id); it != grooveEdits.end()) return it->second;
     return std::shared_ptr<const gg::Groove> (std::shared_ptr<const gg::Groove>(), &gg::grooveFor (id));   // built in: not owned
 }
@@ -203,6 +211,17 @@ bool GrooveGrabberProcessor::isGrooveEdited (const juce::String& id) const
 
 void GrooveGrabberProcessor::editGroove (const juce::String& id, std::vector<gg::GrooveHit> hits)
 {
+    if (gg::mygrooves::isMine (id))
+    {
+        // your own groove: the change is saved to it straight away
+        if (auto old = gg::mygrooves::update (id, std::move (hits)))
+        {
+            retireGroove (std::move (old));
+            repointPlayer (id);
+            notify();
+        }
+        return;
+    }
     const auto& original = gg::grooveFor (id);
     if (original.id != id) return;                       // not one of ours
     gg::sortHits (hits);
@@ -220,22 +239,57 @@ void GrooveGrabberProcessor::resetGroove (const juce::String& id)
 
 void GrooveGrabberProcessor::swapGroove (const juce::String& id, std::shared_ptr<const gg::Groove> edit)
 {
-    const auto now = juce::Time::getMillisecondCounter();
     if (const auto it = grooveEdits.find (id); it != grooveEdits.end())
     {
-        retiredGrooves.push_back ({ it->second, now });
+        retireGroove (it->second);
         grooveEdits.erase (it);
     }
     if (edit != nullptr) grooveEdits[id] = std::move (edit);
+    repointPlayer (id);
+    notify();
+}
 
-    // whatever is playing this groove plays the new version (BUILD's preview, or a pattern on SAUCE)
-    if (const auto* playing = player.getGroove(); playing != nullptr && playing->id == id)
-        player.setGroove (getGroove (id).get());
-
+void GrooveGrabberProcessor::retireGroove (std::shared_ptr<const gg::Groove> g)
+{
+    const auto now = juce::Time::getMillisecondCounter();
+    if (g != nullptr) retiredGrooves.push_back ({ std::move (g), now });
     retiredGrooves.erase (std::remove_if (retiredGrooves.begin(), retiredGrooves.end(), [this, now] (const auto& r)
     {
         return now - r.second > 10000 && r.first.get() != player.getGroove();
     }), retiredGrooves.end());
+}
+
+void GrooveGrabberProcessor::repointPlayer (const juce::String& id)
+{
+    // whatever is playing this groove plays its current version (BUILD's preview, or a pattern on SAUCE)
+    if (const auto* playing = player.getGroove(); playing != nullptr && playing->id == id)
+        player.setGroove (getGroove (id).get());
+}
+
+juce::String GrooveGrabberProcessor::saveMyGroove (const juce::String& fromId, const juce::String& name, gg::Genre genre, const juce::String& styleId)
+{
+    const auto id = gg::mygrooves::save (*getGroove (fromId), name, genre, styleId);
+    notify (id.isNotEmpty() ? "Saved \"" + name.trim() + "\" to MY GROOVES" : "Couldn't save the groove in " + gg::mygrooves::folder().getFullPathName());
+    return id;
+}
+
+void GrooveGrabberProcessor::renameMyGroove (const juce::String& id, const juce::String& name)
+{
+    if (auto old = gg::mygrooves::rename (id, name))
+    {
+        retireGroove (std::move (old));
+        repointPlayer (id);
+        notify();
+    }
+}
+
+void GrooveGrabberProcessor::deleteMyGroove (const juce::String& id)
+{
+    auto old = gg::mygrooves::remove (id);
+    if (old == nullptr) return;
+    retireGroove (std::move (old));
+    if (grooveId == id) setGrooveId (firstGroove());       // BUILD's preview goes back to the style's groove
+    repointPlayer (id);                                     // (SAUCE playing it: the fallback groove)
     notify();
 }
 

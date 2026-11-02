@@ -68,6 +68,9 @@ namespace ggui
         bool isFollowingBuild() const;
         PatternGrid& getGrid() noexcept               { return grid; }
         juce::String getGrooveId() const              { return currentId(); }
+        void pickMine (const juce::String& id);       // show one of my grooves
+        void startNaming();                           // SAVE AS MY GROOVE / RENAME: the name box
+        void finishNaming (bool save, const juce::String& name = {});
         int getDocHeight() const noexcept             { return doc.getHeight(); }
 
     private:
@@ -80,6 +83,8 @@ namespace ggui
         void applyHits (std::vector<gg::GrooveHit>);
         void pushUndo();
         void showAddDrum();
+        void showMyGroovesMenu();
+        bool showingMine() const;
         juce::String currentId() const;
         std::vector<gg::Slot> lanesFor (const juce::String& id) const;
         juce::String dropHint() const;               // where to drop the MIDI in your DAW
@@ -94,6 +99,7 @@ namespace ggui
         int subStyle = 0, era = -1, grooveIndex = 0;
         int lastBuildGenre = -99, lastBuildStyle = -99, lastBuildEra = -99;
         juce::StringArray grooveIds;
+        juce::String myShown;                         // one of my grooves, when it's the one shown
         std::map<juce::String, std::vector<std::vector<gg::GrooveHit>>> undoSteps;   // this session's, per groove
         std::map<juce::String, std::vector<gg::Slot>> addedLanes;                     // drums added with + ADD DRUM
 
@@ -106,7 +112,10 @@ namespace ggui
         juce::TextButton matchBuild { "MATCH BUILD" }, useOnBuild { "USE ON BUILD" };
         juce::OwnedArray<juce::TextButton> grooveChips;
         IconButton play { "play", Icon::play, Icon::stop, true };
-        juce::TextButton addDrum { "+ ADD DRUM" }, undo { "UNDO" }, reset { "RESET" };
+        juce::TextButton addDrum { "+ ADD DRUM" }, undo { "UNDO" }, reset { "RESET" }, saveMine { "SAVE AS MY GROOVE" },
+                         myChip { "MY GROOVES" }, nameOk { "SAVE" }, nameCancel { "CANCEL" };
+        juce::TextEditor nameEdit;
+        bool naming = false, renaming = false, deleteArmed = false;
         PatternGrid grid;
         DocView doc;
         juce::Viewport docView;

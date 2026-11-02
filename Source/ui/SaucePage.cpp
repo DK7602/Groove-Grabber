@@ -1,6 +1,7 @@
 #include "SaucePage.h"
 #include "core/Daws.h"
 #include "core/Settings.h"
+#include "core/MyGrooves.h"
 
 namespace ggui
 {
@@ -312,12 +313,57 @@ namespace ggui
         reset.onClick = [this]
         {
             const auto id = currentId();
+            if (showingMine())
+            {
+                // DELETE, once you've clicked it twice
+                if (! deleteArmed)
+                {
+                    deleteArmed = true;
+                    showGroove();
+                    juce::Timer::callAfterDelay (4000, [safe = juce::Component::SafePointer<SaucePage> (this)]
+                    {
+                        if (safe != nullptr && safe->deleteArmed) { safe->deleteArmed = false; safe->showGroove(); }
+                    });
+                    return;
+                }
+                deleteArmed = false;
+                myShown = {};
+                undoSteps.erase (id);
+                addedLanes.erase (id);
+                proc.deleteMyGroove (id);
+                pickGroove (0);
+                return;
+            }
             if (! proc.isGrooveEdited (id) && addedLanes[id].empty()) return;
             pushUndo();
             addedLanes.erase (id);
             proc.resetGroove (id);
             showGroove();
         };
+
+        saveMine.getProperties().set ("style", "accent");
+        saveMine.getProperties().set ("accent", pal().blue.toString());
+        saveMine.setTooltip ("Keep this pattern as your own, under a name: it's in every song, here and in BUILD's groove list");
+        saveMine.onClick = [this] { startNaming(); };
+        addAndMakeVisible (saveMine);
+
+        myChip.getProperties().set ("style", "toggle");
+        myChip.setTooltip ("Your own grooves, saved with SAVE AS MY GROOVE");
+        myChip.onClick = [this] { showMyGroovesMenu(); };
+        addAndMakeVisible (myChip);
+
+        nameEdit.setFont (uiFont (16.0f));
+        nameEdit.setBorder (juce::BorderSize<int> (2, 8, 2, 8));
+        nameEdit.setInputRestrictions (60);
+        nameEdit.onReturnKey = [this] { finishNaming (true); };
+        nameEdit.onEscapeKey = [this] { finishNaming (false); };
+        addChildComponent (nameEdit);
+        nameOk.getProperties().set ("style", "accent");
+        nameOk.onClick = [this] { finishNaming (true); };
+        nameCancel.getProperties().set ("style", "ghost");
+        nameCancel.onClick = [this] { finishNaming (false); };
+        addChildComponent (nameOk);
+        addChildComponent (nameCancel);
 
         docView.setViewedComponent (&doc, false);
         docView.setScrollBarsShown (true, false);
@@ -397,6 +443,8 @@ namespace ggui
     void SaucePage::showChoice()
     {
         fillBoxes();
+        myShown = {};
+        if (naming) finishNaming (false);
         const auto& style = gg::styleFor (genre, subStyle);
         grooveIds.clear();
         for (const auto* g : gg::sauceGrooves (style)) grooveIds.add (g->id);
@@ -421,6 +469,8 @@ namespace ggui
     void SaucePage::pickGroove (int index)
     {
         grooveIndex = index;
+        myShown = {};
+        deleteArmed = false;
         for (int i = 0; i < grooveChips.size(); ++i) grooveChips[i]->setToggleState (i == index, juce::dontSendNotification);
         showGroove();
         if (playingHere)
@@ -434,7 +484,105 @@ namespace ggui
 
     juce::String SaucePage::currentId() const
     {
+        if (myShown.isNotEmpty()) return myShown;
         return juce::isPositiveAndBelow (grooveIndex, grooveIds.size()) ? grooveIds[grooveIndex] : juce::String();
+    }
+
+    bool SaucePage::showingMine() const
+    {
+        return myShown.isNotEmpty();
+    }
+
+    void SaucePage::pickMine (const juce::String& id)
+    {
+        if (gg::mygrooves::find (id) == nullptr) return;
+        myShown = id;
+        deleteArmed = false;
+        for (auto* c : grooveChips) c->setToggleState (false, juce::dontSendNotification);
+        showGroove();
+        if (playingHere)
+            if (const auto g = currentGroove())
+            {
+                proc.player.setGroove (g.get());
+                proc.player.setSwing (g->swing);
+                proc.player.setTempo (previewTempo());
+            }
+        resized();
+    }
+
+    void SaucePage::showMyGroovesMenu()
+    {
+        const auto all = gg::mygrooves::list();
+        juce::PopupMenu m, others;
+        std::array<juce::PopupMenu, gg::numGenres> byGenre;
+        int here = 0;
+        for (int i = 0; i < (int) all.size(); ++i)
+        {
+            const auto& e = all[(size_t) i];
+            const auto text = e.groove->name + "   (" + juce::String (e.groove->bpm, 0) + ")";
+            if (e.genre == genre) { if (here++ == 0) m.addSectionHeader ("MY " + gg::genreName (genre).toUpperCase() + " GROOVES"); m.addItem (i + 1, text, true, e.groove->id == myShown); }
+            else byGenre[(size_t) e.genre].addItem (i + 1, text, true, e.groove->id == myShown);
+        }
+        for (int g = 0; g < gg::numGenres; ++g)
+            if (byGenre[(size_t) g].getNumItems() > 0) others.addSubMenu (gg::genreName ((gg::Genre) g), byGenre[(size_t) g]);
+        if (others.getNumItems() > 0)
+        {
+            if (here > 0) m.addSeparator();
+            m.addSubMenu (here > 0 ? "Other genres" : "From other genres", others);
+        }
+        if (all.empty()) m.addItem (-1, "None yet. Change a pattern, then press SAVE AS MY GROOVE.", false);
+        m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&myChip), [this, all, safe = juce::Component::SafePointer<SaucePage> (this)] (int r)
+        {
+            if (safe == nullptr || r <= 0 || r > (int) all.size()) return;
+            pickMine (all[(size_t) r - 1].groove->id);
+        });
+    }
+
+    void SaucePage::startNaming()
+    {
+        const auto g = currentGroove();
+        if (g == nullptr) return;
+        renaming = showingMine();
+        juce::String name = renaming ? g->name : "My " + g->name;
+        if (! renaming)
+        {
+            // a name that isn't taken yet: My Boom Bap, My Boom Bap 2...
+            juce::StringArray taken;
+            for (const auto& e : gg::mygrooves::list()) taken.add (e.groove->name);
+            for (int n = 2; taken.contains (name, true) && n < 100; ++n) name = "My " + g->name + " " + juce::String (n);
+        }
+        naming = true;
+        nameEdit.setColour (juce::TextEditor::backgroundColourId, pal().sunken);
+        nameEdit.setColour (juce::TextEditor::outlineColourId, pal().blue);
+        nameEdit.setColour (juce::TextEditor::focusedOutlineColourId, pal().blue);
+        nameEdit.setText (name, false);
+        nameEdit.applyColourToAllText (pal().text);
+        nameOk.setButtonText (renaming ? "RENAME" : "SAVE");
+        nameOk.getProperties().set ("accent", pal().blue.toString());
+        showGroove();                  // the name box in, the edit buttons out
+        resized();
+        nameEdit.grabKeyboardFocus();
+        nameEdit.selectAll();
+        repaint (patternArea);
+    }
+
+    void SaucePage::finishNaming (bool save, const juce::String& givenName)
+    {
+        const auto name = (givenName.isNotEmpty() ? givenName : nameEdit.getText()).trim();
+        naming = false;
+        if (save && name.isNotEmpty())
+        {
+            if (renaming && showingMine())
+                proc.renameMyGroove (myShown, name);
+            else if (! renaming)
+            {
+                const auto& style = gg::styleFor (genre, subStyle);
+                const auto id = proc.saveMyGroove (currentId(), name, genre, style.id);
+                if (id.isNotEmpty()) pickMine (id);
+            }
+        }
+        resized();
+        showGroove();
     }
 
     std::shared_ptr<const gg::Groove> SaucePage::currentGroove() const
@@ -448,7 +596,7 @@ namespace ggui
         // the original's drums, any you've added hits for, and any you added rows for
         std::vector<gg::Slot> lanes;
         auto add = [&lanes] (gg::Slot s) { if (std::find (lanes.begin(), lanes.end(), s) == lanes.end()) lanes.push_back (s); };
-        for (const auto& h : gg::grooveFor (id).hits) add (h.slot);
+        if (! gg::mygrooves::isMine (id)) for (const auto& h : gg::grooveFor (id).hits) add (h.slot);
         if (const auto g = proc.getGroove (id)) for (const auto& h : g->hits) add (h.slot);
         if (const auto it = addedLanes.find (id); it != addedLanes.end()) for (auto s : it->second) add (s);
         std::sort (lanes.begin(), lanes.end(), [] (gg::Slot a, gg::Slot b) { return (int) a < (int) b; });
@@ -457,12 +605,29 @@ namespace ggui
 
     void SaucePage::showGroove()
     {
+        if (showingMine() && gg::mygrooves::find (myShown) == nullptr) { myShown = {}; deleteArmed = false; }   // deleted meanwhile
         const auto id = currentId();
+        const bool mine = showingMine();
         grid.setGroove (currentGroove(), id.isEmpty() ? std::vector<gg::Slot>() : lanesFor (id));
         const auto it = undoSteps.find (id);
         undo.setEnabled (it != undoSteps.end() && ! it->second.empty());
-        reset.setEnabled (proc.isGrooveEdited (id) || (addedLanes.count (id) > 0 && ! addedLanes.at (id).empty()));
+        reset.setButtonText (mine ? (deleteArmed ? "SURE? DELETE" : "DELETE") : "RESET");
+        reset.getProperties().set ("style", mine && deleteArmed ? "accent" : "ghost");
+        reset.setTooltip (mine ? "Delete this groove from MY GROOVES (click twice)" : "Back to the original pattern (UNDO brings your version back)");
+        reset.setEnabled (mine || proc.isGrooveEdited (id) || (addedLanes.count (id) > 0 && ! addedLanes.at (id).empty()));
         addDrum.setEnabled (id.isNotEmpty() && (int) lanesFor (id).size() < gg::numSlots);
+        saveMine.setButtonText (mine ? "RENAME" : "SAVE AS MY GROOVE");
+        saveMine.setEnabled (id.isNotEmpty());
+        saveMine.getProperties().set ("accent", pal().blue.toString());
+
+        const auto count = (int) gg::mygrooves::list().size();
+        juce::String chip = "MY GROOVES" + (count > 0 ? " (" + juce::String (count) + ")" : juce::String());
+        if (mine) if (const auto g = currentGroove()) chip = "MY: " + g->name.toUpperCase();
+        myChip.setButtonText (chip);
+        myChip.setToggleState (mine, juce::dontSendNotification);
+
+        for (auto* b : { &saveMine, &addDrum, &undo, &reset }) b->setVisible (! naming);
+        for (auto* c : std::initializer_list<juce::Component*> { &nameEdit, &nameOk, &nameCancel }) c->setVisible (naming);
         repaint (patternArea);
     }
 
@@ -663,15 +828,27 @@ namespace ggui
         h.removeFromRight (8);
         dragArea = h.removeFromRight (176);
         h.removeFromRight (12);
-        for (auto* c : grooveChips) { c->setBounds (h.removeFromLeft (juce::jmin (168, h.getWidth())).reduced (2, 3)); h.removeFromLeft (4); }
+        for (auto* c : grooveChips) { c->setBounds (h.removeFromLeft (juce::jmin (160, h.getWidth())).reduced (2, 3)); h.removeFromLeft (4); }
+        myChip.setBounds (h.removeFromLeft (juce::jmin (showingMine() ? 230 : 160, h.getWidth())).reduced (2, 3));
         editBar = pa.removeFromBottom (30);
         {
             auto eb = editBar;
-            reset.setBounds (eb.removeFromRight (84).reduced (0, 1));
+            reset.setBounds (eb.removeFromRight (showingMine() ? 112 : 84).reduced (0, 1));
             eb.removeFromRight (6);
-            undo.setBounds (eb.removeFromRight (84).reduced (0, 1));
+            undo.setBounds (eb.removeFromRight (76).reduced (0, 1));
             eb.removeFromRight (6);
-            addDrum.setBounds (eb.removeFromRight (120).reduced (0, 1));
+            addDrum.setBounds (eb.removeFromRight (112).reduced (0, 1));
+            eb.removeFromRight (6);
+            saveMine.setBounds (eb.removeFromRight (showingMine() ? 96 : 166).reduced (0, 1));
+
+            // naming a groove: the name box in place of the hint and the buttons
+            auto nb = editBar;
+            nameCancel.setBounds (nb.removeFromRight (90).reduced (0, 1));
+            nb.removeFromRight (6);
+            nameOk.setBounds (nb.removeFromRight (100).reduced (0, 1));
+            nb.removeFromRight (10);
+            nb.removeFromLeft (juce::jmin (230, nb.getWidth() / 3));
+            nameEdit.setBounds (nb.reduced (0, 1));
         }
         pa.removeFromBottom (8);
         pa.removeFromTop (10);
@@ -803,10 +980,32 @@ namespace ggui
             g.setFont (uiFont (12.5f, false));
             g.drawText ("4 bars at " + juce::String (previewTempo(), 0) + " BPM", in, juce::Justification::topLeft);
         }
+        if (naming)
         {
-            auto eb = editBar.withRight (addDrum.getX() - 12);
+            g.setColour (p.blue);
+            g.setFont (headFont (11.0f).withExtraKerningFactor (0.1f));
+            g.drawText (renaming ? "NEW NAME FOR THIS GROOVE" : "NAME YOUR GROOVE", editBar.withRight (nameEdit.getX() - 10), juce::Justification::centredLeft);
+        }
+        else
+        {
+            auto eb = editBar.withRight (saveMine.getX() - 12);
             const auto id = currentId();
-            if (proc.isGrooveEdited (id))
+            if (showingMine())
+            {
+                auto tag = eb.removeFromLeft (96).withSizeKeepingCentre (96, 22).toFloat();
+                g.setColour (p.blue.withAlpha (0.18f));
+                g.fillRoundedRectangle (tag, 6.0f);
+                g.setColour (p.blue);
+                g.drawRoundedRectangle (tag, 6.0f, 1.0f);
+                g.setFont (headFont (10.5f).withExtraKerningFactor (0.1f));
+                g.drawText ("MY GROOVE", tag, juce::Justification::centred);
+                eb.removeFromLeft (10);
+                g.setColour (p.dim);
+                g.setFont (uiFont (14.0f, false));
+                g.drawFittedText ("Yours, in every song: changes save as you go. Pick it in BUILD's groove list to hear kits in it.",
+                                  eb, juce::Justification::centredLeft, 2, 0.8f);
+            }
+            else if (proc.isGrooveEdited (id))
             {
                 auto tag = eb.removeFromLeft (70).withSizeKeepingCentre (70, 22).toFloat();
                 g.setColour (p.orange.withAlpha (0.18f));

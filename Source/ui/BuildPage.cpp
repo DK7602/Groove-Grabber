@@ -1,4 +1,5 @@
 #include "BuildPage.h"
+#include "core/MyGrooves.h"
 
 namespace ggui
 {
@@ -277,11 +278,16 @@ namespace ggui
         };
         addAndMakeVisible (play);
 
-        int id = 1;
-        for (auto& gr : gg::allGrooves()) groove.addItem (gr.name + "   (" + juce::String (gr.bpm, 0) + ")", id++);
+        fillGrooves();
         groove.onChange = [this]
         {
-            const int i = groove.getSelectedId() - 1;
+            const int sel = groove.getSelectedId();
+            if (sel >= 1000)
+            {
+                if (juce::isPositiveAndBelow (sel - 1000, myIds.size())) proc.setGrooveId (myIds[sel - 1000]);
+                return;
+            }
+            const int i = sel - 1;
             if (juce::isPositiveAndBelow (i, (int) gg::allGrooves().size())) proc.setGrooveId (gg::allGrooves()[(size_t) i].id);
         };
         groove.setTooltip ("Preview groove (plays at the song's BPM). Edit it on SAUCE.");
@@ -310,8 +316,32 @@ namespace ggui
         startTimerHz (20);
     }
 
+    void TransportBar::fillGrooves()
+    {
+        const auto mine = gg::mygrooves::list();
+        juce::String sig;
+        for (const auto& e : mine) sig << e.groove->id << ":" << e.groove->name << ":" << e.groove->bpm << ";";
+        if (sig == grooveListSignature && groove.getNumItems() > 0) return;
+        grooveListSignature = sig;
+        groove.clear (juce::dontSendNotification);
+        int id = 1;
+        for (auto& gr : gg::allGrooves()) groove.addItem (gr.name + "   (" + juce::String (gr.bpm, 0) + ")", id++);
+        myIds.clear();
+        if (! mine.empty())
+        {
+            groove.addSectionHeading ("MY GROOVES");
+            for (int i = 0; i < (int) mine.size(); ++i)
+            {
+                groove.addItem (mine[(size_t) i].groove->name + "   (" + juce::String (mine[(size_t) i].groove->bpm, 0) + ")", 1000 + i);
+                myIds.add (mine[(size_t) i].groove->id);
+            }
+        }
+    }
+
     void TransportBar::refresh()
     {
+        fillGrooves();
+        if (const int mi = myIds.indexOf (proc.grooveId); mi >= 0) groove.setSelectedId (1000 + mi, juce::dontSendNotification);
         play.setToggleState (proc.player.isGroovePlaying(), juce::dontSendNotification);
         play.setAccent (pal().orange);
         for (size_t i = 0; i < gg::allGrooves().size(); ++i)

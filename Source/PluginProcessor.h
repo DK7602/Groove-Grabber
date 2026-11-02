@@ -76,6 +76,11 @@ public:
     bool isGrooveEdited (const juce::String& id) const;
     void editGroove (const juce::String& id, std::vector<gg::GrooveHit> hits);   // the original's hits reset it
     void resetGroove (const juce::String& id);
+
+    // ---- my grooves: patterns you saved as your own, for every song (core/MyGrooves) ----
+    juce::String saveMyGroove (const juce::String& fromId, const juce::String& name, gg::Genre, const juce::String& styleId);
+    void renameMyGroove (const juce::String& id, const juce::String& name);
+    void deleteMyGroove (const juce::String& id);
     void auditionSlot (gg::Slot);
     void previewFile (const juce::String& path, gg::Cat);
     gg::PlayableKit::Ptr getPlayable (int kitIndex) const;
@@ -106,6 +111,8 @@ private:
     juce::String statusMessage;
     juce::AudioBuffer<float> monoScratch;            // for hosts that pick a mono output
     void swapGroove (const juce::String& id, std::shared_ptr<const gg::Groove> edit);
+    void retireGroove (std::shared_ptr<const gg::Groove>);      // kept a while: the audio thread may still be reading it
+    void repointPlayer (const juce::String& id);                 // the player plays the current version of this groove
     std::map<juce::String, std::shared_ptr<const gg::Groove>> grooveEdits;
     // replaced edits, kept a while: the audio thread may still be reading the one it had
     std::vector<std::pair<std::shared_ptr<const gg::Groove>, juce::uint32>> retiredGrooves;
