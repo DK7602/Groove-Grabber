@@ -143,8 +143,8 @@ namespace gg
                 "K:x-------x-------|x-------x-------",
                 "R:----x-------x---|----x-------x---",
                 "H:x-x-x-x-x-x-x-x-|x-x-x-x-x-x-x-x-",
-                "1:xoxoxoxoxoxoxoxo|xoxoxoxoxoxoxoxo",
-                "2:----x-------x---|----x-------x---",
+                "1:----x-------x---|----x-------x---",      // perc 1 (country kits: the tambourine) on 2 and 4
+                "2:xoxoxoxoxoxoxoxo|xoxoxoxoxoxoxoxo",      // perc 2 (the shaker) 16ths
                 "S:----------------|------------x-x-" }));
             v.push_back (make ("country2", "Shuffle", 104, 0.35f, {
                 "K:x-------x-------|x-------x-------",
@@ -317,8 +317,8 @@ namespace gg
             v.push_back (make ("stomp1", "Stomp & Clap", 96, 0.0f, {
                 "K:x---x---x---x---|x---x---x---x---",
                 "C:----x-------x---|----x-------x---",
-                "1:x-x-x-x-x-x-x-x-|x-x-x-x-x-x-x-x-",
-                "2:----x-------x---|----x-------x---",
+                "1:----x-------x---|----x-------x---",      // perc 1 (the tambourine) with the claps
+                "2:x-x-x-x-x-x-x-x-|x-x-x-x-x-x-x-x-",      // perc 2 (the shaker) 8ths
                 "Y:x---------------|----------------" }));
             v.push_back (make ("dnb1", "Drum & Bass", 174, 0.0f, {
                 "K:x---------x-----|x---------x--x--",
