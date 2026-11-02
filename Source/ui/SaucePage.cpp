@@ -5,16 +5,16 @@
 namespace ggui
 {
     //==============================================================================
-    void PatternGrid::setGroove (const gg::Groove* g)
+    PatternGrid::PatternGrid()
     {
-        groove = g;
-        lanes.clear();
-        if (g != nullptr)
-        {
-            for (const auto& h : g->hits)
-                if (std::find (lanes.begin(), lanes.end(), h.slot) == lanes.end()) lanes.push_back (h.slot);
-            std::sort (lanes.begin(), lanes.end(), [] (gg::Slot a, gg::Slot b) { return (int) a < (int) b; });
-        }
+        setTooltip ("Click a step to add or take away a hit (drag along a row for several). "
+                    "Right-click: hard, medium, soft. Ctrl-click (Alt-click on a Mac): a roll.");
+    }
+
+    void PatternGrid::setGroove (std::shared_ptr<const gg::Groove> g, std::vector<gg::Slot> l)
+    {
+        groove = std::move (g);
+        lanes = std::move (l);
         repaint();
     }
 
@@ -25,19 +25,108 @@ namespace ggui
         repaint();
     }
 
+    PatternGrid::Geometry PatternGrid::geometry() const
+    {
+        Geometry geo;
+        if (groove == nullptr || lanes.empty()) return geo;
+        auto r = getLocalBounds().toFloat();
+        geo.labelW = juce::jlimit (96.0f, 150.0f, r.getWidth() * 0.12f);
+        geo.header = r.removeFromTop (22.0f);
+        geo.steps = groove->bars * 16;
+        geo.gridX = r.getX() + geo.labelW;
+        geo.stepW = (r.getWidth() - geo.labelW) / (float) geo.steps;
+        geo.laneH = juce::jmin (34.0f, r.getHeight() / (float) lanes.size());
+        geo.area = juce::Rectangle<float> (geo.gridX, r.getY(), geo.stepW * (float) geo.steps, geo.laneH * (float) lanes.size());
+        return geo;
+    }
+
+    bool PatternGrid::cellAt (juce::Point<float> pos, int& lane, int& step) const
+    {
+        const auto geo = geometry();
+        if (geo.steps == 0 || ! geo.area.contains (pos)) return false;
+        lane = juce::jlimit (0, (int) lanes.size() - 1, (int) ((pos.y - geo.area.getY()) / geo.laneH));
+        step = juce::jlimit (0, geo.steps - 1, (int) ((pos.x - geo.gridX) / geo.stepW));
+        return true;
+    }
+
+    void PatternGrid::clickStep (int lane, int step, const juce::ModifierKeys& mods)
+    {
+        if (groove == nullptr || ! juce::isPositiveAndBelow (lane, (int) lanes.size()) || ! juce::isPositiveAndBelow (step, groove->bars * 16)) return;
+        const auto slot = lanes[(size_t) lane];
+        const auto cur = gg::stepHits (*groove, slot, step);
+        std::vector<gg::GrooveHit> next;
+        if (mods.isPopupMenu() || mods.isShiftDown())
+        {
+            // hard -> medium -> soft; an empty step gets a soft ghost note
+            next = cur.count == 0 ? gg::withStep (*groove, slot, step, 1, gg::softHit)
+                                  : gg::withStep (*groove, slot, step, cur.count, gg::nextLevel (cur.velocity));
+        }
+        else if (mods.isAltDown() || mods.isCtrlDown())
+        {
+            // one hit -> a quick double -> a triplet burst -> one hit
+            next = cur.count == 0 ? gg::withStep (*groove, slot, step, 2, gg::hardHit)
+                                  : gg::withStep (*groove, slot, step, cur.count % 3 + 1, cur.velocity);
+        }
+        else
+        {
+            painting = true;
+            paintLane = lane;
+            lastStep = step;
+            paintAdd = cur.count == 0;
+            next = gg::withStep (*groove, slot, step, paintAdd ? 1 : 0, gg::hardHit);
+        }
+        if (onEdit) onEdit (std::move (next));
+    }
+
+    void PatternGrid::mouseDown (const juce::MouseEvent& e)
+    {
+        painting = false;
+        int lane = 0, step = 0;
+        if (! cellAt (e.position, lane, step)) return;
+        if (onEditStart) onEditStart();
+        clickStep (lane, step, e.mods);
+    }
+
+    void PatternGrid::mouseDrag (const juce::MouseEvent& e)
+    {
+        if (! painting || groove == nullptr) return;
+        // along the row you started on, wherever the mouse wanders up or down
+        const auto geo = geometry();
+        if (geo.steps == 0) return;
+        const int step = juce::jlimit (0, geo.steps - 1, (int) ((e.position.x - geo.gridX) / geo.stepW));
+        if (step == lastStep || ! juce::isPositiveAndBelow (paintLane, (int) lanes.size())) return;
+        lastStep = step;
+        const auto slot = lanes[(size_t) paintLane];
+        const auto cur = gg::stepHits (*groove, slot, step);
+        if (paintAdd == (cur.count == 0) && onEdit)
+            onEdit (gg::withStep (*groove, slot, step, paintAdd ? 1 : 0, gg::hardHit));
+    }
+
+    void PatternGrid::mouseUp (const juce::MouseEvent&)   { painting = false; }
+
+    void PatternGrid::mouseMove (const juce::MouseEvent& e)
+    {
+        int lane = -1, step = -1;
+        const bool over = cellAt (e.position, lane, step);
+        setMouseCursor (over ? juce::MouseCursor::PointingHandCursor : juce::MouseCursor::NormalCursor);
+        if (lane != hoverLane || step != hoverStep) { hoverLane = lane; hoverStep = step; repaint(); }
+    }
+
+    void PatternGrid::mouseExit (const juce::MouseEvent&)
+    {
+        hoverLane = hoverStep = -1;
+        repaint();
+    }
+
     void PatternGrid::paint (juce::Graphics& g)
     {
         const auto& p = pal();
-        if (groove == nullptr || lanes.empty()) return;
-
-        auto r = getLocalBounds().toFloat();
-        const float labelW = juce::jlimit (96.0f, 150.0f, r.getWidth() * 0.12f);
-        auto header = r.removeFromTop (22.0f);
-        const int steps = groove->bars * 16;
-        const float gridX = r.getX() + labelW;
-        const float stepW = (r.getWidth() - labelW) / (float) steps;
-        const float laneH = juce::jmin (34.0f, r.getHeight() / (float) lanes.size());
-        const float gridH = laneH * (float) lanes.size();
+        const auto geo = geometry();
+        if (geo.steps == 0) return;
+        const auto header = geo.header;
+        const float labelX = (float) getLocalBounds().getX(), labelW = geo.labelW, gridX = geo.gridX, stepW = geo.stepW, laneH = geo.laneH;
+        const float top = geo.area.getY(), gridH = geo.area.getHeight();
+        const int steps = geo.steps;
 
         // beats shaded in turn, bars split by a stronger line
         for (int beat = 0; beat < groove->bars * 4; ++beat)
@@ -46,7 +135,7 @@ namespace ggui
             if (beat % 2 == 1)
             {
                 g.setColour (p.text.withAlpha (p.light ? 0.035f : 0.03f));
-                g.fillRect (juce::Rectangle<float> (x, r.getY(), stepW * 4.0f, gridH));
+                g.fillRect (juce::Rectangle<float> (x, top, stepW * 4.0f, gridH));
             }
             // the count over each beat: 1 e & a
             g.setFont (headFont (11.0f));
@@ -61,21 +150,21 @@ namespace ggui
         g.setFont (headFont (10.0f).withExtraKerningFactor (0.1f));
         g.setColour (p.dim);
         g.drawText (juce::String (groove->bars) + (groove->bars == 1 ? " BAR" : " BARS"),
-                    juce::Rectangle<float> (r.getX(), header.getY(), labelW - 8.0f, header.getHeight()), juce::Justification::centredLeft);
+                    juce::Rectangle<float> (labelX, header.getY(), labelW - 8.0f, header.getHeight()), juce::Justification::centredLeft);
 
         for (int i = 0; i <= steps; ++i)
         {
             const float x = gridX + (float) i * stepW;
             const bool bar = i % 16 == 0, beat = i % 4 == 0;
             g.setColour (bar ? p.dim.withAlpha (0.8f) : beat ? p.line.brighter (0.2f) : p.line.withAlpha (0.45f));
-            g.fillRect (juce::Rectangle<float> (x - (bar ? 1.0f : 0.5f), r.getY(), bar ? 2.0f : 1.0f, gridH));
+            g.fillRect (juce::Rectangle<float> (x - (bar ? 1.0f : 0.5f), top, bar ? 2.0f : 1.0f, gridH));
         }
 
         for (size_t li = 0; li < lanes.size(); ++li)
         {
             const auto slot = lanes[li];
             const auto colour = slotColour (slot);
-            const juce::Rectangle<float> lane (r.getX(), r.getY() + (float) li * laneH, r.getWidth(), laneH);
+            const juce::Rectangle<float> lane (labelX, top + (float) li * laneH, (float) getWidth() - labelX, laneH);
             g.setColour (p.line.withAlpha (0.5f));
             g.fillRect (lane.withHeight (1.0f).withY (lane.getBottom() - 0.5f));
 
@@ -96,11 +185,12 @@ namespace ggui
                 g.drawText (noteNamer (note), label, juce::Justification::centredRight);
             }
 
-            // empty steps
+            // empty steps (the one under the mouse lit up)
             for (int i = 0; i < steps; ++i)
             {
                 auto cell = juce::Rectangle<float> (gridX + (float) i * stepW, lane.getY(), stepW, laneH).reduced (juce::jmin (3.0f, stepW * 0.12f), juce::jmin (4.0f, laneH * 0.14f));
-                g.setColour (p.text.withAlpha (p.light ? 0.05f : 0.035f));
+                const bool hover = (int) li == hoverLane && i == hoverStep;
+                g.setColour (hover ? colour.withAlpha (0.28f) : p.text.withAlpha (p.light ? 0.05f : 0.035f));
                 g.fillRoundedRectangle (cell, 3.0f);
             }
 
@@ -111,8 +201,8 @@ namespace ggui
             for (size_t k = 0; k < mine.size(); ++k)
             {
                 const auto& h = *mine[k];
-                double len = 0.25;
-                if (k + 1 < mine.size()) len = juce::jmin (len, mine[k + 1]->beat - h.beat);
+                double len = 0.25 - std::fmod (h.beat, 0.25);                 // to the end of its step...
+                if (k + 1 < mine.size()) len = juce::jmin (len, mine[k + 1]->beat - h.beat);   // ...or the next hit
                 const float x = gridX + (float) (h.beat * 4.0) * stepW;
                 const float w = (float) (len * 4.0) * stepW;
                 auto cell = juce::Rectangle<float> (x, lane.getY(), w, laneH).reduced (juce::jmin (2.5f, w * 0.12f), juce::jmin (4.0f, laneH * 0.14f));
@@ -131,7 +221,7 @@ namespace ggui
         {
             const float x = gridX + (float) (std::fmod (playhead, groove->lengthBeats()) * 4.0) * stepW;
             g.setColour (p.orange);
-            g.fillRect (juce::Rectangle<float> (x - 1.0f, r.getY(), 2.0f, gridH));
+            g.fillRect (juce::Rectangle<float> (x - 1.0f, top, 2.0f, gridH));
         }
     }
 
@@ -199,6 +289,35 @@ namespace ggui
 
         addAndMakeVisible (grid);
         grid.setNoteNamer ([this] (int note) { return dawNoteName (note); });
+        grid.onEditStart = [this] { pushUndo(); };
+        grid.onEdit = [this] (std::vector<gg::GrooveHit> hits) { applyHits (std::move (hits)); };
+
+        for (auto* b : { &addDrum, &undo, &reset })
+        {
+            b->getProperties().set ("style", "ghost");
+            addAndMakeVisible (*b);
+        }
+        addDrum.setTooltip ("Add a row for a drum this pattern doesn't use yet");
+        addDrum.onClick = [this] { showAddDrum(); };
+        undo.setTooltip ("Take back your last change to this pattern");
+        undo.onClick = [this]
+        {
+            auto& steps = undoSteps[currentId()];
+            if (steps.empty()) return;
+            auto hits = std::move (steps.back());
+            steps.pop_back();
+            applyHits (std::move (hits));
+        };
+        reset.setTooltip ("Back to the original pattern (UNDO brings your version back)");
+        reset.onClick = [this]
+        {
+            const auto id = currentId();
+            if (! proc.isGrooveEdited (id) && addedLanes[id].empty()) return;
+            pushUndo();
+            addedLanes.erase (id);
+            proc.resetGroove (id);
+            showGroove();
+        };
 
         docView.setViewedComponent (&doc, false);
         docView.setScrollBarsShown (true, false);
@@ -251,6 +370,7 @@ namespace ggui
             return;
         }
         fillBoxes();
+        showGroove();
         resized();
         repaint();
     }
@@ -278,17 +398,19 @@ namespace ggui
     {
         fillBoxes();
         const auto& style = gg::styleFor (genre, subStyle);
-        grooves = gg::sauceGrooves (style);
+        grooveIds.clear();
+        for (const auto* g : gg::sauceGrooves (style)) grooveIds.add (g->id);
         grooveChips.clear();
-        for (int i = 0; i < (int) grooves.size(); ++i)
+        for (int i = 0; i < grooveIds.size(); ++i)
         {
-            auto* b = grooveChips.add (new juce::TextButton (grooves[(size_t) i]->name.toUpperCase()));
+            const auto& name = gg::grooveFor (grooveIds[i]).name;
+            auto* b = grooveChips.add (new juce::TextButton (name.toUpperCase()));
             b->getProperties().set ("style", "toggle");
-            b->setTooltip ("Show the " + grooves[(size_t) i]->name + " pattern");
+            b->setTooltip ("Show the " + name + " pattern");
             b->onClick = [this, i] { pickGroove (i); };
             addAndMakeVisible (b);
         }
-        pickGroove (juce::jlimit (0, juce::jmax (0, (int) grooves.size() - 1), grooveIndex));
+        pickGroove (juce::jlimit (0, juce::jmax (0, grooveIds.size() - 1), grooveIndex));
 
         doc.setMarkdown (gg::sauceMarkdown (genre, subStyle, era));
         resized();
@@ -300,20 +422,86 @@ namespace ggui
     {
         grooveIndex = index;
         for (int i = 0; i < grooveChips.size(); ++i) grooveChips[i]->setToggleState (i == index, juce::dontSendNotification);
-        const auto* g = juce::isPositiveAndBelow (index, (int) grooves.size()) ? grooves[(size_t) index] : nullptr;
-        grid.setGroove (g);
-        if (playingHere && g != nullptr)
-        {
-            proc.player.setGroove (g);
-            proc.player.setSwing (g->swing);
-            proc.player.setTempo (previewTempo());
-        }
-        repaint (patternHeader);
+        showGroove();
+        if (playingHere)
+            if (const auto g = currentGroove())
+            {
+                proc.player.setGroove (g.get());
+                proc.player.setSwing (g->swing);
+                proc.player.setTempo (previewTempo());
+            }
     }
 
-    const gg::Groove* SaucePage::currentGroove() const
+    juce::String SaucePage::currentId() const
     {
-        return juce::isPositiveAndBelow (grooveIndex, (int) grooves.size()) ? grooves[(size_t) grooveIndex] : nullptr;
+        return juce::isPositiveAndBelow (grooveIndex, grooveIds.size()) ? grooveIds[grooveIndex] : juce::String();
+    }
+
+    std::shared_ptr<const gg::Groove> SaucePage::currentGroove() const
+    {
+        const auto id = currentId();
+        return id.isEmpty() ? nullptr : proc.getGroove (id);
+    }
+
+    std::vector<gg::Slot> SaucePage::lanesFor (const juce::String& id) const
+    {
+        // the original's drums, any you've added hits for, and any you added rows for
+        std::vector<gg::Slot> lanes;
+        auto add = [&lanes] (gg::Slot s) { if (std::find (lanes.begin(), lanes.end(), s) == lanes.end()) lanes.push_back (s); };
+        for (const auto& h : gg::grooveFor (id).hits) add (h.slot);
+        if (const auto g = proc.getGroove (id)) for (const auto& h : g->hits) add (h.slot);
+        if (const auto it = addedLanes.find (id); it != addedLanes.end()) for (auto s : it->second) add (s);
+        std::sort (lanes.begin(), lanes.end(), [] (gg::Slot a, gg::Slot b) { return (int) a < (int) b; });
+        return lanes;
+    }
+
+    void SaucePage::showGroove()
+    {
+        const auto id = currentId();
+        grid.setGroove (currentGroove(), id.isEmpty() ? std::vector<gg::Slot>() : lanesFor (id));
+        const auto it = undoSteps.find (id);
+        undo.setEnabled (it != undoSteps.end() && ! it->second.empty());
+        reset.setEnabled (proc.isGrooveEdited (id) || (addedLanes.count (id) > 0 && ! addedLanes.at (id).empty()));
+        addDrum.setEnabled (id.isNotEmpty() && (int) lanesFor (id).size() < gg::numSlots);
+        repaint (patternArea);
+    }
+
+    void SaucePage::pushUndo()
+    {
+        const auto id = currentId();
+        if (id.isEmpty()) return;
+        auto& steps = undoSteps[id];
+        steps.push_back (proc.getGroove (id)->hits);
+        if (steps.size() > 64) steps.erase (steps.begin());
+    }
+
+    void SaucePage::applyHits (std::vector<gg::GrooveHit> hits)
+    {
+        const auto id = currentId();
+        if (id.isEmpty()) return;
+        proc.editGroove (id, std::move (hits));       // the same as the original resets it
+        showGroove();
+    }
+
+    void SaucePage::showAddDrum()
+    {
+        const auto id = currentId();
+        if (id.isEmpty()) return;
+        const auto lanes = lanesFor (id);
+        juce::PopupMenu m;
+        m.addSectionHeader ("ADD A ROW FOR");
+        for (int i = 0; i < gg::numSlots; ++i)
+        {
+            const auto slot = (gg::Slot) i;
+            if (std::find (lanes.begin(), lanes.end(), slot) != lanes.end()) continue;
+            m.addItem (i + 1, (slot == gg::Slot::bass808 ? juce::String ("808") : gg::slotName (slot)) + "   " + dawNoteName (gg::mainNoteForSlot (slot)));
+        }
+        m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&addDrum), [this, id, safe = juce::Component::SafePointer<SaucePage> (this)] (int r)
+        {
+            if (safe == nullptr || r <= 0 || id != currentId()) return;
+            addedLanes[id].push_back ((gg::Slot) (r - 1));
+            showGroove();
+        });
     }
 
     double SaucePage::previewTempo() const
@@ -322,20 +510,30 @@ namespace ggui
         // (some styles borrow a groove that's played at its own speed: a boom bap groove in country rap)
         if (isFollowingBuild())
             return playingHere ? savedTempo : (proc.options.bpm > 0 ? proc.options.bpm : proc.player.getTempo());
-        if (const auto* g = currentGroove()) return g->bpm;
+        if (const auto g = currentGroove()) return g->bpm;
         return gg::styleFor (genre, subStyle).bpm;
+    }
+
+    juce::String SaucePage::dropHint() const
+    {
+        const auto& daw = gg::dawGuide (gg::chosenDaw (proc.getSettings().get ("daw")));
+        return "DRAG MIDI, then drop it " + daw.groove + ".";
+    }
+
+    juce::String SaucePage::getTooltip()
+    {
+        return dragArea.contains (getMouseXYRelative()) ? dropHint() : juce::String();
     }
 
     void SaucePage::togglePlay()
     {
         if (playingHere) { stopPreview(); return; }
-        const auto* g = currentGroove();
+        const auto g = currentGroove();
         if (g == nullptr) return;
-        savedGroove = proc.player.getGroove();
         savedSwing = proc.player.getSwing();
         savedTempo = proc.player.getTempo();
         playingHere = true;
-        proc.player.setGroove (g);
+        proc.player.setGroove (g.get());       // (an edit stays alive in the processor while it's the current one)
         proc.player.setSwing (g->swing);
         proc.player.setTempo (previewTempo());
         proc.player.setGroovePlaying (true);
@@ -349,7 +547,7 @@ namespace ggui
         if (! playingHere) return;
         playingHere = false;
         proc.player.setGroovePlaying (false);
-        if (savedGroove != nullptr) proc.player.setGroove (savedGroove);
+        proc.player.setGroove (proc.getGroove (proc.grooveId).get());     // BUILD's preview groove again
         proc.player.setSwing (savedSwing);
         proc.player.setTempo (savedTempo);
         play.setToggleState (false, juce::dontSendNotification);
@@ -388,14 +586,15 @@ namespace ggui
 
     juce::File SaucePage::writeMidi() const
     {
-        const auto* g = currentGroove();
+        const auto g = currentGroove();
         if (g == nullptr) return {};
         const auto& style = gg::styleFor (genre, subStyle);
         const double bpm = previewTempo();
         const auto styleName = subStyle == 0 ? gg::genreName (genre) : style.name;
         const auto folder = gg::paths::documentsDir().getChildFile ("Sauce MIDI");
         folder.createDirectory();
-        const auto f = folder.getChildFile (gg::paths::safeFileName (styleName + " - " + g->name + " " + juce::String (bpm, 0) + " BPM", 80) + ".mid");
+        const auto f = folder.getChildFile (gg::paths::safeFileName (styleName + " - " + g->name + (proc.isGrooveEdited (g->id) ? " (my edit)" : "")
+                                                                     + " " + juce::String (bpm, 0) + " BPM", 80) + ".mid");
         const auto midi = gg::grooveToMidi (*g, bpm, g->swing, 2);   // (a DAW places the notes by beat, at the song's tempo)
         f.replaceWithData (midi.getData(), midi.getSize());
         return f;
@@ -426,7 +625,7 @@ namespace ggui
         auto r = getLocalBounds().reduced (10, 8);
         leftArea = r.removeFromLeft (juce::jlimit (300, 360, r.getWidth() / 4));
         r.removeFromLeft (10);
-        patternArea = r.removeFromTop (juce::jlimit (250, 330, r.getHeight() * 2 / 5));
+        patternArea = r.removeFromTop (juce::jlimit (290, 380, r.getHeight() * 45 / 100));
         r.removeFromTop (8);
         sauceArea = r;
 
@@ -465,6 +664,16 @@ namespace ggui
         dragArea = h.removeFromRight (176);
         h.removeFromRight (12);
         for (auto* c : grooveChips) { c->setBounds (h.removeFromLeft (juce::jmin (168, h.getWidth())).reduced (2, 3)); h.removeFromLeft (4); }
+        editBar = pa.removeFromBottom (30);
+        {
+            auto eb = editBar;
+            reset.setBounds (eb.removeFromRight (84).reduced (0, 1));
+            eb.removeFromRight (6);
+            undo.setBounds (eb.removeFromRight (84).reduced (0, 1));
+            eb.removeFromRight (6);
+            addDrum.setBounds (eb.removeFromRight (120).reduced (0, 1));
+        }
+        pa.removeFromBottom (8);
         pa.removeFromTop (10);
         grid.setBounds (pa);
 
@@ -549,7 +758,7 @@ namespace ggui
             const auto& daw = gg::dawGuide (gg::chosenDaw (proc.getSettings().get ("daw")));
             const juce::StringArray steps {
                 "Put a kit on a drum track: Groove Grabber itself, or your exported kit in " + daw.sampler + ".",
-                "Drag the MIDI in, or copy the grid into your piano roll or step sequencer.",
+                dropHint(),
                 "Set the tempo and swing from the table under THE SAUCE.",
                 "Shape the velocities: a strong backbeat, softer hats and ghost notes.",
                 "Copy it for the hook and make the changes from Fills and changes." };
@@ -572,7 +781,7 @@ namespace ggui
         {
             auto h = patternHeader;
             drawSectionTitle (g, h.removeFromLeft (130).withSizeKeepingCentre (130, 20), "The pattern", p.purple);
-            if (grooves.empty())
+            if (grooveIds.isEmpty())
             {
                 g.setColour (p.faint);
                 g.setFont (uiFont (15.0f, false));
@@ -594,12 +803,32 @@ namespace ggui
             g.setFont (uiFont (12.5f, false));
             g.drawText ("4 bars at " + juce::String (previewTempo(), 0) + " BPM", in, juce::Justification::topLeft);
         }
-        if (proc.kits.empty() && ! grooves.empty())
         {
-            g.setColour (p.faint);
-            g.setFont (uiFont (13.5f, false));
-            g.drawText ("Generate kits on BUILD to hear it with your sounds", patternArea.reduced (18, 6).removeFromBottom (18),
-                        juce::Justification::centredRight);
+            auto eb = editBar.withRight (addDrum.getX() - 12);
+            const auto id = currentId();
+            if (proc.isGrooveEdited (id))
+            {
+                auto tag = eb.removeFromLeft (70).withSizeKeepingCentre (70, 22).toFloat();
+                g.setColour (p.orange.withAlpha (0.18f));
+                g.fillRoundedRectangle (tag, 6.0f);
+                g.setColour (p.orange);
+                g.drawRoundedRectangle (tag, 6.0f, 1.0f);
+                g.setFont (headFont (10.5f).withExtraKerningFactor (0.1f));
+                g.drawText ("EDITED", tag, juce::Justification::centred);
+                eb.removeFromLeft (10);
+                g.setColour (p.dim);
+                g.setFont (uiFont (14.0f, false));
+                g.drawFittedText ("Your version is saved with this song. BUILD's preview and the export's Groove MIDI use it.",
+                                  eb, juce::Justification::centredLeft, 1, 0.8f);
+            }
+            else if (! id.isEmpty())
+            {
+                g.setColour (p.dim);
+                g.setFont (uiFont (14.0f, false));
+                g.drawFittedText (juce::String ("Click a step to add or take away a hit (drag for several). Right-click: hard, medium, soft. Ctrl-click (Alt on a Mac): a roll.")
+                                      + (proc.kits.empty() ? "  Generate kits on BUILD to hear it with your sounds." : ""),
+                                  eb, juce::Justification::centredLeft, 1, 0.75f);
+            }
         }
 
         // ---- the write-up ----

@@ -183,9 +183,59 @@ void GrooveGrabberProcessor::setBpm (double bpm)
 void GrooveGrabberProcessor::setGrooveId (const juce::String& id)
 {
     grooveId = id;
-    const auto& g = gg::grooveFor (id);
-    player.setGroove (&g);
-    player.setSwing (g.swing);
+    const auto g = getGroove (id);
+    player.setGroove (g.get());
+    player.setSwing (g->swing);
+    notify();
+}
+
+//==============================================================================
+std::shared_ptr<const gg::Groove> GrooveGrabberProcessor::getGroove (const juce::String& id) const
+{
+    if (const auto it = grooveEdits.find (id); it != grooveEdits.end()) return it->second;
+    return std::shared_ptr<const gg::Groove> (std::shared_ptr<const gg::Groove>(), &gg::grooveFor (id));   // built in: not owned
+}
+
+bool GrooveGrabberProcessor::isGrooveEdited (const juce::String& id) const
+{
+    return grooveEdits.find (id) != grooveEdits.end();
+}
+
+void GrooveGrabberProcessor::editGroove (const juce::String& id, std::vector<gg::GrooveHit> hits)
+{
+    const auto& original = gg::grooveFor (id);
+    if (original.id != id) return;                       // not one of ours
+    gg::sortHits (hits);
+    if (gg::sameHits (hits, original.hits)) { resetGroove (id); return; }
+    auto g = std::make_shared<gg::Groove> (original);
+    g->hits = std::move (hits);
+    swapGroove (id, std::move (g));
+}
+
+void GrooveGrabberProcessor::resetGroove (const juce::String& id)
+{
+    if (! isGrooveEdited (id)) return;
+    swapGroove (id, nullptr);
+}
+
+void GrooveGrabberProcessor::swapGroove (const juce::String& id, std::shared_ptr<const gg::Groove> edit)
+{
+    const auto now = juce::Time::getMillisecondCounter();
+    if (const auto it = grooveEdits.find (id); it != grooveEdits.end())
+    {
+        retiredGrooves.push_back ({ it->second, now });
+        grooveEdits.erase (it);
+    }
+    if (edit != nullptr) grooveEdits[id] = std::move (edit);
+
+    // whatever is playing this groove plays the new version (BUILD's preview, or a pattern on SAUCE)
+    if (const auto* playing = player.getGroove(); playing != nullptr && playing->id == id)
+        player.setGroove (getGroove (id).get());
+
+    retiredGrooves.erase (std::remove_if (retiredGrooves.begin(), retiredGrooves.end(), [this, now] (const auto& r)
+    {
+        return now - r.second > 10000 && r.first.get() != player.getGroove();
+    }), retiredGrooves.end());
     notify();
 }
 
@@ -389,6 +439,9 @@ juce::String GrooveGrabberProcessor::makeState()
     o->setProperty ("active", activeKit);
     o->setProperty ("slot", gg::slotId (selectedSlot));
     o->setProperty ("groove", grooveId);
+    auto* edits = new juce::DynamicObject();
+    for (const auto& [id, g] : grooveEdits) edits->setProperty (id, gg::hitsToVar (g->hits));
+    o->setProperty ("grooveEdits", juce::var (edits));
     o->setProperty ("swing", player.getSwing());
     o->setProperty ("volume", player.getVolume());
     o->setProperty ("follow", player.isFollowingHost());
@@ -423,6 +476,25 @@ void GrooveGrabberProcessor::applyState (const juce::String& text)
     activeKit = juce::jlimit (0, juce::jmax (0, (int) kits.size() - 1), (int) v["active"]);
     const auto s = gg::slotFromId (v["slot"].toString());
     selectedSlot = s == gg::Slot::count ? gg::Slot::kick : s;
+    // your edited grooves (a project without any gets the originals back)
+    {
+        std::map<juce::String, std::shared_ptr<const gg::Groove>> restored;
+        if (auto* edits = v["grooveEdits"].getDynamicObject())
+            for (const auto& prop : edits->getProperties())
+            {
+                const auto id = prop.name.toString();
+                const auto& original = gg::grooveFor (id);
+                if (original.id != id || restored.size() >= 64) continue;
+                auto hits = gg::hitsFromVar (prop.value, original);
+                if (gg::sameHits (hits, original.hits)) continue;
+                auto g = std::make_shared<gg::Groove> (original);
+                g->hits = std::move (hits);
+                restored[id] = std::move (g);
+            }
+        const auto now = juce::Time::getMillisecondCounter();
+        for (auto& [id, g] : grooveEdits) retiredGrooves.push_back ({ g, now });
+        grooveEdits = std::move (restored);
+    }
     setGrooveId (v.getProperty ("groove", "boombap1").toString());
     player.setSwing ((float) (double) v.getProperty ("swing", (double) player.getSwing()));
     player.setVolume ((float) (double) v.getProperty ("volume", 0.9));

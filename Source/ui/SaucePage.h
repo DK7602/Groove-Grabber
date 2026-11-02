@@ -5,29 +5,49 @@
 
 #include "HelpPanel.h"
 #include "core/Sauce.h"
+#include <map>
 
 namespace ggui
 {
     //==============================================================================
-    // A groove as a step grid: one lane per drum, 16 steps a bar, rolls split their step
-    class PatternGrid : public juce::Component
+    // A groove as a step grid you can edit: one lane per drum, 16 steps a bar, rolls split their step.
+    // Click a step to add or take away a hit (drag along the lane to do several), right-click for hard /
+    // medium / soft, Ctrl-click (Alt on a Mac) for a roll.
+    class PatternGrid : public juce::Component, public juce::SettableTooltipClient
     {
     public:
-        void setGroove (const gg::Groove*);
+        PatternGrid();
+        void setGroove (std::shared_ptr<const gg::Groove>, std::vector<gg::Slot> lanes);
         void setPlayhead (double beat);          // -1 = none
         void setNoteNamer (std::function<juce::String (int)> f)   { noteNamer = std::move (f); repaint(); }
         int numLanes() const noexcept            { return (int) lanes.size(); }
         void paint (juce::Graphics&) override;
+        void mouseDown (const juce::MouseEvent&) override;
+        void mouseDrag (const juce::MouseEvent&) override;
+        void mouseUp (const juce::MouseEvent&) override;
+        void mouseMove (const juce::MouseEvent&) override;
+        void mouseExit (const juce::MouseEvent&) override;
+
+        std::function<void()> onEditStart;                             // before the first change of a click or drag
+        std::function<void (std::vector<gg::GrooveHit>)> onEdit;       // the groove's new hits
+
+        // what a click on a lane's step does (the mouse, and the tests)
+        void clickStep (int lane, int step, const juce::ModifierKeys&);
 
     private:
-        const gg::Groove* groove = nullptr;
+        struct Geometry { juce::Rectangle<float> header, area; float labelW = 0, gridX = 0, stepW = 0, laneH = 0; int steps = 0; };
+        Geometry geometry() const;
+        bool cellAt (juce::Point<float>, int& lane, int& step) const;
+        std::shared_ptr<const gg::Groove> groove;
         std::vector<gg::Slot> lanes;
         double playhead = -1;
         std::function<juce::String (int)> noteNamer;
+        bool painting = false, paintAdd = true;
+        int paintLane = -1, lastStep = -1, hoverLane = -1, hoverStep = -1;
     };
 
     //==============================================================================
-    class SaucePage : public juce::Component, private juce::Timer
+    class SaucePage : public juce::Component, public juce::TooltipClient, private juce::Timer
     {
     public:
         explicit SaucePage (GrooveGrabberProcessor&);
@@ -40,12 +60,14 @@ namespace ggui
         void mouseMove (const juce::MouseEvent&) override;
         void visibilityChanged() override;
         void lookAndFeelChanged() override;
+        juce::String getTooltip() override;
         std::function<void()> onUseOnBuild;           // after BUILD was set to this style
 
         // (for the tests)
         void choose (gg::Genre, int subStyle, int era);
         bool isFollowingBuild() const;
-        const PatternGrid& getGrid() const noexcept   { return grid; }
+        PatternGrid& getGrid() noexcept               { return grid; }
+        juce::String getGrooveId() const              { return currentId(); }
         int getDocHeight() const noexcept             { return doc.getHeight(); }
 
     private:
@@ -54,9 +76,16 @@ namespace ggui
         void fillBoxes();
         void layoutDoc();
         void pickGroove (int index);
+        void showGroove();                           // the grid, the EDITED tag and the buttons, for the groove shown
+        void applyHits (std::vector<gg::GrooveHit>);
+        void pushUndo();
+        void showAddDrum();
+        juce::String currentId() const;
+        std::vector<gg::Slot> lanesFor (const juce::String& id) const;
+        juce::String dropHint() const;               // where to drop the MIDI in your DAW
         void stopPreview();
         double previewTempo() const;                 // what the pattern plays and exports at
-        const gg::Groove* currentGroove() const;
+        std::shared_ptr<const gg::Groove> currentGroove() const;
         juce::File writeMidi() const;
         juce::String dawNoteName (int note) const;
 
@@ -64,10 +93,11 @@ namespace ggui
         gg::Genre genre = gg::Genre::boomBap;
         int subStyle = 0, era = -1, grooveIndex = 0;
         int lastBuildGenre = -99, lastBuildStyle = -99, lastBuildEra = -99;
-        std::vector<const gg::Groove*> grooves;
+        juce::StringArray grooveIds;
+        std::map<juce::String, std::vector<std::vector<gg::GrooveHit>>> undoSteps;   // this session's, per groove
+        std::map<juce::String, std::vector<gg::Slot>> addedLanes;                     // drums added with + ADD DRUM
 
         bool playingHere = false;
-        const gg::Groove* savedGroove = nullptr;
         double savedTempo = 100;
         float savedSwing = 0;
 
@@ -76,10 +106,11 @@ namespace ggui
         juce::TextButton matchBuild { "MATCH BUILD" }, useOnBuild { "USE ON BUILD" };
         juce::OwnedArray<juce::TextButton> grooveChips;
         IconButton play { "play", Icon::play, Icon::stop, true };
+        juce::TextButton addDrum { "+ ADD DRUM" }, undo { "UNDO" }, reset { "RESET" };
         PatternGrid grid;
         DocView doc;
         juce::Viewport docView;
-        juce::Rectangle<int> leftArea, factsArea, legendArea, buildItArea, followArea, patternArea, patternHeader, dragArea, sauceArea, sauceTitle;
+        juce::Rectangle<int> leftArea, factsArea, legendArea, buildItArea, followArea, patternArea, patternHeader, editBar, dragArea, sauceArea, sauceTitle;
         bool updating = false, dragging = false;
     };
 }

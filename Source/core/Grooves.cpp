@@ -376,8 +376,8 @@ namespace gg
                 const double beat = rep * g.lengthBeats() + swungBeat (h.beat, swing, g.swingEighths);
                 const double t = beat * ppq;
                 const auto vel = (juce::uint8) juce::jlimit (1, 127, (int) std::round (h.velocity * 118.0f + 6.0f));
-                seq.addEvent (juce::MidiMessage::noteOn (10, note, vel), t);
-                seq.addEvent (juce::MidiMessage::noteOff (10, note), t + ppq / 8.0);
+                seq.addEvent (juce::MidiMessage::noteOn (1, note, vel), t);
+                seq.addEvent (juce::MidiMessage::noteOff (1, note), t + ppq / 8.0);
             }
         seq.addEvent (juce::MidiMessage::endOfTrack(), times * g.lengthBeats() * ppq);
         seq.updateMatchedPairs();
@@ -388,5 +388,89 @@ namespace gg
         juce::MemoryOutputStream out;
         mf.writeTo (out, 0);
         return out.getMemoryBlock();
+    }
+
+    //==============================================================================
+    StepHits stepHits (const Groove& g, Slot slot, int step)
+    {
+        StepHits r;
+        const double start = step * 0.25, end = start + 0.25;
+        for (const auto& h : g.hits)
+            if (h.slot == slot && h.beat >= start - 1.0e-6 && h.beat < end - 1.0e-6)
+            {
+                if (r.count == 0) r.velocity = h.velocity;
+                ++r.count;
+            }
+        return r;
+    }
+
+    std::vector<GrooveHit> withStep (const Groove& g, Slot slot, int step, int count, float velocity)
+    {
+        const double start = step * 0.25, end = start + 0.25;
+        std::vector<GrooveHit> out;
+        for (const auto& h : g.hits)
+            if (! (h.slot == slot && h.beat >= start - 1.0e-6 && h.beat < end - 1.0e-6)) out.push_back (h);
+        count = juce::jlimit (0, 3, count);
+        if (step >= 0 && step < g.bars * 16)
+            for (int k = 0; k < count; ++k)
+                out.push_back ({ start + k * 0.25 / count, slot, k == 0 ? velocity : velocity * 0.72f });
+        sortHits (out);
+        return out;
+    }
+
+    float nextLevel (float v) noexcept
+    {
+        if (v >= 0.86f) return mediumHit;
+        if (v >= 0.57f) return softHit;
+        return hardHit;
+    }
+
+    void sortHits (std::vector<GrooveHit>& hits)
+    {
+        std::stable_sort (hits.begin(), hits.end(), [] (const GrooveHit& a, const GrooveHit& b)
+        {
+            if (std::abs (a.beat - b.beat) > 1.0e-9) return a.beat < b.beat;
+            return (int) a.slot < (int) b.slot;
+        });
+    }
+
+    bool sameHits (std::vector<GrooveHit> a, std::vector<GrooveHit> b)
+    {
+        if (a.size() != b.size()) return false;
+        sortHits (a);
+        sortHits (b);
+        for (size_t i = 0; i < a.size(); ++i)
+            if (std::abs (a[i].beat - b[i].beat) > 1.0e-6 || a[i].slot != b[i].slot || std::abs (a[i].velocity - b[i].velocity) > 1.0e-3f)
+                return false;
+        return true;
+    }
+
+    juce::var hitsToVar (const std::vector<GrooveHit>& hits)
+    {
+        juce::Array<juce::var> a;
+        for (const auto& h : hits)
+            a.add (juce::Array<juce::var> { juce::var (h.beat), juce::var (slotId (h.slot)), juce::var ((double) h.velocity) });
+        return a;
+    }
+
+    std::vector<GrooveHit> hitsFromVar (const juce::var& v, const Groove& original)
+    {
+        std::vector<GrooveHit> out;
+        if (auto* a = v.getArray())
+            for (const auto& item : *a)
+            {
+                if (out.size() >= 1024) break;
+                auto* h = item.getArray();
+                if (h == nullptr || h->size() < 3) continue;
+                auto isNumber = [] (const juce::var& x) { return x.isDouble() || x.isInt() || x.isInt64(); };
+                if (! isNumber ((*h)[0]) || ! isNumber ((*h)[2])) continue;
+                const double beat = (*h)[0];
+                const auto slot = slotFromId ((*h)[1].toString());
+                const double vel = (*h)[2];
+                if (! std::isfinite (beat) || beat < 0 || beat >= original.lengthBeats() || slot == Slot::count || ! std::isfinite (vel)) continue;
+                out.push_back ({ beat, slot, (float) juce::jlimit (0.05, 1.0, vel) });
+            }
+        sortHits (out);
+        return out;
     }
 }

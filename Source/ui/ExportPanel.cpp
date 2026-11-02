@@ -147,6 +147,7 @@ namespace ggui
         o.bitDepth = bits.getSelected() == 0 ? 16 : 24;
         o.sampleRate = rate.getSelected() == 1 ? 48000.0 : 44100.0;
         o.grooveId = proc.grooveId;
+        o.groove = proc.getGroove (proc.grooveId);     // your edit of it, if you made one on SAUCE
         o.bpm = proc.options.bpm > 0 ? proc.options.bpm : proc.player.getTempo();
         o.swing = proc.player.getSwing();
         o.daw = gg::chosenDaw (proc.getSettings().get ("daw"));     // (resolved here: the export runs on another thread)

@@ -1,6 +1,7 @@
 // Draws the whole window (dark and light, every page) to PNGs, so the look can be checked without a DAW.
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "core/Settings.h"
 #include <iostream>
 
 namespace
@@ -86,6 +87,22 @@ int runScreenshots (const juce::File& outDir)
         if (! ed->getSauce().isFollowingBuild()) { std::cout << "  FAIL: SAUCE didn't open on BUILD's style" << std::endl; ++failures; }
         if (! light)
         {
+            // edit the pattern on the grid: BUILD's preview groove changes with it
+            auto& sauce = ed->getSauce();
+            const auto id = sauce.getGrooveId();
+            const auto before = proc.getGroove (id)->hits.size();
+            sauce.getGrid().clickStep (0, 2, {});                                          // a kick on the & of 1
+            sauce.getGrid().clickStep (0, 2, juce::ModifierKeys (juce::ModifierKeys::rightButtonModifier));   // ...medium
+            sauce.getGrid().clickStep (2, 15, juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));        // a roll at the end of bar 1
+            pump (200);
+            save (*ed, outDir.getChildFile ("sauce-edited.png"));
+            const bool edited = proc.isGrooveEdited (id) && proc.getGroove (id)->hits.size() == before + 3
+                                && (id != proc.grooveId || proc.player.getGroove() == proc.getGroove (id).get());
+            std::cout << (edited ? "  ok: " : "  FAIL: ") << "pattern edited on SAUCE (" << id << "), and the preview plays the edit" << std::endl;
+            if (! edited) ++failures;
+        }
+        if (! light)
+        {
             // another style, read up on from SAUCE: BUILD stays where it was
             ed->getSauce().choose (gg::Genre::trap, gg::styleIndex (gg::Genre::trap, "trap.ukdrill"), 5);
             pump (200);
@@ -120,6 +137,23 @@ int runScreenshots (const juce::File& outDir)
             }
             pump (200);
             save (*ed, outDir.getChildFile ("export-done.png"));
+            {
+                // the export's Groove .mid is the edited pattern
+                juce::File mid;
+                if (auto* k = proc.getActiveKit())
+                    for (const auto& f : gg::paths::exportsDir().findChildFiles (juce::File::findFiles, true, "*Groove.mid"))
+                        if (f.getFileName().startsWith (gg::paths::safeFileName (k->name, 48)) && (mid == juce::File() || f.getLastModificationTime() > mid.getLastModificationTime())) mid = f;
+                juce::FileInputStream in (mid);
+                juce::MidiFile mf;
+                int notes = 0;
+                if (in.openedOk() && mf.readFrom (in))
+                    for (auto* ev : *mf.getTrack (0)) if (ev->message.isNoteOn()) ++notes;
+                const int want = 2 * (int) proc.getGroove (proc.grooveId)->hits.size();
+                const bool ok = proc.isGrooveEdited (proc.grooveId) && notes == want;
+                std::cout << (ok ? "  ok: " : "  FAIL: ") << "exported Groove .mid is the edited pattern (" << notes << " notes, want " << want << ")" << std::endl;
+                if (! ok) ++failures;
+                proc.resetGroove (proc.grooveId);
+            }
             proc.getSettings().set ("daw", {});
             ed->getExporter().setVisible (false);
             ed->setSize (1180, 760);
@@ -176,19 +210,28 @@ int runScreenshots (const juce::File& outDir)
 
     // saved state: round trip, and a damaged / oversized one doesn't crash
     {
+        proc.editGroove ("trap1", gg::withStep (*proc.getGroove ("trap1"), gg::Slot::kick, 3, 2, gg::mediumHit));
+        pump (100);
         juce::MemoryBlock mb;
         proc.getStateInformation (mb);
         GrooveGrabberProcessor other;
         other.setStateInformation (mb.getData(), (int) mb.getSize());
         const bool same = other.kits.size() == proc.kits.size() && other.description == proc.description;
         if (! same) { std::cout << "  FAIL: state round trip" << std::endl; ++failures; }
+        const bool keptEdit = other.isGrooveEdited ("trap1") && gg::sameHits (other.getGroove ("trap1")->hits, proc.getGroove ("trap1")->hits)
+                              && ! other.isGrooveEdited ("boombap1");
+        std::cout << (keptEdit ? "  ok: " : "  FAIL: ") << "an edited pattern is saved with the song" << std::endl;
+        if (! keptEdit) ++failures;
+        proc.editGroove ("trap1", gg::grooveFor ("trap1").hits);
+        if (proc.isGrooveEdited ("trap1")) { std::cout << "  FAIL: the original's hits should reset the edit" << std::endl; ++failures; }
         auto v = juce::JSON::parse (mb.toString());
         if (auto* a = v["kits"].getArray()) { auto copy = *a; for (auto& k : copy) a->add (k); }   // 8 kits
         const auto big = juce::JSON::toString (v);
         other.setStateInformation (big.toRawUTF8(), (int) big.getNumBytesAsUTF8());
         pump (300);
         if (other.kits.size() > 4) { std::cout << "  FAIL: more than 4 kits loaded" << std::endl; ++failures; }
-        const char junk[] = "{\"kits\": [ {\"slots\": {\"kick\": {\"path\": 5, \"tune\": \"abc\"}}} ], \"active\": 99}";
+        const char junk[] = "{\"kits\": [ {\"slots\": {\"kick\": {\"path\": 5, \"tune\": \"abc\"}}} ], \"active\": 99, "
+                            "\"grooveEdits\": {\"boombap1\": \"junk\", \"nope\": [[0, \"kick\", 1]], \"trap1\": [[0.0, \"kick\", 1], [99, \"snare\", 1]], \"rnb1\": 7}}";
         other.setStateInformation (junk, (int) sizeof (junk) - 1);
         pump (300);
         std::cout << "  state round trip and damaged state ok" << std::endl;

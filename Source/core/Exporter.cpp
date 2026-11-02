@@ -135,7 +135,7 @@ namespace gg
             r.programFile.replaceWithData (makeMpcProgram (mpcNames).getData(), (size_t) mpc::templateSize);
         }
 
-        const auto& groove = grooveFor (o.grooveId);
+        const auto& groove = o.groove != nullptr ? *o.groove : grooveFor (o.grooveId);
         const double bpm = o.bpm > 0 ? o.bpm : (kit.bpm > 0 ? kit.bpm : groove.bpm);
         if (o.grooveMidi)
         {
@@ -163,7 +163,7 @@ namespace gg
              << "Another DAW? Every DAW's steps are in Groove Grabber's manual (F1 > Exporting to your DAW).\n\n"
              << "Other options: " << (o.mpcProgram ? "'" + r.programFile.getFileName() + "' is an MPC 1000 program with every pad and note\n"
                                                     "already set, for MPCs and samplers that import MPC programs.\n" : juce::String())
-             << (o.grooveMidi ? "'" + r.midiFile.getFileName() + "' is the preview groove on the same notes: drag it onto the drum track.\n" : juce::String())
+             << (o.grooveMidi ? "'" + r.midiFile.getFileName() + "' is the preview groove on the same notes (your edit of it, if you made one on SAUCE).\n" : juce::String())
              << "\nThe original sounds are listed above so you always know which pack each one came from\n"
              << "(check each pack's licence before releasing music made with it).\n";
         r.infoFile = r.folder.getChildFile ("Kit Info.txt");

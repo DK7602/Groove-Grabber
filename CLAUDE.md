@@ -46,7 +46,8 @@ xvfb-run -a ./build/GGTests_artefacts/Release/GGTests --host "build/GrooveGrabbe
 - `Source/core/SampleRender.*`: trim, tune, length, level matching. `Exporter.*`: the WAV / MPC export and Kit Info.txt.
 - `Source/core/Daws.*`: one loading guide per DAW (steps, choke, saving, what the DAW calls note 36), host detection, the "daw" setting ("" = automatic). The manual's `{DAW_GUIDES}` is generated from it, so fix steps there, not in Manual.md.
 - `Source/core/Sauce.*` and `Resources/Sauce.md`: the SAUCE write-ups, one `@@ key` section per style id, decade (`era.N`) and decade per genre (`era.N.<genre>`). A new style needs a section (the tests check every one). Plain ASCII, clean words.
-- `Source/core/Grooves.*`: the preview grooves (16-step lanes). `swingEighths` makes a groove swing its 8ths (the country Shuffle).
+- `Source/core/Grooves.*`: the preview grooves (16-step lanes). `swingEighths` makes a groove swing its 8ths (the country Shuffle). Step editing (`stepHits`, `withStep`, `nextLevel`) backs the SAUCE grid. Pattern MIDI is on channel 1.
+- Edited grooves live in the processor (`editGroove` / `resetGroove` / `getGroove`, saved in the state as "grooveEdits"). The player holds a raw pointer, so a replaced edit is kept in `retiredGrooves` for a while; always fetch grooves through `getGroove`, never keep a `const Groove*` to an edit.
 - `Source/core/Harvester.*`: cutting hits out of a drum bounce (audio-only classification).
 - `Source/ui/*`: pages (Build, Library, My Kits, Sauce), ExportPanel (the FOR picker and the DAW's steps), HelpPanel (in-app manual and About; its `DocView` also renders SAUCE), Theme.
 - `Tests/`:

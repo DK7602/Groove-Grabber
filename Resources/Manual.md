@@ -13,7 +13,7 @@ The workflow in six steps:
 3. **GENERATE KITS:** get four kits, each a different take on that style.
 4. **Edit:** lock the pads you love, regenerate the rest, swap in alternatives, tweak each pad.
 5. **EXPORT:** a numbered folder you drop straight onto your drum sampler's first pad, with steps for your DAW.
-6. **SAUCE:** how the drums are played in your genre, style and decade, with patterns to play and drag into your DAW.
+6. **SAUCE:** how the drums are played in your genre, style and decade, with patterns to play, edit and drag into your DAW.
 
 ## Install and first run
 
@@ -67,7 +67,7 @@ Everything sits on four pages under one header bar. Hover over almost anything t
 - **BUILD:** describe the song, generate the four kits, edit pads, save and export. It's where you spend most of your time.
 - **LIBRARY:** your sound folders, scanning, Harvest Hits, and a searchable list of every analysed sound.
 - **MY KITS:** kits you saved, plus recent ones, filed by genre and searchable.
-- **SAUCE:** how the drums go in a genre, style and decade: the patterns, and how to play and program them.
+- **SAUCE:** how the drums go in a genre, style and decade: the patterns (which you can edit), and how to play and program them.
 
 The app opens on LIBRARY the very first time (nothing to build with yet) and on BUILD after that. The window can be resized from the bottom-right corner.
 
@@ -272,7 +272,7 @@ Each kit shows its genre, style, decade, key, BPM, how many pads it fills and wh
 - **FOR:** the DAW the loading steps are written for. **Automatic** picks the DAW Groove Grabber is running in (Cubase, Live, FL Studio, Logic, Studio One, REAPER, Bitwig, Reason...). Pick one by hand in the app, or to get another DAW's steps. MPC sets 16-bit for you.
 - **16-BIT / 24-BIT** and **44.1 kHz / 48 kHz.** Use 16-bit for MPCs and older samplers.
 - **MPC program (.pgm):** an MPC 1000 program with every pad and note set, for MPCs and samplers that import them.
-- **Groove MIDI file:** the preview groove on the same notes.
+- **Groove MIDI file:** the preview groove on the same notes, on MIDI channel 1 (your edited version if you edited it on SAUCE).
 - **Silent files for empty pads:** keeps the numbering steady when a kit doesn't fill every pad. Leave it on.
 - **In a genre folder:** puts the kit in a folder for its genre, for example Exports\Hip-Hop\90s Westside Classic. On by default.
 - **CHANGE...** picks the export folder (default Documents\Groove Grabber\Exports). The "To:" line shows exactly where the kit will go. **EXPORT KIT** writes it, **SHOW FOLDER** opens it.
@@ -298,7 +298,7 @@ Exports/Hip-Hop/90s Westside Classic/
 
 **Other ways to use it**
 
-- **The groove:** drag the Groove .mid onto your drum track.
+- **The groove:** drop the Groove .mid on your drum track's lane (not below the last track, which makes a new track with no instrument).
 - **Kit Info.txt** lists which pack every sound came from. Check each pack's licence before releasing music made with it.
 
 ## SAUCE: how the drums go
@@ -318,7 +318,16 @@ The SAUCE page explains how drums are played and programmed in a genre, style an
 - Each row shows the note it plays in your DAW, for example "C1 (36)".
 - The buttons across the top pick between the style's grooves.
 - **Play** (or the Space bar) plays it with the kit you're editing on BUILD. It plays at your song's tempo while you're on your song's style, and at the groove's own tempo when you're reading up on another.
-- **DRAG MIDI** drags four bars of it into your DAW, on the same notes as every Groove Grabber kit. The files are kept in Documents\Groove Grabber\Sauce MIDI.
+- **DRAG MIDI** drags four bars of it into your DAW, on the same notes as every Groove Grabber kit (MIDI channel 1). **Drop it on the lane of your drum track** (in Cubase, your Groove Agent SE or Groove Grabber track), at the bar where it should start. Dropped below the last track, most DAWs make a new track with no instrument on it, so it stays silent. The files are kept in Documents\Groove Grabber\Sauce MIDI.
+
+**Editing the pattern**
+
+- **Click a step** to add a hit or take one away. Hold the mouse down and drag along the row to do several.
+- **Right-click** a hit to make it hard, medium or soft (a ghost note). Right-click an empty step for a soft ghost note.
+- **Ctrl-click** (Alt-click on a Mac) a hit to make it a roll: a quick double, then a triplet burst, then a single hit again.
+- **+ ADD DRUM** adds a row for a drum the pattern doesn't use yet (rim, toms, ride, percussion, FX...).
+- **UNDO** takes back your last change. **RESET** goes back to the original pattern (and UNDO brings your version back).
+- An edited pattern shows **EDITED**. Your version is saved with your song (in your DAW project), plays while you edit, and is also what BUILD's preview groove plays and what goes into the export's Groove MIDI file. The groove list on BUILD marks it "edited".
 
 **THE SAUCE** (bottom)
 
@@ -452,6 +461,8 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | All the files stacked up on one pad | The sampler layered them. Drop them again the way your DAW spreads them (Exporting to your DAW), or one file per pad in FPC, REAPER and Kong. |
 | Note names in the steps don't match your DAW | Pick your DAW under FOR in the export panel. The notes are the same; only the names differ (note 36 is C1 in Cubase, C3 in FL Studio). |
 | Open hats ring over closed hats | Put the Closed Hat, Pedal Hat and Open Hat pads (notes 42, 44 and 46) in the same choke / exclusive group. |
+| A pattern you dragged in from SAUCE doesn't play | It was dropped on empty space, so your DAW made a new track with no instrument. Drag the part onto your drum track (Groove Agent, Groove Grabber...), or set that track's output to your drum instrument. Next time, drop it straight on the drum track's lane. |
+| You changed a pattern on SAUCE and want the original back | Press RESET under the pattern. UNDO brings your version back. |
 | You moved or renamed your drum folders | Remove the old folder on the LIBRARY page and add it again. Saved kits point at the old file locations. |
 | The first scan takes a while | Every sound is analysed once. Later scans only look at new files, and you can keep working meanwhile. |
 
@@ -463,6 +474,9 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | --- | --- |
 | F1 or the ? button | Open this manual |
 | Space | Play / stop the preview groove (on SAUCE: the pattern you're looking at) |
+| Click a step (SAUCE) | Add or take away a hit; drag along the row for several |
+| Right-click a step (SAUCE) | Hard, medium, soft |
+| Ctrl-click a step (SAUCE; Alt-click on a Mac) | A roll: double, triplet, single |
 | Enter (in the description box) | Generate kits |
 | Esc | Close the manual or the export panel |
 | Double-click a slider or knob | Reset it |

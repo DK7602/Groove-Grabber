@@ -12,6 +12,7 @@
 #pragma once
 
 #include "Kit.h"
+#include "Grooves.h"
 #include <functional>
 
 namespace gg
@@ -26,6 +27,7 @@ namespace gg
         int bitDepth = 24;
         double sampleRate = 44100;
         juce::String grooveId;
+        std::shared_ptr<const Groove> groove;   // the groove itself (your edit of it, if any); null = the built-in grooveId
         double bpm = 0;
         float swing = 0;
         juce::String daw;                // the DawGuide id the loading steps are written for ("" = automatic)

@@ -21,7 +21,7 @@ namespace gg
         juce::StringArray steps;      // loading steps, plain text with **bold**
         juce::String hats;            // making closed / pedal / open hats cut each other off
         juce::String keep;            // saving it as a kit you can load anywhere
-        juce::String groove;          // where the groove MIDI goes
+        juce::String groove;          // where to drop a MIDI file, finishing "drop it ...": "on the Impact track's lane"
     };
 
     const std::vector<DawGuide>& dawGuides();          // [0] = Cubase ... last = "other"

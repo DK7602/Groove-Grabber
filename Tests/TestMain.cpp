@@ -737,6 +737,45 @@ namespace
                "swing: 8ths for a shuffle, 16ths otherwise");
         check (gg::grooveFor ("country2").swingEighths && ! gg::grooveFor ("boombap1").swingEighths, "the Shuffle groove swings its 8ths");
 
+        // the pattern MIDI is on channel 1 (channel 10 left Groove Agent silent on a plain MIDI track)
+        {
+            const auto mb = gg::grooveToMidi (gg::grooveFor ("trap1"), 140, 0, 1);
+            juce::MemoryInputStream in (mb, false);
+            juce::MidiFile mf;
+            int notes = 0, offChannel = 0;
+            if (mf.readFrom (in))
+                for (auto* ev : *mf.getTrack (0))
+                    if (ev->message.isNoteOn()) { ++notes; if (ev->message.getChannel() != 1) ++offChannel; }
+            check (notes == (int) gg::grooveFor ("trap1").hits.size() && offChannel == 0, "pattern MIDI: every note on channel 1");
+        }
+
+        // editing a step
+        {
+            const auto& bb = gg::grooveFor ("boombap1");
+            const auto kick0 = gg::stepHits (bb, gg::Slot::kick, 0);
+            check (kick0.count == 1 && std::abs (kick0.velocity - 1.0f) < 1.0e-6f && gg::stepHits (bb, gg::Slot::kick, 1).count == 0, "boom bap: kick on step 1, not step 2");
+            auto edited = bb;
+            edited.hits = gg::withStep (bb, gg::Slot::kick, 1, 1, gg::hardHit);
+            check (gg::stepHits (edited, gg::Slot::kick, 1).count == 1 && edited.hits.size() == bb.hits.size() + 1, "click an empty step: a hit");
+            edited.hits = gg::withStep (edited, gg::Slot::kick, 1, 0, 0);
+            check (gg::sameHits (edited.hits, bb.hits), "click it again: gone, the original again");
+            edited.hits = gg::withStep (bb, gg::Slot::snare, 4, 2, gg::hardHit);
+            const auto roll = gg::stepHits (edited, gg::Slot::snare, 4);
+            bool second = false;
+            for (const auto& h : edited.hits) if (h.slot == gg::Slot::snare && std::abs (h.beat - 1.125) < 1.0e-9 && h.velocity < 0.8f) second = true;
+            check (roll.count == 2 && second, "a roll: two hits in the step, the second softer");
+            edited.hits = gg::withStep (edited, gg::Slot::snare, 4, 3, roll.velocity);
+            check (gg::stepHits (edited, gg::Slot::snare, 4).count == 3, "a triplet burst: three hits");
+            check (std::abs (gg::nextLevel (gg::hardHit) - gg::mediumHit) < 1.0e-6f && std::abs (gg::nextLevel (gg::mediumHit) - gg::softHit) < 1.0e-6f
+                   && std::abs (gg::nextLevel (gg::softHit) - gg::hardHit) < 1.0e-6f && std::abs (gg::nextLevel (0.85f) - gg::softHit) < 1.0e-6f,
+                   "right-click: hard, medium, soft, hard");
+            check (gg::withStep (bb, gg::Slot::kick, 999, 1, 1.0f).size() == bb.hits.size(), "a step off the grid changes nothing");
+            const auto back = gg::hitsFromVar (gg::hitsToVar (edited.hits), bb);
+            check (gg::sameHits (back, edited.hits), "edited hits survive saving");
+            const auto junk = gg::hitsFromVar (juce::JSON::parse (R"([[1e9,"kick",1],["x","kick",1],[0.5,"nope",1],[0.5,"snare",5],"bad",[-1,"kick",1],[7.75,"clap",0.5]])"), bb);
+            check (junk.size() == 2 && junk[0].slot == gg::Slot::snare && std::abs (junk[0].velocity - 1.0f) < 1.0e-6f, "saved hits are checked: junk left out");
+        }
+
         // DAWs: names for note 36, guides, picking one
         check (gg::dawNoteName (36, gg::dawGuide ("cubase")) == "C1" && gg::dawNoteName (36, gg::dawGuide ("fl")) == "C3"
                && gg::dawNoteName (36, gg::dawGuide ("reaper")) == "C2" && gg::dawNoteName (57, gg::dawGuide ("ableton")) == "A2"

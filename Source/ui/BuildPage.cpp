@@ -284,7 +284,7 @@ namespace ggui
             const int i = groove.getSelectedId() - 1;
             if (juce::isPositiveAndBelow (i, (int) gg::allGrooves().size())) proc.setGrooveId (gg::allGrooves()[(size_t) i].id);
         };
-        groove.setTooltip ("Preview groove (plays at the song's BPM)");
+        groove.setTooltip ("Preview groove (plays at the song's BPM). Edit it on SAUCE.");
         addAndMakeVisible (groove);
 
         swing.setSliderStyle (juce::Slider::LinearHorizontal);
@@ -315,7 +315,12 @@ namespace ggui
         play.setToggleState (proc.player.isGroovePlaying(), juce::dontSendNotification);
         play.setAccent (pal().orange);
         for (size_t i = 0; i < gg::allGrooves().size(); ++i)
-            if (gg::allGrooves()[i].id == proc.grooveId) groove.setSelectedId ((int) i + 1, juce::dontSendNotification);
+        {
+            const auto& gr = gg::allGrooves()[i];
+            const auto text = gr.name + "   (" + juce::String (gr.bpm, 0) + ")" + (proc.isGrooveEdited (gr.id) ? "  - edited" : "");
+            if (groove.getItemText ((int) i) != text) groove.changeItemText ((int) i + 1, text);
+            if (gr.id == proc.grooveId) groove.setSelectedId ((int) i + 1, juce::dontSendNotification);
+        }
         swing.setValue (proc.player.getSwing() * 100.0, juce::dontSendNotification);
         volume.setValue (proc.player.getVolume() * 100.0, juce::dontSendNotification);
         follow.setToggleState (proc.player.isFollowingHost(), juce::dontSendNotification);

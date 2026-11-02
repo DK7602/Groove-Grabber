@@ -7,6 +7,7 @@
 #include "core/SongContext.h"
 #include "core/Exporter.h"
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <map>
 
 class GrooveGrabberProcessor : public juce::AudioProcessor,
                                public juce::ChangeBroadcaster,
@@ -69,6 +70,12 @@ public:
     gg::KitPlayer player;
     juce::String grooveId = "boombap1";
     void setGrooveId (const juce::String&);
+
+    // ---- grooves: the built-in ones, or your edit of one (from SAUCE, kept with the song) ----
+    std::shared_ptr<const gg::Groove> getGroove (const juce::String& id) const;
+    bool isGrooveEdited (const juce::String& id) const;
+    void editGroove (const juce::String& id, std::vector<gg::GrooveHit> hits);   // the original's hits reset it
+    void resetGroove (const juce::String& id);
     void auditionSlot (gg::Slot);
     void previewFile (const juce::String& path, gg::Cat);
     gg::PlayableKit::Ptr getPlayable (int kitIndex) const;
@@ -98,6 +105,11 @@ private:
     juce::uint32 seed = 1;
     juce::String statusMessage;
     juce::AudioBuffer<float> monoScratch;            // for hosts that pick a mono output
+    void swapGroove (const juce::String& id, std::shared_ptr<const gg::Groove> edit);
+    std::map<juce::String, std::shared_ptr<const gg::Groove>> grooveEdits;
+    // replaced edits, kept a while: the audio thread may still be reading the one it had
+    std::vector<std::pair<std::shared_ptr<const gg::Groove>, juce::uint32>> retiredGrooves;
+
     juce::CriticalSection snapshotLock;
     juce::String stateSnapshot;                      // for hosts that ask for the state off the message thread
 
