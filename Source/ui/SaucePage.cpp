@@ -8,8 +8,8 @@ namespace ggui
     //==============================================================================
     PatternGrid::PatternGrid()
     {
-        setTooltip ("Click a step to add or take away a hit (drag along a row for several). Right-click: hard, medium, soft. "
-                    "Ctrl-click (Alt-click on a Mac): 2 quick hits in the step, again for 3 (a triplet roll), again for 1.");
+        setTooltip ("Click a drum's name to hear it. Click a step to add or take away a hit (drag along a row for several). "
+                    "Right-click: hard, medium, soft. Ctrl-click (Alt-click on a Mac): 2 quick hits in the step, again for 3 (a triplet roll), again for 1.");
     }
 
     void PatternGrid::setGroove (std::shared_ptr<const gg::Groove> g, std::vector<gg::Slot> l)
@@ -76,12 +76,34 @@ namespace ggui
             paintAdd = cur.count == 0;
             next = gg::withStep (*groove, slot, step, paintAdd ? 1 : 0, gg::hardHit);
         }
+        // hear what you put there (a hit added, or made harder / softer / a roll); nothing when you take one away
+        const auto after = [&]
+        {
+            gg::Groove probe;
+            probe.bars = groove->bars;
+            probe.hits = next;
+            return gg::stepHits (probe, slot, step);
+        }();
+        if (after.count > 0 && onAudition) onAudition (slot, after.velocity);
         if (onEdit) onEdit (std::move (next));
+    }
+
+    void PatternGrid::auditionLane (int lane)
+    {
+        if (juce::isPositiveAndBelow (lane, (int) lanes.size()) && onAudition) onAudition (lanes[(size_t) lane], gg::hardHit);
     }
 
     void PatternGrid::mouseDown (const juce::MouseEvent& e)
     {
         painting = false;
+        // a drum's name: hear it
+        if (const auto geo = geometry(); geo.steps > 0 && e.position.x < geo.gridX && e.position.y >= geo.area.getY() && e.position.y < geo.area.getBottom())
+        {
+            pressedLabel = juce::jlimit (0, (int) lanes.size() - 1, (int) ((e.position.y - geo.area.getY()) / geo.laneH));
+            auditionLane (pressedLabel);
+            repaint();
+            return;
+        }
         int lane = 0, step = 0;
         if (! cellAt (e.position, lane, step)) return;
         if (onEditStart) onEditStart();
@@ -103,19 +125,26 @@ namespace ggui
             onEdit (gg::withStep (*groove, slot, step, paintAdd ? 1 : 0, gg::hardHit));
     }
 
-    void PatternGrid::mouseUp (const juce::MouseEvent&)   { painting = false; }
+    void PatternGrid::mouseUp (const juce::MouseEvent&)
+    {
+        painting = false;
+        if (pressedLabel >= 0) { pressedLabel = -1; repaint(); }
+    }
 
     void PatternGrid::mouseMove (const juce::MouseEvent& e)
     {
         int lane = -1, step = -1;
         const bool over = cellAt (e.position, lane, step);
-        setMouseCursor (over ? juce::MouseCursor::PointingHandCursor : juce::MouseCursor::NormalCursor);
-        if (lane != hoverLane || step != hoverStep) { hoverLane = lane; hoverStep = step; repaint(); }
+        int label = -1;
+        if (const auto geo = geometry(); geo.steps > 0 && e.position.x < geo.gridX && e.position.y >= geo.area.getY() && e.position.y < geo.area.getBottom())
+            label = juce::jlimit (0, (int) lanes.size() - 1, (int) ((e.position.y - geo.area.getY()) / geo.laneH));
+        setMouseCursor (over || label >= 0 ? juce::MouseCursor::PointingHandCursor : juce::MouseCursor::NormalCursor);
+        if (lane != hoverLane || step != hoverStep || label != hoverLabel) { hoverLane = lane; hoverStep = step; hoverLabel = label; repaint(); }
     }
 
     void PatternGrid::mouseExit (const juce::MouseEvent&)
     {
-        hoverLane = hoverStep = -1;
+        hoverLane = hoverStep = hoverLabel = -1;
         repaint();
     }
 
@@ -169,7 +198,12 @@ namespace ggui
             g.setColour (p.line.withAlpha (0.5f));
             g.fillRect (lane.withHeight (1.0f).withY (lane.getBottom() - 0.5f));
 
-            // the lane's name, and the note it plays on in your DAW
+            // the lane's name (click it to hear the drum), and the note it plays on in your DAW
+            if ((int) li == hoverLabel || (int) li == pressedLabel)
+            {
+                g.setColour (colour.withAlpha ((int) li == pressedLabel ? 0.30f : 0.12f));
+                g.fillRoundedRectangle (lane.withWidth (labelW - 6.0f).reduced (0.0f, 2.0f), 5.0f);
+            }
             auto label = lane.withWidth (labelW - 8.0f);
             g.setColour (colour);
             g.fillRoundedRectangle (label.removeFromLeft (4.0f).reduced (0.0f, laneH * 0.22f), 2.0f);
@@ -292,6 +326,19 @@ namespace ggui
         grid.setNoteNamer ([this] (int note) { return dawNoteName (note); });
         grid.onEditStart = [this] { pushUndo(); };
         grid.onEdit = [this] (std::vector<gg::GrooveHit> hits) { applyHits (std::move (hits)); };
+        grid.onAudition = [this] (gg::Slot slot, float velocity)
+        {
+            if (const int note = gg::mainNoteForSlot (slot); note >= 0) proc.player.trigger (note, velocity);
+        };
+
+        // which of BUILD's four kits plays the pattern
+        for (int i = 0; i < 4; ++i)
+        {
+            auto* b = kitButtons.add (new juce::TextButton (juce::String (i + 1).paddedLeft ('0', 2)));
+            b->getProperties().set ("style", "toggle");
+            b->onClick = [this, i] { proc.setActiveKit (i); updateKitButtons(); };
+            addAndMakeVisible (b);
+        }
 
         for (auto* b : { &addDrum, &undo, &reset })
         {
@@ -426,8 +473,22 @@ namespace ggui
         showChoice();
     }
 
+    void SaucePage::updateKitButtons()
+    {
+        for (int i = 0; i < kitButtons.size(); ++i)
+        {
+            auto* b = kitButtons[i];
+            const bool has = i < (int) proc.kits.size();
+            b->setEnabled (has);
+            b->setToggleState (has && i == proc.activeKit, juce::dontSendNotification);
+            b->setTooltip (has ? "Kit " + juce::String (i + 1) + ": " + proc.kits[(size_t) i].name + " (plays the pattern; the same as clicking it on BUILD)"
+                               : juce::String ("Generate kits on BUILD to hear the pattern with them"));
+        }
+    }
+
     void SaucePage::refresh()
     {
+        updateKitButtons();
         // BUILD changed since we last looked: follow it. Otherwise keep what you picked here.
         const auto& o = proc.options;
         if ((int) o.genre != lastBuildGenre || o.subStyle != lastBuildStyle || o.era != lastBuildEra)
@@ -915,6 +976,12 @@ namespace ggui
         h.removeFromRight (8);
         dragArea = h.removeFromRight (176);
         h.removeFromRight (12);
+        kitArea = h.removeFromRight (34 + 4 * 36);
+        {
+            auto ka = kitArea.withTrimmedLeft (34);
+            for (auto* b : kitButtons) { b->setBounds (ka.removeFromLeft (36).reduced (2, 3)); }
+        }
+        h.removeFromRight (12);
         for (auto* c : grooveChips) { c->setBounds (h.removeFromLeft (juce::jmin (160, h.getWidth())).reduced (2, 3)); h.removeFromLeft (4); }
         myChip.setBounds (h.removeFromLeft (juce::jmin (showingMine() ? 230 : 160, h.getWidth())).reduced (2, 3));
         editBar = pa.removeFromBottom (30);
@@ -1067,6 +1134,9 @@ namespace ggui
                 g.setFont (uiFont (15.0f, false));
                 g.drawText ("No pattern for this style yet", patternHeader.withTrimmedLeft (140), juce::Justification::centredLeft);
             }
+            g.setColour (p.dim);
+            g.setFont (headFont (10.0f).withExtraKerningFactor (0.12f));
+            g.drawText ("KIT", kitArea.withWidth (32), juce::Justification::centredRight);
             // the drag handle
             auto d = dragArea.toFloat().reduced (0.0f, 1.0f);
             g.setColour (dragging ? p.orange.withAlpha (0.2f) : p.sunken);

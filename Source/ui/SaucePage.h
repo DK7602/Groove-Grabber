@@ -30,6 +30,8 @@ namespace ggui
 
         std::function<void()> onEditStart;                             // before the first change of a click or drag
         std::function<void (std::vector<gg::GrooveHit>)> onEdit;       // the groove's new hits
+        std::function<void (gg::Slot, float velocity)> onAudition;     // play one sound (a drum's name tapped, a hit added)
+        void auditionLane (int lane);                                  // tap a drum's name: hear it
 
         // what a click on a lane's step does (the mouse, and the tests)
         void clickStep (int lane, int step, const juce::ModifierKeys&);
@@ -43,7 +45,7 @@ namespace ggui
         double playhead = -1;
         std::function<juce::String (int)> noteNamer;
         bool painting = false, paintAdd = true;
-        int paintLane = -1, lastStep = -1, hoverLane = -1, hoverStep = -1;
+        int paintLane = -1, lastStep = -1, hoverLane = -1, hoverStep = -1, hoverLabel = -1, pressedLabel = -1;
     };
 
     //==============================================================================
@@ -119,6 +121,9 @@ namespace ggui
                          myChip { "MY GROOVES" }, nameOk { "SAVE" }, nameReplace { "SAVE & REPLACE ON BUILD" },
                          nameCancel { "CANCEL" };
         juce::TextButton saveChanges { "SAVE" }, renameMine { "RENAME" };
+        juce::OwnedArray<juce::TextButton> kitButtons;   // 01..04: which of BUILD's kits plays the pattern
+        juce::Rectangle<int> kitArea;
+        void updateKitButtons();
         OneShotTimer disarmDelete;
         juce::TextEditor nameEdit;
         bool naming = false, renaming = false, deleteArmed = false;

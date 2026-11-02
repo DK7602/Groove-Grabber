@@ -100,8 +100,22 @@ int runScreenshots (const juce::File& outDir)
         if (! ed->getSauce().isFollowingBuild()) { std::cout << "  FAIL: SAUCE didn't open on BUILD's style" << std::endl; ++failures; }
         if (! light)
         {
-            // edit the pattern on the grid: BUILD's preview groove changes with it
+            // tap a drum's name: you hear it (with the kit picked on BUILD, or with the KIT buttons here)
             auto& sauce = ed->getSauce();
+            {
+                juce::AudioBuffer<float> buf (2, 512);
+                juce::MidiBuffer none;
+                buf.clear();
+                proc.processBlock (buf, none);
+                const auto before = proc.player.getPadFlash (0);
+                sauce.getGrid().auditionLane (0);                    // the kick
+                buf.clear();
+                proc.processBlock (buf, none);
+                const bool heard = proc.player.getPadFlash (0) != before && buf.getMagnitude (0, buf.getNumSamples()) > 0.0001f;
+                std::cout << (heard ? "  ok: " : "  FAIL: ") << "tapping a drum's name on SAUCE plays it" << std::endl;
+                if (! heard) ++failures;
+            }
+            // edit the pattern on the grid: BUILD's preview groove changes with it
             const auto id = sauce.getGrooveId();
             const auto before = proc.getGroove (id)->hits.size();
             sauce.getGrid().clickStep (0, 2, {});                                          // a kick on the & of 1

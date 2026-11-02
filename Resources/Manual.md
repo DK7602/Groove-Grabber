@@ -323,12 +323,14 @@ The SAUCE page explains how drums are played and programmed in a genre, style an
 - The style's grooves as a step grid: one row per drum, 16 steps a bar, two bars. The beats are steps 1, 5, 9 and 13, counted 1 e & a. Brighter cells are harder hits, faded ones are soft ghost notes, and split cells are rolls.
 - Each row shows the note it plays in your DAW, for example "C1 (36)".
 - The buttons across the top pick between the style's grooves.
-- **Play** (or the Space bar) plays it with the kit you're editing on BUILD. It plays at your song's tempo while you're on your song's style, and at the groove's own tempo when you're reading up on another.
+- **KIT 01 to 04** picks which of BUILD's four kits plays the pattern (the same as clicking that kit on BUILD). Point at one to see its name.
+- **Play** (or the Space bar) plays it with the kit you picked. It plays at your song's tempo while you're on your song's style, and at the groove's own tempo when you're reading up on another.
 - **DRAG MIDI** shows the tempo and swing it plays at, and drags four bars of it into your DAW, on the same notes as every Groove Grabber kit (MIDI channel 1). **Drop it on the lane of your drum track** (in Cubase, your Groove Agent SE or Groove Grabber track), at the bar where it should start. Dropped below the last track, most DAWs make a new track with no instrument on it, so it stays silent. The files are kept in Documents\Groove Grabber\Sauce MIDI.
 
 **Editing the pattern**
 
-- **Click a step** to add a hit or take one away. Hold the mouse down and drag along the row to do several.
+- **Click a drum's name** (Kick, 808, Snare...) on the left of the grid to hear it from the kit you picked.
+- **Click a step** to add a hit or take one away. Hold the mouse down and drag along the row to do several. Each hit you add (or make harder, softer or a roll) plays as you click it.
 - **Right-click** a hit to make it hard, medium or soft (a ghost note). Right-click an empty step for a soft ghost note.
 - **Ctrl-click** (Alt-click on a Mac) a step for a roll: 2 quick hits in that step, Ctrl-click again for 3 (a triplet roll, the fast hi-hat flutter in trap and drill), and again for 1 hit. Right-click it afterwards to make the roll softer.
 - **+ ADD DRUM** adds a row for a drum the pattern doesn't use yet (rim, toms, ride, percussion, FX...).
@@ -517,6 +519,7 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | --- | --- |
 | F1 or the ? button | Open this manual |
 | Space | Play / stop the preview groove (on SAUCE: the pattern you're looking at) |
+| Click a drum's name (SAUCE) | Hear that drum |
 | Click a step (SAUCE) | Add or take away a hit; drag along the row for several |
 | Right-click a step (SAUCE) | Hard, medium, soft |
 | Ctrl-click a step (SAUCE; Alt-click on a Mac) | A roll: 2 quick hits, then 3 (triplet), then 1 |
