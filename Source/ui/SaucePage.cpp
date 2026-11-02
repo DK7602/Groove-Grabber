@@ -360,6 +360,11 @@ namespace ggui
         addChildComponent (nameEdit);
         nameOk.getProperties().set ("style", "accent");
         nameOk.onClick = [this] { finishNaming (true); };
+        nameOk.setTooltip ("Save it in MY GROOVES. The pattern you started from stays as it was on BUILD.");
+        nameReplace.getProperties().set ("style", "accent");
+        nameReplace.onClick = [this] { finishNaming (true, {}, true); };
+        nameReplace.setTooltip ("Save it in MY GROOVES, and BUILD's preview plays it in place of the pattern you started from");
+        addChildComponent (nameReplace);
         nameCancel.getProperties().set ("style", "ghost");
         nameCancel.onClick = [this] { finishNaming (false); };
         addChildComponent (nameOk);
@@ -558,7 +563,10 @@ namespace ggui
         nameEdit.setText (name, false);
         nameEdit.applyColourToAllText (pal().text);
         nameOk.setButtonText (renaming ? "RENAME" : "SAVE");
+        nameOk.setTooltip (renaming ? "Give this groove its new name"
+                                    : "Save it in MY GROOVES. The pattern you started from stays as it was on BUILD.");
         nameOk.getProperties().set ("accent", pal().blue.toString());
+        nameReplace.getProperties().set ("accent", pal().orange.toString());
         showGroove();                  // the name box in, the edit buttons out
         resized();
         nameEdit.grabKeyboardFocus();
@@ -566,7 +574,7 @@ namespace ggui
         repaint (patternArea);
     }
 
-    void SaucePage::finishNaming (bool save, const juce::String& givenName)
+    void SaucePage::finishNaming (bool save, const juce::String& givenName, bool replaceOnBuild)
     {
         const auto name = (givenName.isNotEmpty() ? givenName : nameEdit.getText()).trim();
         naming = false;
@@ -576,9 +584,22 @@ namespace ggui
                 proc.renameMyGroove (myShown, name);
             else if (! renaming)
             {
+                const auto from = currentId();
                 const auto& style = gg::styleFor (genre, subStyle);
-                const auto id = proc.saveMyGroove (currentId(), name, genre, style.id);
-                if (id.isNotEmpty()) pickMine (id);
+                const auto id = proc.saveMyGroove (from, name, genre, style.id);
+                if (id.isNotEmpty())
+                {
+                    // your version lives on under its new name; the pattern you started from goes back to its
+                    // original (UNDO on it brings your edit back)
+                    if (! gg::mygrooves::isMine (from) && proc.isGrooveEdited (from))
+                    {
+                        auto& steps = undoSteps[from];
+                        steps.push_back (proc.getGroove (from)->hits);
+                        proc.resetGroove (from);
+                    }
+                    if (replaceOnBuild) proc.setGrooveId (id);          // BUILD plays yours in its place
+                    pickMine (id);
+                }
             }
         }
         resized();
@@ -628,6 +649,7 @@ namespace ggui
 
         for (auto* b : { &saveMine, &addDrum, &undo, &reset }) b->setVisible (! naming);
         for (auto* c : std::initializer_list<juce::Component*> { &nameEdit, &nameOk, &nameCancel }) c->setVisible (naming);
+        nameReplace.setVisible (naming && ! renaming);
         repaint (patternArea);
     }
 
@@ -845,9 +867,14 @@ namespace ggui
             auto nb = editBar;
             nameCancel.setBounds (nb.removeFromRight (90).reduced (0, 1));
             nb.removeFromRight (6);
+            if (! renaming)
+            {
+                nameReplace.setBounds (nb.removeFromRight (206).reduced (0, 1));
+                nb.removeFromRight (6);
+            }
             nameOk.setBounds (nb.removeFromRight (100).reduced (0, 1));
             nb.removeFromRight (10);
-            nb.removeFromLeft (juce::jmin (230, nb.getWidth() / 3));
+            nb.removeFromLeft (juce::jmin (200, nb.getWidth() / 3));
             nameEdit.setBounds (nb.reduced (0, 1));
         }
         pa.removeFromBottom (8);
@@ -978,7 +1005,9 @@ namespace ggui
             g.drawText ("DRAG MIDI", in.removeFromTop (in.getHeight() * 0.55f), juce::Justification::bottomLeft);
             g.setColour (p.dim);
             g.setFont (uiFont (12.5f, false));
-            g.drawText ("4 bars at " + juce::String (previewTempo(), 0) + " BPM", in, juce::Justification::topLeft);
+            const auto cg = currentGroove();
+            g.drawText ("4 bars, " + juce::String (previewTempo(), 0) + " BPM" + (cg != nullptr ? ", swing " + juce::String (gg::swingPercent (*cg)) + "%" : juce::String()),
+                        in, juce::Justification::topLeft);
         }
         if (naming)
         {

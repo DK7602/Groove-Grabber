@@ -5,7 +5,7 @@
 # Markdown: ### headings, **bold**, - and 1. lists, | tables |. Plain ASCII, and keep it clean.
 
 @@ hiphop
-**The pocket.** Hip-hop drums rest on a heavy kick and a hard backbeat: snare or clap on beats 2 and 4 (steps 5 and 13), with the kick moving around it. The feel comes from swing and sound, not busy patterns. Older styles lean on sampled breaks, newer ones on drum machines and 808s.
+**The pocket.** Hip-hop drums rest on a heavy kick and a hard backbeat: snare or clap on beats 2 and 4 (steps 5 and 13), with the kick moving around it. The feel comes from swing and sound, not busy patterns. Some styles are built on sampled breaks, others on drum machines and 808s.
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
@@ -17,12 +17,12 @@
 
 ### Snare and clap
 - Snare on 2 and 4, hit hard and the same every time. It's the anchor.
-- Ghost notes (very quiet hits) just before a backbeat add bounce.
-- Southern styles stack a clap on the snare. Memphis is half-time: snare on beat 3 (step 9) only, so the beat feels half as fast.
+- Ghost notes (very quiet hits) add bounce. The Dusty Swing groove has one on the last step of bar 2; try others just before a backbeat (step 4 or 12).
+- Southern styles stack a clap on the snare. Memphis runs faster (around 136 BPM) in half-time: snare on beat 3 (step 9) only, so the beat feels half as fast.
 
 ### Hats and cymbals
-- Steady 8th-note hats (every other step). The Dusty Swing groove adds soft 16ths between them.
-- An open hat on the & of 4 (step 15) lifts the end of a phrase.
+- Steady 8th-note hats (every other step). The Dusty Swing groove adds soft 16ths between them, and the swing pushes those late.
+- An open hat on the & of 4 (step 15), in bar 2 of the Boom Bap groove, lifts the end of a phrase.
 
 ### Percussion and toms
 - Tambourine or shaker on the &s (steps 3, 7, 11 and 15) or in 16ths. Toms are mostly for fills.
@@ -36,12 +36,12 @@
 - Drop the kick for a bar before a hook, then come back on beat 1 with a crash.
 
 ### Sauce tips
-- Swing the 16ths (about 54 to 62%) instead of moving notes by hand.
+- Swing the 16ths (about 54 to 62%; the grooves here play at 60 and 62%) instead of moving notes by hand.
 - Nudge the snare a few milliseconds late for a lazy feel.
 - Pick a style above for boom bap, G-funk, Memphis, crunk or old school electro details.
 
 @@ hiphop.east
-**The pocket.** East Coast boom bap is the 90s New York sound: punchy drums chopped from old funk and soul breaks, on a swung 16th grid. The beat leans slightly behind the count. DJ Premier and Pete Rock are classic reference points, and samplers like the E-mu SP-1200 and Akai MPC60 shaped the sound.
+**The pocket.** East Coast boom bap is the 90s New York sound: punchy drums chopped from old funk and soul breaks, on a swung 16th grid. The beat sits slightly behind the count. DJ Premier and Pete Rock are classic reference points, and samplers like the E-mu SP-1200 and Akai MPC60 shaped the sound.
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
@@ -53,15 +53,16 @@
 - The Dusty Swing groove puts a kick on the & of 2 (step 7) for the classic head-nod stumble.
 
 ### Snare and clap
-- A fat, cracking snare on 2 and 4 (steps 5 and 13). Many classic snares are two samples layered.
+- A fat, cracking snare on 2 and 4 (steps 5 and 13). Producers often layer two snare samples into one.
 - In the Dusty Swing groove, a ghost note (a very quiet hit) on the last step of bar 2 pulls the ear into the next bar.
 
 ### Hats and cymbals
-- Swung 8th-note hats. The Dusty Swing groove adds soft 16ths between them, where the swing really shows.
+- 8th-note hats in the Boom Bap groove. 16th swing leaves them in place and moves only the steps between.
+- The Dusty Swing groove adds soft 16ths between the 8ths, and the swing pushes those late: that's where it really shows.
 - Louder on the beats, softer between. A flat, robotic hat makes the whole groove stiff.
 
 ### Percussion and toms
-- Tambourine or shaker on the &s (steps 3, 7, 11 and 15), quieter than the hats.
+- Tambourine or shaker on the &s (steps 3, 7, 11 and 15) in the Boom Bap groove, quieter than the hats. Dusty Swing keeps one hit on the & of 3 (step 11) and two soft rims.
 - Many beats loop a whole sampled break, like "Funky Drummer" or "Impeach the President", under the hits.
 
 ### Fills and changes
@@ -69,9 +70,9 @@
 - Drop the drums for a bar before the hook, then slam back on beat 1.
 
 ### Sauce tips
-- Start the swing near 58% and adjust by ear.
+- The grooves here swing at 60% (Boom Bap) and 62% (Dusty Swing). Start there and adjust by ear.
 - Nudge the snare a few milliseconds late for a lazy pocket.
-- Roll off some top end, or bit-crush lightly, for the 12-bit sampler sound.
+- Roll off some top end, or bit-crush lightly, for the gritty 12-bit SP-1200 sound.
 - Compress the drum bus hard so the room comes up between hits.
 
 @@ hiphop.west
@@ -84,13 +85,14 @@
 ### Kick
 - Beat 1, the & of 2 (step 7) and the & of 3 (step 11): bouncy and syncopated, playing off the bass line.
 - Bar 2 moves the last kick to beat 3 (step 9). Keep kicks round, not clicky.
+- The G-Funk Machine direction uses the Funk groove (100 BPM, 55% swing): ghost snares on steps 8 and 10, and a kick on the a of 1 (step 4) in bar 2.
 
 ### Snare and clap
 - Snare and clap together on 2 and 4 (steps 5 and 13). The clap gives width, the snare gives body.
 - A slightly long, roomy clap is part of the sound.
 
 ### Hats and cymbals
-- Lightly swung 8th-note hats. Bar 2 adds a medium 16th on the e of 4 (step 14) and an open hat on the & of 4 (step 15).
+- 8th-note hats, which the swing leaves in place. Bar 2 adds a medium 16th on the e of 4 (step 14), which it pushes late, and an open hat on the & of 4 (step 15).
 
 ### Percussion and toms
 - A shaker in 16ths, softer between the 8ths, glues the groove.
@@ -99,14 +101,13 @@
 ### 808 and bass
 - The bass is often a synth playing funk lines, with the 808 following the kick under it.
 - Tune the kick to the bass's key note.
-- The G-Funk Machine direction uses a funkier groove, with ghost snares and a kick on the a of 1 (step 4).
 
 ### Fills and changes
 - Verse and hook usually share one loop; the hook adds voices and synths, not drums.
 - Use drop-outs: mute the kick for a bar, or leave only hats and clap.
 
 ### Sauce tips
-- Use a light swing (about 54%) so the 16th shaker rolls instead of ticking.
+- Use a light swing (55 to 57%, as the grooves here play) so the 16th shaker rolls instead of ticking.
 - Let the clap be the brightest thing; lower the shaker and hats.
 - Nudge the clap a few milliseconds behind the snare.
 
@@ -127,7 +128,7 @@
 
 ### Hats and cymbals
 - 8th-note hats with triplet rolls, three quick hits in one step, on the e of 2 (step 6) and the e of 4 (step 14).
-- Bar 2 gets busier, with rolls on steps 2, 10, 14 and 16. Busy hats over a slow backbeat is the signature.
+- Bar 2 gets busier: triplet bursts on steps 2, 10 and 16, and a quick 32nd double on step 14. Busy hats over a slow backbeat are the signature.
 
 ### Percussion and toms
 - The cowbell is the star. The grid plays it on steps 1, 4, 7, 9, 12 and 15: a 3-3-2 rhythm twice a bar.
@@ -154,7 +155,7 @@
 
 ### Kick
 - A skipping kick: beat 1, the a of 1 (step 4), the & of 2 (step 7), beat 3 (step 9) and the a of 3 (step 12).
-- Bar 2 adds the & of 3 (step 11) and beat 4 (step 13), pushing into the snare roll.
+- Bar 2 swaps the a of 3 for the & of 3 (step 11) and adds beat 4 (step 13), pushing into the snare roll.
 
 ### Snare and clap
 - Snare and a big, stacked clap on 2 and 4 (steps 5 and 13), often the loudest thing in the mix.
@@ -165,7 +166,7 @@
 
 ### Percussion and toms
 - A cowbell or perc on the &s (steps 3, 7, 11 and 15).
-- New Orleans bounce, a close cousin, is built on the Triggerman beat from the Showboys' "Drag Rap".
+- New Orleans bounce, a close cousin, is built on the beat from the Showboys' "Drag Rap", sampled over and over.
 
 ### 808 and bass
 - Long 808 notes on the kick hits, tuned to the key. Let each ring until the next, then cut it.
@@ -186,10 +187,10 @@
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
-| 95 to 125 BPM | 50 to 55% | Straight, machine-tight | Long 808 kick |
+| 90 to 125 BPM | 50 to 60% | Straight, or swung for breaks | Long 808 kick |
 
 ### Kick
-- Beat 1 and beat 3 (steps 1 and 9), with a pickup on the & of 3 (step 11) in bar 1.
+- Beat 1 and beat 3 (steps 1 and 9), with an extra kick on the & of 3 (step 11) in bar 1.
 - Electro gets more syncopated: try kicks on the a of 2 (step 8) or the & of 4 (step 15).
 
 ### Snare and clap
@@ -209,11 +210,11 @@
 - With a played bass line, use a shorter kick and leave the 808 out.
 
 ### Fills and changes
-- DJs looped the break of records like "Apache" for the dancers. The Old School Scratch direction uses the swung Boom Bap groove for that feel.
+- DJs looped the break of records like "Apache" for the dancers. The Old School Scratch direction uses the swung Boom Bap groove (90 BPM, 60% swing) for that feel.
 - Fills are short: a snare roll, a tom run or a clap burst on beat 4.
 
 ### Sauce tips
-- Keep it straight or nearly so. Machine timing is the point.
+- Keep electro straight or nearly so (the Old School groove plays at 53%). Machine timing is the point.
 - Use real 808 sounds or close copies: long kick, snappy clap, cowbell.
 - For break-based tracks, chop a break and play it back at the song's tempo.
 
@@ -226,21 +227,21 @@
 
 ### Kick
 - Beat 1, then syncopated hits around beat 3, like the a of 2 (step 8) and the & of 3 (step 11).
-- Drill is sparser: the Dark Drill direction kicks only on beat 1 and the e of 3 (step 10).
+- Drill is sparser: the Drill groove kicks on beat 1 and the e of 3 (step 10), then beat 1 and the & of 2 (step 7).
 
 ### Snare and clap
-- Snare and clap together on beat 3 (step 9), once per bar.
+- Snare and clap together on beat 3 (step 9), once per bar. Bounce uses the clap alone; Drill adds the & of 4 (step 15) in bar 1.
 - Snaps can replace the clap in softer trap.
 
 ### Hats and cymbals
 - 8th notes (every other step) as the base. Rolls are the signature: two quick 32nds in one step, or a triplet burst of three.
-- The grid rolls on steps 6 and 14, then 10 and 12. Switching between 16ths, 32nds and triplets makes the hats talk.
+- The Trap groove rolls on steps 6 and 14, then 10 and 12. Drill's hats skip instead (bar 1: steps 1, 4, 7, 9, 12, 15). Switching between 16ths, 32nds and triplets makes the hats talk.
 
 ### Percussion and toms
-- Sparse perc in the gaps (steps 4 and 12): rims, snaps, FX hits. Toms are rare.
+- Sparse perc in the gaps (the Trap groove: steps 4 and 12, then 4 and 13): rims, snaps, FX hits. Toms are rare.
 
 ### 808 and bass
-- The 808 plays the kick's rhythm with long notes. Tune it to the key, and the kick to the 808.
+- The 808 plays the kick's rhythm with long notes; in Drill it adds its own notes (steps 14 and 13). Tune it to the key, and the kick to the 808.
 - To stop clashes, keep the kick short, just the punch on top, and set the 808 to one voice so each note cuts the last.
 - Glides: overlap two 808 notes with glide (portamento) on, so the pitch slides into the next.
 
@@ -261,7 +262,7 @@
 | 130 to 150 BPM | 50% (straight) | Half-time, rolling hats | Big 808 with the kick |
 
 ### Kick
-- Beat 1, then the a of 2 (step 8) and the & of 3 (step 11). Bar 2 uses the & of 2 (step 7), the & of 3 and beat 4 (step 13).
+- Beat 1, then the a of 2 (step 8) and the & of 3 (step 11). Bar 2 uses beat 1, the & of 2 (step 7), the & of 3 and beat 4 (step 13).
 - Kicks land near the clap, not on it, so it stays clear.
 
 ### Snare and clap
@@ -269,11 +270,12 @@
 - Short, loud and bright. Some beats add a pickup clap on the a of 4 (step 16).
 
 ### Hats and cymbals
-- 8th-note hats with rolls: quick 32nd doubles (steps 6, 10 and 12) and a triplet burst (step 14).
+- 8th-note hats with rolls: a quick 32nd double on step 6 and a triplet burst on step 14 in bar 1, then doubles on steps 10 and 12 in bar 2. An open hat on the & of 2 (step 7) in bar 2 adds a lift.
 - Rolls switch between 16ths, 32nds and triplets. Pitch some roll hits up or down for a "talking" hat.
 
 ### Percussion and toms
-- Perc in the gaps (steps 4 and 12): a rim, snap or vocal chop. Toms are rare.
+- Perc in the gaps (steps 4 and 12, then 4 and 13 in bar 2): a rim, snap or vocal chop. Toms are rare.
+- The grid's two FX hits mark beat 1 of bar 1 and beat 4 (step 13) of bar 2.
 
 ### 808 and bass
 - The 808 copies the kick's rhythm with long, tuned notes.
@@ -290,7 +292,7 @@
 - Keep the clap dry and upfront.
 
 @@ trap.ukdrill
-**The pocket.** UK drill grew out of Chicago drill in London in the mid-2010s. It's half-time like trap, but nothing sits square: snares skip off the beat, hats bounce in a triplet-like pattern, and the 808 slides from note to note.
+**The pocket.** UK drill grew out of Chicago drill in south London in the early to mid-2010s. It's half-time like trap, but nothing sits square: snares skip off the beat, hats bounce in a triplet-like pattern, and the 808 slides from note to note.
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
@@ -327,7 +329,7 @@
 - Keep the snare short and dry so its placement is clear.
 
 @@ trap.nydrill
-**The pocket.** NY drill brought the UK drill pattern to Brooklyn in the late 2010s, often with UK producers like 808Melo making the beats. The rhythm stays close: half-time, skippy hats, sliding 808s. The differences: harder kicks that hit with the 808, and a sample-based tone, with chopped vocal or R&B samples on top.
+**The pocket.** NY drill brought the UK drill pattern to Brooklyn in the late 2010s, with UK producers such as 808Melo making many of the early beats. The rhythm stays close: half-time, skippy hats, sliding 808s. The differences: harder kicks that hit with the 808, and a sample-based tone, with chopped vocal or R&B samples on top.
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
@@ -339,11 +341,11 @@
 
 ### Snare and clap
 - Clap on beat 3 (step 9), the half-time backbeat. The snare joins it, plus a late extra on the & of 4 (step 15) in bar 2.
-- Like UK drill, the second bar's snare can move later than step 9.
+- A common move, as in UK drill: shift the second bar's snare later than step 9.
 
 ### Hats and cymbals
 - Busy, skippy hats: bar 1 hits steps 1, 3, 4, 6, 7, 9, 11, 12, 14 and 16, pairs of 16ths with gaps.
-- Bar 2 adds a triplet roll on the e of 3 (step 10). Keep hats tight and short.
+- Bar 2 adds a triplet roll on the e of 3 (step 10) and ends differently, on steps 13, 15 and 16. Keep hats tight and short.
 
 ### Percussion and toms
 - A perc hit on the e of 2 (step 6) and the & of 4 (step 15). Toms are rare.
@@ -379,11 +381,11 @@
 - Loud, short and distorted, to sit with the synths.
 
 ### Hats and cymbals
-- Straight 8th-note hats with quick 32nd doubles near the end of bar 2 (steps 8, 14 and 16).
+- Straight 8th-note hats, with quick 32nd doubles in bar 2 (steps 8, 14 and 16).
 - Keep rolls short and fast. A big crash marks beat 1 of each section.
 
 ### Percussion and toms
-- Very little: one FX hit in a gap is enough. Toms are rare.
+- Very little, and none in the grid: one FX hit in a gap is enough. Toms are rare.
 
 ### 808 and bass
 - The 808 copies the kick, so the bass hits every beat. Tune it to the key and distort it hard.
@@ -445,6 +447,7 @@
 
 ### Kick
 - Beat 1, the a of 2 (step 8) and the & of 3 (step 11) in bar 1; beat 1, beat 3 (step 9) and the & of 3 in bar 2.
+- The Jazz Hop direction plays the Dusty Swing groove instead, with a kick on the & of 2 (step 7) in both bars.
 - Keep it soft and round. It should thump, not click.
 
 ### Snare and clap
@@ -468,7 +471,7 @@
 - Fills, if any, are a soft snare pickup or a tape-stop.
 
 ### Sauce tips
-- Swing hard, or play the drums in by hand and don't fully quantize.
+- Swing hard (both grooves here play at 62%), or play the drums in by hand and don't fully quantize.
 - Nudge the snare a little late and keep it softer than the kick.
 - Low-pass the drums and add vinyl crackle or tape hiss.
 - Pick a style above for jazz hop or lo-fi trap details.
@@ -481,8 +484,8 @@
 | 80 to 95 BPM | 55 to 62% | Swung, live feel | Soft kick, upright bass |
 
 ### Kick
-- In the Dusty Swing groove: beat 1, the & of 2 (step 7) and the & of 3 (step 11). Bar 2 adds beat 3 (step 9) and the & of 4 (step 15).
-- The Lo-Fi groove, used by two directions, moves a kick to the a of 2 (step 8).
+- In the Dusty Swing groove: beat 1, the & of 2 (step 7) and the & of 3 (step 11). Bar 2 trades the & of 3 for beat 3 (step 9) and adds the & of 4 (step 15).
+- The Lo-Fi groove, used by two directions, moves bar 1's second kick to the a of 2 (step 8).
 - Keep it soft. A jazz kick is felt more than heard.
 
 ### Snare and clap
@@ -492,7 +495,7 @@
 
 ### Hats and cymbals
 - Swung 16ths: louder 8ths with very soft hits between.
-- A ride can replace the hats: every beat, plus the & of 2 and the & of 4 (steps 7 and 15), swung: the classic jazz ride pattern.
+- A ride can replace the hats: every beat, plus the & of 2 and the & of 4 (steps 7 and 15), swung: the classic jazz ride pattern. Swing 8ths for it, since 16th swing leaves steps 7 and 15 straight.
 
 ### Percussion and toms
 - The Dusty Swing groove adds a perc hit on the & of 3 (step 11) and soft rims on step 15 (bar 1) and step 7 (bar 2).
@@ -506,15 +509,15 @@
 ### Sauce tips
 - Use brushed-snare samples for an acoustic feel.
 - Play the hats in by hand, with slight timing drift.
-- Swing around 58 to 62% and nudge the snare a little late.
+- Swing around 58 to 62% (both grooves here play at 62%) and nudge the snare a little late.
 - Add a little room reverb to the whole kit so it sounds like one drummer.
 
 @@ lofi.trap
-**The pocket.** Lo-fi trap, also called sad trap, puts trap drums under soft, hazy chords: a clap on beat 3 (step 9) over an 808, but gentle, filtered and slow. At around 75 BPM that half-time clap lands once per bar, which feels very slow and spacious. The same idea also works at double the tempo, around 150 BPM.
+**The pocket.** Lo-fi trap, also called sad trap, puts trap drums under soft, hazy chords: a clap on beat 3 (step 9) over an 808, but gentle, filtered and slow. The Bounce groove above has its own tempo of 150 BPM, where that once-a-bar clap feels like 75. The style starts at 75 BPM: there the same grid feels twice as slow, very sleepy and spacious.
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
-| 70 to 85 BPM | 50 to 56% | Slow half-time, spacious | Soft 808 with the kick |
+| 70 to 85, or 140 to 170 BPM | 50 to 56% | Slow half-time, spacious | Soft 808 with the kick |
 
 ### Kick
 - Few kicks: beat 1 and the & of 3 (step 11) in bar 1; beat 1, the & of 2 (step 7) and the & of 4 (step 15) in bar 2.
@@ -522,14 +525,14 @@
 
 ### Snare and clap
 - A soft clap on beat 3 (step 9), once per bar. Snaps work well too. A little reverb fills the slow space.
-- For a less sleepy feel, move the clap to 2 and 4 (steps 5 and 13), like regular-speed trap.
+- At 75 BPM, try the clap on 2 and 4 (steps 5 and 13) and 16th hats: the same feel as the grid at 150.
 
 ### Hats and cymbals
 - 8th-note hats (every other step). Bar 2 adds a 32nd double on step 10 and a triplet burst on the last step.
 - An open hat on the & of 2 (step 7) in bar 1 gives a soft lift. Keep hats dark and low.
 
 ### Percussion and toms
-- A light perc on beat 2 (step 5), like a snap or shaker. Toms are rare.
+- A light perc on beat 2 (step 5), like a snap or shaker. The grid's second perc, on the a of 2 and the a of 4 (steps 8 and 16), can stay quiet or go. Toms are rare.
 
 ### 808 and bass
 - The 808 follows the kick with long, soft notes. Tune it to the key, and the kick to the 808.
@@ -544,7 +547,6 @@
 - Add light tape wobble or vinyl noise.
 - Keep hats and claps quieter than in regular trap. The chords lead.
 
-
 @@ rnb
 **The pocket.** R&B drums sit under the voice: a smooth, steady groove, a soft but clear snare on 2 and 4, and gentle 16th hats. 90s R&B swings like hip-hop, while modern R&B borrows the half-time bounce and long 808s of trap.
 
@@ -553,13 +555,13 @@
 | 65 to 100 BPM | 50 to 62% | Laid back, 16ths | Kick with an 808 or bass under it |
 
 ### Kick
-- The R&B grid plays beat 1, the a of 1 (step 4) and the & of 3 (step 11): light and bouncy, never crowding the vocal.
-- The 90s grid uses a boom bap kick on beat 1, beat 3 and the & of 3 (steps 1, 9, 11).
-- In the modern grid the kick and 808 hit together and leave big gaps.
+- The R&B grid plays beat 1, the a of 1 (step 4) and the & of 3 (step 11), adding beat 3 (step 9) in bar 2: light and bouncy, never crowding the vocal.
+- The Boom Bap grid (90s R&B) opens with a kick on beat 1, beat 3 and the & of 3 (steps 1, 9, 11).
+- In the Bounce grid (Modern R&B) the kick and 808 hit together and leave big gaps.
 
 ### Snare and clap
 - Backbeat on 2 and 4 (steps 5 and 13), often a snare with a finger snap on top.
-- Modern R&B goes half-time: one clap on beat 3 (step 9) only, so the song feels half as fast.
+- Modern R&B goes half-time: one clap on beat 3 (step 9) only, so the song feels half as fast. The Bounce grid plays at 150 BPM, which feels like 75.
 - Soft rim clicks on the & of 2 and the & of 4 (steps 7 and 15) are ghost notes: hits so quiet you feel them more than hear them.
 
 ### Hats and cymbals
@@ -570,7 +572,7 @@
 - A 16th shaker, snaps on 2 and 4, and now and then a conga or triangle. Toms are rare.
 
 ### 808 and bass
-- The 808 follows the kick's main notes and skips the pickup kick on step 4. Let it ring and tune it to the key.
+- In the R&B grid the 808 follows the main kicks (steps 1 and 11, then 1 and 9 in bar 2) and skips the pickup on step 4. Let it ring and tune it to the key.
 
 ### Fills and changes
 - Fills are small: a snare pickup, a hat roll, a reverse cymbal into the hook.
@@ -583,14 +585,14 @@
 - Pick a style above for new jack swing, neo soul, alt R&B or funk and Motown.
 
 @@ rnb.newjack
-**The pocket.** New jack swing, from the late 80s and early 90s, put hard drum machine beats under R&B singing. The 16ths swing heavily, the snare cracks on 2 and 4, and the kick is busy and bouncy. Teddy Riley is the producer most tied to the sound. Slow jams and quiet storm are the slower, softer ballad side.
+**The pocket.** New jack swing, from the late 80s and early 90s, put hard drum machine beats under R&B singing. The 16ths swing heavily, the snare snaps hard on 2 and 4, and the kick is busy and bouncy. Teddy Riley is the producer most tied to the sound. Slow jams and quiet storm are the slower, softer ballad side.
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
-| 98 to 115 BPM (slow jams 60 to 75) | 60 to 66% | Swung 16ths | Punchy machine kick, synth bass |
+| 98 to 115 BPM (slow jams 60 to 80) | 58 to 66% | Swung 16ths | Punchy machine kick, synth bass |
 
 ### Kick
-- The New Jack grid plays beat 1, beat 2, the & of 2 and the & of 3 (steps 1, 5, 7, 11). The kick under the snare on beat 2 is part of the bounce.
+- The New Jack Swing grid plays beat 1, beat 2, the & of 2 and the & of 3 (steps 1, 5, 7, 11). The kick under the snare on beat 2 is part of the bounce.
 - Bar 2 adds a kick on the e of 4 (step 14) to push into the next bar.
 
 ### Snare and clap
@@ -598,7 +600,7 @@
 - Ghost snares (very soft hits) on the a of 2 (step 8), and on steps 15 and 16 at the end of bar 2, lead back to the top.
 
 ### Hats and cymbals
-- Swung 16th hats with the 8ths louder. The swing is what makes it new jack: the in-between 16ths land late, close to a triplet.
+- Swung 16th hats with the 8ths louder. The swing is what makes it new jack: the grid plays at 65%, so the in-between 16ths land late, almost on a triplet.
 - Open hats are rare. A crash on beat 1 marks a new section.
 
 ### Percussion and toms
@@ -610,10 +612,10 @@
 - Strip the verse back, then add the clap layer and an extra kick for the hook.
 
 ### Sauce tips
-- Use 60% swing or more on every lane, not just the hats.
-- Keep the snare loud and the ghosts very quiet, so the backbeat cracks.
+- Use heavy swing, 60 to 66% (the grid's 65% is a good start), on every lane, not just the hats.
+- Keep the snare loud and the ghosts very quiet, so the backbeat stands out.
 - Pick crisp, slightly gritty drum machine sounds, like an old 12-bit sampler.
-- For a slow jam, use the R&B grid at about 65 BPM and soften every hit.
+- For a slow jam, use the R&B grid (76 BPM, 58% swing), slow it to 65 or so if you like, and soften every hit.
 
 @@ rnb.neosoul
 **The pocket.** Neo soul drums feel like a live drummer leaning back in the chair. The hits land a little behind the beat, the hats swing loosely, and quiet ghost notes fill the gaps. D'Angelo's records with Questlove on drums and J Dilla's off-grid programming are the classic reference points.
@@ -623,13 +625,13 @@
 | 70 to 95 BPM | 58 to 66%, or loose | Behind the beat | Soft round kick, live bass |
 
 ### Kick
-- The Pocket grid plays beat 1, the a of 1 (step 4) and the & of 3 (step 11). The Dusty grid plays beat 1, the & of 2 and the & of 3 (steps 1, 7, 11).
+- The R&B grid (Neo Soul Pocket) plays beat 1, the a of 1 (step 4) and the & of 3 (step 11). The Dusty Swing grid plays beat 1, the & of 2 and the & of 3 (steps 1, 7, 11).
 - Keep it soft and round. It talks with the bass player rather than locking to a grid.
 - Change the second bar a little. Real drummers rarely play two bars the same.
 
 ### Snare and clap
 - Backbeat on 2 and 4 (steps 5 and 13), relaxed and fat. A cross-stick (rim click) suits quieter songs.
-- Ghost notes are key: soft snare or rim taps on the & of 2 or the & of 4 (steps 7 and 15), and one on the last 16th (step 16) leading into the next bar.
+- Ghost notes are key: soft rim taps on the & of 2 or the & of 4 (steps 7 and 15), and in the Dusty Swing grid a soft snare on the last 16th of bar 2 (step 16) leading back to the top.
 
 ### Hats and cymbals
 - 16th hats, 8ths louder and the in-between notes barely touched.
@@ -650,27 +652,27 @@
 - Pick dusty, warm samples and roll off a little top end.
 
 @@ rnb.alt
-**The pocket.** Alt R&B, also called trap soul or dark R&B, takes the 808s and hat rolls of trap and slows everything down. The drums are sparse, with lots of empty space for reverb, pads and vocals. The Weeknd, Frank Ocean and Bryson Tiller are good reference points.
+**The pocket.** Alt R&B, with offshoots like trap soul and dark R&B, takes the 808s and hat rolls of trap and slows everything down. The drums are sparse, with lots of empty space for reverb, pads and vocals. The Weeknd, Frank Ocean and Bryson Tiller are good reference points.
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
-| 60 to 80 BPM | 50 to 54% | Half-time, sparse | Long 808 doing the bass |
+| 60 to 80 BPM | 50 to 58% | Half-time, sparse | Long 808 doing the bass |
 
 ### Kick
-- The Trap Soul grid plays beat 1 and the & of 3 (step 11), then beat 1, the & of 2 and the & of 4 (steps 1, 7, 15) in bar 2.
+- The Bounce grid (Trap Soul) plays beat 1 and the & of 3 (step 11), then beat 1, the & of 2 and the & of 4 (steps 1, 7, 15) in bar 2.
 - Leave beats empty. A missing kick matters as much as a played one.
 - A short, clicky kick on top of the 808 helps it come through on small speakers.
 
 ### Snare and clap
 - Half-time: one clap or snap on beat 3 (step 9) per bar, so the song feels slow and heavy.
-- The R&B grid (Dark and Airy) keeps the snare on 2 and 4 at a slow tempo. 140 BPM with the snare on beat 3 feels the same as 70 BPM with it on 2 and 4.
+- The R&B grid (Dark and Airy) keeps the snare on 2 and 4 at a slow 76 BPM with light swing. The Bounce grid runs at 150: a clap on beat 3 at 150 feels the same as a snare on 2 and 4 at 75.
 
 ### Hats and cymbals
-- 8th or 16th hats with the odd roll: a 32nd-note double or a triplet roll at the end of a phrase.
-- One open hat on the & of 2 (step 7) is plenty. Crashes are rare.
+- 8th or 16th hats with the odd roll: a 32nd-note double or a triplet roll near the end of a phrase, as in bar 2 of the Bounce grid (steps 10 and 16).
+- One open hat on the & of 2 (step 7) is plenty. Keep crashes to beat 1 of a new section, as in the Bounce grid.
 
 ### Percussion and toms
-- One perc hit on beat 2 (step 5) and others on steps 8 and 16 keep the space moving. Toms are rare.
+- In the Bounce grid, one perc hit on beat 2 (step 5) and others on the a of 2 and the a of 4 (steps 8 and 16) keep the space moving. Toms are rare.
 
 ### 808 and bass
 - The 808 is the bass line. It hits with the kick, rings long and often slides between notes. Tune it to the key.
@@ -692,20 +694,20 @@
 | 95 to 125 BPM | 50 to 56% | Tight 16ths, on the one | Live kick locked to the bass |
 
 ### Kick
-- Motown keeps it simple: beats 1 and 3 (steps 1 and 9).
+- The Motown grid keeps it simple: beats 1 and 3 (steps 1 and 9).
 - The Funk grid syncopates: steps 1, 7, 11 and 13 (beat 1, the & of 2, the & of 3, beat 4), then steps 1, 4, 7 and 11 in bar 2.
 - Always hit beat 1 firmly. That is the one.
-- The Disco Funk grid goes four on the floor: a kick on every beat.
+- The Disco grid (Disco Funk) goes four on the floor: a kick on every beat.
 
 ### Snare and clap
-- Backbeat on 2 and 4 (steps 5 and 13), crisp and dry.
-- Funk adds ghost notes (soft taps between the loud hits) on the a of 2 and the e of 3 (steps 8 and 10), plus step 15 in bar 2.
+- Backbeat on 2 and 4 (steps 5 and 13), crisp and dry. A common Motown move: the snare on all four beats, doubled by the tambourine.
+- Funk adds ghost notes (soft taps between the loud hits) on the a of 2 and the e of 3 (steps 8 and 10), plus the & of 4 (step 15) in bar 2.
 
 ### Hats and cymbals
-- Motown: steady 8th hats. Funk: 16th hats with the 8ths accented, and an open hat on the & of 4 (step 15) that closes on the next beat.
+- Motown: steady 8th hats. Funk: 16th hats with the 8ths accented, and an open hat on the & of 4 (step 15) that closes on the next beat. Disco: an open hat on every & (steps 3, 7, 11, 15).
 
 ### Percussion and toms
-- Tambourine is the Motown sound. Play it on every beat, like the grid's perc lane, or only on 2 and 4 with the snare.
+- Tambourine is the Motown sound. Play it on every beat, like the Motown grid's perc lane, or only on 2 and 4 with the snare.
 - Congas and cowbell suit funk. The Funk grid's perc plays a syncopated part on steps 3, 6, 11 and 14.
 
 ### 808 and bass
@@ -733,16 +735,16 @@
 - Modern pop often swaps in an 808, or goes four on the floor (a kick on every beat) for dance songs.
 
 ### Snare and clap
-- Snare and clap together on 2 and 4 (steps 5 and 13). The clap adds width and snap.
+- Snare and clap together on 2 and 4 (steps 5 and 13), as in the Pop grid. The clap adds width and snap. The Synth Pop grid uses the snare alone.
 - Big ballads and 80s pop use one huge snare with a long or gated reverb.
 
 ### Hats and cymbals
-- 8th hats are the default. The Big Room grid plays quarter-note hats with an open hat on every & (steps 3, 7, 11, 15).
+- 8th hats are the default. The Big Room grid plays quarter-note hats with an open hat on every & (steps 3, 7, 11, 15), stopping after step 7 in bar 2 for the fill.
 - A crash on beat 1 marks each new section.
 
 ### Percussion and toms
 - A shaker in 16ths fills the space in the Pop grid. Tambourine on 2 and 4 lifts a chorus.
-- The Big Room and Synth Pop grids end bar 2 with a tom fill down from beat 4 (steps 13 to 16).
+- The Big Room and Synth Pop grids end bar 2 with a tom fill down from beat 4: high, mid, then two low hits (steps 13 to 16).
 
 ### Fills and changes
 - Verse: fewer parts, often just kick, snare and a shaker. Pre-chorus: build with a snare roll or rising hats. Chorus: everything, plus a crash.
@@ -804,12 +806,12 @@
 
 ### Hats and cymbals
 - Open hat on the & of every beat (steps 3, 7, 11 and 15). This off-beat hat is the classic dance sound.
-- Closed hats in 16ths, with the e and a (the in-between notes) louder than the 8ths, as in the grid.
+- Closed hats in 16ths. In the Dance Pop grid the e and a (the in-between notes) are louder than the 8ths; the Disco grid does the opposite.
 - A crash on beat 1 of each new section.
 
 ### Percussion and toms
 - A 16th shaker with soft in-between notes adds drive.
-- The Disco Pop grid adds a second perc, such as congas, on the a of 1 and the & of 3 (steps 4 and 11).
+- The Disco grid (Disco Pop) adds a second perc, such as congas, on the a of 1 and the & of 3 (steps 4 and 11), plus the e of 4 (step 14) in bar 2.
 - Toms are rare.
 
 ### 808 and bass
@@ -834,7 +836,7 @@
 
 ### Kick
 - The Rock grid plays beat 1, the & of 2 and beat 3 (steps 1, 7, 9), adding the & of 3 (step 11) in bar 2.
-- The Arena grid plays beat 1, beat 3 and the & of 3 (steps 1, 9, 11).
+- The Arena grid plays beat 1, beat 3 and the & of 3 (steps 1, 9, 11), then just beats 1 and 3 under the fill in bar 2.
 - Lock the kick with the bass guitar's main notes. In a driving chorus, play it in 8ths or quarters under the guitars.
 
 ### Snare and clap
@@ -846,7 +848,7 @@
 - A crash on beat 1 of each new section, and on big accents.
 
 ### Percussion and toms
-- Tambourine on 2 and 4 lifts the chorus.
+- Tambourine on 2 and 4, like the Rock grid's perc lane, lifts the chorus.
 - The Arena grid ends bar 2 with a 16th-note tom fill from the & of 3 (step 11): two hits each on the high, mid and low toms.
 
 ### Fills and changes
@@ -879,7 +881,7 @@
 - Crashes are soft and few. A swelling cymbal often works better than a hard crash.
 
 ### Percussion and toms
-- A 16th shaker with soft in-between notes, as in the grid, is the heart of a lot of bedroom pop.
+- A 16th shaker with lighter in-between notes, as in the grid, is the heart of a lot of bedroom pop.
 - Tambourine on 2 and 4 for a lift. Soft floor toms for a moody verse.
 
 ### Fills and changes
@@ -903,14 +905,14 @@
 ### Kick
 - The Festival and House grids put the kick on every beat (steps 1, 5, 9, 13).
 - The kick is the loudest thing in the track. Pick one with a clear click and a solid low thump.
-- The Future Bass grid is half-time, with the kick and 808 on beat 1 and the & of 3 (step 11).
+- The Bounce grid (Future Bass) is half-time at 150 BPM, so it feels like 75. Its kick and 808 play beat 1 and the & of 3 (step 11), then steps 1, 7 and 15 in bar 2.
 
 ### Snare and clap
 - Claps on 2 and 4 (steps 5 and 13), often layered with a snare.
 - Half-time styles move the clap to beat 3 (step 9).
 
 ### Hats and cymbals
-- Open hat on the & of each beat (steps 3, 7, 11, 15). Closed hats in 8ths or 16ths fill around it.
+- In the Festival and House grids, an open hat on the & of each beat (steps 3, 7, 11, 15). Closed hats in 8ths (Festival) or 16ths (House) fill around it.
 - Rides add drive in techno and big drops. A crash marks the drop.
 
 ### Percussion and toms
@@ -951,7 +953,7 @@
 - A ride in 8ths or quarters lifts a peak section.
 
 ### Percussion and toms
-- The grid adds perc hits on steps 4, 11 and 12. Shakers, congas, bongos and tambourine all fit.
+- The House grid adds perc hits on the a of 1, the & of 3 and the a of 3 (steps 4, 11 and 12). Shakers, congas, bongos and tambourine all fit.
 - The Disco House direction uses the Disco grid, with busier 16th percussion.
 
 ### 808 and bass
@@ -963,12 +965,12 @@
 - Fills are small: a skipped kick, an extra clap or a crash.
 
 ### Sauce tips
-- Swing the 16th hats and percussion at 54 to 58%.
+- The House grid swings its 16ths lightly, at 53%. Try 54 to 58% on the hats and percussion for a looser, deeper groove.
 - For UK garage, raise the tempo to about 130 to 135, skip some kicks for a 2-step feel, and swing harder.
 - Keep the kick and bass in mono and spread the hats and percussion wide.
 
 @@ edm.techno
-**The pocket.** Techno is hypnotic and machine-driven. A steady kick on every beat, off-beat hats and rides, and small changes over long stretches keep people dancing. It started in Detroit in the 80s with Juan Atkins, Derrick May and Kevin Saunderson, and grew darker and harder in Berlin and across Europe. The Roland TR-909 is the core sound.
+**The pocket.** Techno is hypnotic and machine-driven. A steady kick on every beat, off-beat hats and rides, and small changes over long stretches keep people dancing. It started in Detroit in the 80s with Juan Atkins, Derrick May and Kevin Saunderson, and grew darker and harder in Berlin and across Europe. The Roland TR-909 is its classic drum machine.
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
@@ -979,7 +981,7 @@
 - Minimal techno uses a short, dry kick. Industrial and warehouse techno use a distorted kick with a rumble: a reverb tail, filtered low and ducked by the next kick.
 
 ### Snare and clap
-- Claps or rims on 2 and 4 (steps 5 and 13), as in the grid. Many techno tracks leave them out for long stretches.
+- Claps on 2 and 4 (steps 5 and 13), as in the Festival grid, or rim clicks instead. Many techno tracks leave them out for long stretches.
 
 ### Hats and cymbals
 - Open hat on the & of every beat (steps 3, 7, 11, 15), with closed hats in 8ths or 16ths around it.
@@ -1002,7 +1004,7 @@
 - Detroit techno is warmer and more musical; industrial is harsher. Pick sounds to match.
 
 @@ edm.dnb
-**The pocket.** Drum and bass is fast, around 170 to 175 BPM, but the spaced-out snares on 2 and 4 often make it feel half as fast. The basic beat is the two-step: kick on 1, snare on 2, kick on the & of 3, snare on 4. It grew out of jungle in early 90s UK, where producers chopped up old funk breaks such as the Amen break, from the Winstons' "Amen, Brother".
+**The pocket.** Drum and bass is fast, around 170 to 175 BPM, but the bass and chords often move at half that speed, so you can nod along at about 87. The basic beat is the two-step: kick on 1, snare on 2, kick on the & of 3, snare on 4. It grew out of jungle, from the UK in the early 90s. Jungle producers chopped up old funk breaks such as the Amen break, from the Winstons' "Amen, Brother".
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
@@ -1014,9 +1016,9 @@
 - Rollers keep one kick pattern; jungle moves it around with the break.
 
 ### Snare and clap
-- Snare on 2 and 4 (steps 5 and 13): loud, bright and cracking.
+- Snare on 2 and 4 (steps 5 and 13): loud, bright and sharp.
 - Bar 2 adds a snare on the a of 2 (step 8), a typical break-style push.
-- Quiet ghost snares between the main hits make it roll.
+- Try quiet ghost snares between the main hits to make it roll.
 
 ### Hats and cymbals
 - 8th hats with a shaker on the in-between 16ths (the even steps), as in the grid.
@@ -1076,7 +1078,7 @@
 - Use hat rolls and triplets to add energy without crowding the bass.
 
 @@ edm.disco
-**The pocket.** Disco is a live band playing four on the floor. The kick hits every beat, the snare and clap hit 2 and 4, and an open hi-hat on every & gives the famous off-beat lift. Real drummers played it, so it breathes and pushes a little. Earl Young of the Philadelphia soul sound is often credited with the pattern. Nu-disco and Italo disco keep the feel but use drum machines and modern sounds.
+**The pocket.** Disco is a live band playing four on the floor. The kick hits every beat, the snare and clap hit 2 and 4, and an open hi-hat on every & gives the famous off-beat lift. Real drummers played it, so it breathes and pushes a little. Earl Young of the Philadelphia soul sound is often credited with the pattern. Italo disco (80s) and nu-disco (today) keep the feel but lean on drum machines and synths.
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
@@ -1112,7 +1114,6 @@
 - Keep velocities human: vary the hats and percussion slightly every bar.
 - Use warm, roomy samples for 70s disco and cleaner machine sounds for nu-disco and Italo.
 
-
 @@ rock
 **The pocket.** Rock drums are built on the backbeat: a hard snare on 2 and 4 that the band leans on. The kick follows the bass and the riff, and the hats or ride count steady 8ths. Keep the small differences in timing and loudness so it sounds like a real drummer.
 
@@ -1121,13 +1122,13 @@
 | 100 to 140 BPM | 50% (straight) | Straight 8ths, backbeat on 2 and 4 | Kick locked with the bass guitar |
 
 ### Kick
-- The core is beat 1 (step 1) and beat 3 (step 9). The Rock groove adds a push on the & of 2 (step 7); the Arena groove pushes the & of 3 (step 11).
+- The core is beat 1 (step 1) and beat 3 (step 9). The Rock groove adds a push on the & of 2 (step 7), plus the & of 3 (step 11) in bar 2; the Arena groove pushes the & of 3 in bar 1.
 - Lock the kick to the bass guitar, and add 8th-note kicks in the chorus for drive.
 
 ### Snare and clap
 - Snare on beat 2 (step 5) and beat 4 (step 13), hit hard and in the center.
 - Ghost notes (very quiet snare taps between backbeats) add groove to bluesy rock.
-- Claps are rare. The grid's tambourine on 2 and 4 thickens the backbeat instead.
+- Claps are rare. A tambourine on 2 and 4 (the Rock groove's Perc 1 lane) thickens the backbeat instead.
 
 ### Hats and cymbals
 - Closed hats on 8ths in the verse, then the ride or a half-open, washy hat in the chorus.
@@ -1139,7 +1140,7 @@
 - Toms live in fills, though the floor tom can replace the hats for a pounding verse.
 
 ### Fills and changes
-- The Arena groove's bar 2 is the classic fill: 16ths down the toms from the & of 3 (step 11), landing on a crash.
+- The Arena groove's bar 2 is the classic fill: 16ths down the toms from the & of 3 (step 11), high to floor, landing on the crash at the top of the loop.
 - Fill across the last bar or two beats before a chorus; one-beat fills for small turnarounds.
 - For a breakdown, drop to kick and hats, then return on a crash.
 
@@ -1150,7 +1151,7 @@
 - Pick a style above for classic, hard rock, metal, alt or punk patterns.
 
 @@ rock.classic
-**The pocket.** Classic rock from the 60s and 70s is loose, warm and human. Bands usually played together without a click, so the tempo breathes and the snare often sits a little behind the beat. Think of Ringo Starr, Charlie Watts and John Bonham: simple parts, a lot of feel, a real room.
+**The pocket.** Classic rock from the 60s and 70s is loose, warm and human. Bands usually played together without a click, so the tempo breathes and the snare often sits a little behind the beat. Think of Ringo Starr, Charlie Watts and John Bonham: parts that serve the song, a lot of feel, a real room.
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
@@ -1192,7 +1193,7 @@
 | 110 to 140 BPM | 50% (straight) | Driving straight 8ths | Punchy kick that follows the riff |
 
 ### Kick
-- Beat 1 and beat 3, plus the & of 3 (step 11) in the Arena groove. The Crunch kit uses the Rock groove, with its push on the & of 2 (step 7).
+- Beat 1 and beat 3, plus the & of 3 (step 11) in bar 1 of the Arena groove. The Crunch kit uses the Rock groove, with its push on the & of 2 (step 7).
 - In choruses, many players kick every quarter note or every 8th with the bass for a pounding drive.
 - Keep every kick at nearly the same level.
 
@@ -1212,7 +1213,7 @@
 ### Fills and changes
 - The Arena groove's bar 2 is the stock fill: 16ths across the toms from step 11, high to floor, then a crash on the next 1.
 - Band stabs: crash and kick together with the guitars, then silence.
-- Half-time bridge: snare on beat 3 (step 9) only, so the groove feels twice as heavy.
+- Half-time bridge: snare on beat 3 (step 9) only, so the groove feels half as fast and twice as heavy.
 
 ### Sauce tips
 - Quantize kick and snare tightly (90 to 100%) and let the hats float a little.
@@ -1228,18 +1229,18 @@
 | 100 to 200 BPM | 50% (nu metal can bounce at 54 to 58%) | 16th double kick, half-time breakdowns | Tight, clicky kick with the guitar chugs |
 
 ### Kick
-- Double-kick 16ths (two pedals, two feet alternating), as in the grid. Keep the hits nearly level.
+- Double-kick 16ths (a double pedal or two kick drums, feet alternating), as in the grid. Keep the hits nearly level.
 - Kicks often copy the guitar's palm-muted chugs exactly. Program the riff's rhythm into the kick.
 - Metalcore and djent breakdowns follow syncopated chug patterns with gaps.
 
 ### Snare and clap
 - Backbeat on 2 and 4 (steps 5 and 13) for the double-kick beat. Hard and consistent.
-- Blast beat: kick and snare alternating (or together) on every 16th, with a cymbal on every note. Use it in short bursts.
+- Blast beat: kick and snare alternating (or together) on every 16th, with a cymbal riding along on top. Use it in short bursts.
 - Thrash beat: kick on each beat and snare on each &, played fast.
 - Half-time breakdown: snare on beat 3 (step 9) only.
 
 ### Hats and cymbals
-- Ride on 8ths or quarters over the double kick, as in the grid. The ride's bell cuts through.
+- Ride on 8ths over the double kick, as in the grid, or on quarters. The ride's bell cuts through.
 - China and crash cymbals on accents and breakdowns, crashes on quarter notes for big choruses.
 
 ### Percussion and toms
@@ -1266,7 +1267,7 @@
 
 ### Kick
 - The Grunge groove: beat 1, the & of 2 (step 7) and beat 3, plus a kick on the a of 3 (step 12) in bar 2 that pushes into beat 4.
-- The Room and Post-Punk kits use the Rock groove. Post-punk often goes to a kick on every beat or steady 8ths.
+- The Room and Post-Punk kits use the Rock groove. Post-punk often goes to a kick on every beat, or to driving tom patterns.
 - Kick and bass hit the riff's accents together.
 
 ### Snare and clap
@@ -1276,7 +1277,7 @@
 
 ### Hats and cymbals
 - The Grunge groove rides a half-open hat on 8ths at medium velocity. That sloshy wash is the sound. Riding a crash works too.
-- A crash on the 1 of each bar in the grid, a common loud-chorus move.
+- The Grunge groove crashes on the 1 of each bar, a common loud-chorus move.
 - Post-punk: tight closed hats, sometimes 16ths, very even.
 
 ### Percussion and toms
@@ -1290,12 +1291,12 @@
 
 ### Sauce tips
 - Leave the timing loose: 75 to 85% quantize, and let the hats lag a little.
-- Compress the room mics hard for the grunge smash.
+- Compress the room mics hard for the big, squashed grunge sound.
 - Vary the open hat velocity so it breathes instead of sounding like one long noise.
 - For post-punk, keep it dry: a short, bright snare and a steady hat.
 
 @@ rock.punk
-**The pocket.** Punk is fast, tight and relentless. The signature is the skate beat: kick on every beat and snare on every & (the off-beats), so the beat bounces like a fast polka. Pop punk and emo (Blink-182, Green Day) mix that with driving straight-8th rock beats and big fills. Energy matters more than subtlety.
+**The pocket.** Punk is fast, tight and relentless. The signature is the skate beat: kick on every beat and snare on every & (the off-beats), so the beat bounces like a fast polka. Pop punk (Blink-182, Green Day) and emo mix that with driving straight-8th rock beats and big fills. Energy matters more than subtlety.
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
@@ -1331,7 +1332,7 @@
 - Push the overheads up in the chorus. Punk choruses are cymbal-heavy.
 
 @@ country
-**The pocket.** Country drums serve the song and the singer. The classic feel is the two-step: kick on 1 and 3, snare or cross-stick on 2 and 4, while the bass plays a "boom-chick" root and fifth. Parts stay simple, the dynamics follow the lyric, and brushes, rim clicks and shakers do a lot of the work.
+**The pocket.** Country drums serve the song and the singer. The classic feel is the two-step, or "boom-chick": kick on 1 and 3 with the bass alternating root and fifth (the boom), and snare or cross-stick on 2 and 4 (the chick). Parts stay simple, the dynamics follow the lyric, and brushes, rim clicks and shakers do a lot of the work.
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
@@ -1340,19 +1341,19 @@
 ### Kick
 - Beats 1 and 3 (steps 1 and 9), as in the Country and Shuffle grooves. That's the "boom" of boom-chick.
 - Bigger country (the Arena groove) adds rock pushes like the & of 3 (step 11).
-- The Country Trap kit uses the Bounce groove, with an 808 under a trap kick.
+- The Country Trap kit uses the Bounce groove at trap tempo (150 BPM, clap on beat 3), with an 808 under a trap kick.
 
 ### Snare and clap
 - Cross-stick (the stick laid across the snare so it clicks on the rim) on 2 and 4 in verses, as in the Country groove.
 - Full snare for the chorus. The Country groove shows the pickup: snares on beat 4 and the & of 4 (steps 13 and 15) at the end of bar 2.
-- Train beat: snare 16ths with accents on 2 and 4, usually with brushes.
+- Train beat: snare 16ths with accents on 2 and 4, often with brushes.
 
 ### Hats and cymbals
-- Light 8th-note hats. In a shuffle, swing the 8ths toward a triplet feel.
+- Light 8th-note hats. In a shuffle, swing the 8ths toward a triplet feel: the Shuffle groove plays them at 62%.
 - Ride or open hats in the chorus, crash on the 1 of each section.
 
 ### Percussion and toms
-- Shaker 16ths and tambourine on 2 and 4 are close to standard on Nashville records, as in the Country groove.
+- Tambourine on 2 and 4 and shaker 16ths are close to standard on Nashville records (the Country groove's Perc 1 and Perc 2 lanes).
 - Woodblock or cowbell on the beats for honky tonk flavor.
 - Toms for short fills and floor-tom builds.
 
@@ -1367,11 +1368,11 @@
 - Pick a style above for honky tonk and train beats, modern Nashville, country rap or Americana.
 
 @@ country.classic
-**The pocket.** Classic country, honky tonk and outlaw records (Buck Owens, Merle Haggard, Willie Nelson, Johnny Cash) use small, dry kits played gently. The two main feels are the shuffle two-step, where the 8ths swing like a triplet, and the train beat, a steady chug of snare 16ths like a train on the tracks. Brushes and a woody snare are the sound.
+**The pocket.** Classic country, honky tonk and outlaw records (Buck Owens, Merle Haggard, Willie Nelson, Johnny Cash) use small, dry kits that stay out of the singer's way. The two main feels are the shuffle two-step, where the 8ths swing toward a triplet, and the train beat, a steady chug of snare 16ths like a train on the tracks. Brushes and a woody snare are the sound.
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
-| 96 to 140 BPM | 60 to 66% (train beat straight) | Shuffle two-step or train beat | Light kick with the bass on 1 and 3 |
+| 96 to 140 BPM | 60 to 66% shuffle, 50% (straight) train beat | Shuffle two-step or train beat | Light kick with the bass on 1 and 3 |
 
 ### Kick
 - Beats 1 and 3 (steps 1 and 9) in both grooves. Light and warm, more felt than heard.
@@ -1383,12 +1384,13 @@
 - With brushes, one hand sweeps in a circle for a steady "shh" while the other taps the accents.
 
 ### Hats and cymbals
-- Hats on 8ths. For the shuffle, move every & (steps 3, 7, 11, 15) late toward a triplet. If your swing setting has a note value, set it to 8ths.
+- Hats on 8ths in the Shuffle groove. Swing them by moving every & (steps 3, 7, 11, 15) late toward a triplet, as the groove does at 62%. If your swing setting has a note value, set it to 8ths.
 - Western swing (Bob Wills) leans on brushes and a light ride, like a jazz drummer.
 - Crashes are rare and soft.
 
 ### Percussion and toms
-- Woodblock or shaker on 8ths with accents on the beats, as in the Shuffle groove.
+- Woodblock or shaker on 8ths with accents on the beats, as in the Shuffle groove's Perc 1 lane. Its Perc 2 lane marks beats 1 and 3.
+- In the Train Beat groove, Perc 1 adds shaker-style 16ths.
 
 ### Fills and changes
 - Fills are short: a snare drag or two beats of 8ths into the chorus.
@@ -1406,23 +1408,23 @@
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
-| 75 to 125 BPM | 50% (straight) | Straight 8ths and 16ths | Live kick, sometimes an electronic layer |
+| 75 to 130 BPM | 50% (straight) | Straight 8ths and 16ths | Live kick, sometimes an electronic layer |
 
 ### Kick
-- Radio and Snap kits use the Country groove: beats 1 and 3, like a two-step. The Pop groove adds the & of 2 (step 7); the Stadium kit uses the Arena groove.
+- Radio and Snap kits use the Country groove: beats 1 and 3, like a two-step. The Country Pop kit's Pop groove adds the & of 2 (step 7); the Stadium kit's Arena groove adds the & of 3 (step 11).
 - Layer the live kick with a tight electronic kick for weight.
 
 ### Snare and clap
 - Cross-stick on 2 and 4 in verses, as in the Country groove, and a full snare in the chorus.
 - Snaps or claps layered with the snare are a modern signature; the Pop groove stacks clap and snare.
-- The Country groove's snare pickup (steps 13 and 15) leads into the next section.
+- The Country groove's snare pickup (steps 13 and 15 of bar 2) leads into the next section.
 
 ### Hats and cymbals
 - Live 8th-note hats, often with programmed 16th hats or a shaker loop on top.
 - Ride or open-hat wash in the chorus, crash on the 1 of each section.
 
 ### Percussion and toms
-- Shaker 16ths (accent the 8ths) and tambourine on 2 and 4, as in the Country groove.
+- Tambourine on 2 and 4 and shaker 16ths (accent the 8ths), as in the Country groove's Perc 1 and Perc 2 lanes.
 - Floor-tom builds into the last chorus. Stadium kits use big tom fills like the Arena groove's bar 2.
 
 ### Fills and changes
@@ -1432,7 +1434,7 @@
 
 ### Sauce tips
 - Keep the loop tight to the grid and let the live kit sit a little loose against it.
-- Cut the lows from the loop so it doesn't fight the live kick.
+- Cut the lows from the loop so it doesn't clash with the live kick.
 - Vary shaker velocity and nudge it slightly late for a relaxed feel.
 - Give the chorus snare a short, bright plate reverb.
 
@@ -1441,17 +1443,17 @@
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
-| 130 to 160 BPM | 50% (Boom Bap groove swings hard) | Half-time, 8th hats with rolls | 808 with the kick |
+| 130 to 160 BPM | 50% (Boom Bap groove 60%) | Half-time, 8th hats with rolls | 808 with the kick |
 
 ### Kick
-- Kick and 808 together: beat 1, then syncopated hits like the & of 3 (step 11) or the & of 4 (step 15), as in the Bounce groove.
+- Kick and 808 together: beat 1, then syncopated hits like the & of 3 (step 11) or the & of 4 (step 15), as in the Bounce groove. The Truck Bounce kit's Trap groove adds the a of 2 (step 8).
 - Leave space around the beat-3 clap.
-- The Backroad kit plays the Boom Bap groove at about 85 to 95 BPM: kick on 1, 3 and the & of 3, snare on 2 and 4.
+- The Backroad kit's Boom Bap groove is slower and swings hard (90 BPM, 60% swing), with no 808: kick on 1, 3 and the & of 3, snare on 2 and 4.
 
 ### Snare and clap
 - Clap (or clap and snare) on beat 3 (step 9): the half-time backbeat. At 140 BPM it feels like 70.
 - Layer a live snare or a stomp under the clap for a country edge.
-- A snap on beat 2 (step 5), as in the Bounce groove, fills the gap.
+- A snap on beat 2 (step 5, the Bounce groove's Perc 1 lane) fills the gap.
 
 ### Hats and cymbals
 - 8th hats with 32nd-note doubles and 16th-note triplet rolls, like steps 10 and 16 in the Bounce groove's bar 2.
@@ -1459,14 +1461,14 @@
 
 ### Percussion and toms
 - A tambourine or shaker played in by hand brings the live side.
-- Perc hits on the a of 2 and the a of 4 (steps 8 and 16) add bounce.
+- Perc hits on the a of 2 and the a of 4 (steps 8 and 16, the Bounce groove's Perc 2 lane) add bounce.
 
 ### 808 and bass
 - Tune the 808 to the song's key and follow the guitar's root notes.
 - Short 808s under a busy guitar or banjo, long gliding ones in sparse parts.
 
 ### Fills and changes
-- Drop the 808 and drums for the hook's first line, then slam back in.
+- Drop the 808 and drums for the hook's first line, then bring them back in full.
 - Hat rolls and a reverse cymbal into the hook, not tom fills.
 - For a rockier hook, switch to a live snare on 2 and 4.
 
@@ -1480,11 +1482,11 @@
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
-| 80 to 130 BPM | 50 to 54% (folk shuffles swing more) | Four-on-the-floor stomp or two-step | Big, soft kick or a floor stomp |
+| 70 to 130 BPM | 50 to 54% (the Shuffle groove 62%) | Four-on-the-floor stomp or two-step | Big, soft kick or a floor stomp |
 
 ### Kick
 - The Stomp & Clap groove: kick on every beat (steps 1, 5, 9, 13). Use a big, soft, low kick, or a foot stomp on a wooden floor.
-- Front Porch kit (Shuffle groove): kick on 1 and 3, very light. The Folk Room kit's Worship groove adds the & of 3 (step 11).
+- Front Porch kit (Shuffle groove): kick on 1 and 3, very light, under 8ths swung at 62%. The Folk Room kit's Worship groove is a slow 72 BPM and adds the & of 3 (step 11) in bar 1.
 - Roots Rock uses the Rock groove, with a push on the & of 2 (step 7).
 
 ### Snare and clap
@@ -1493,7 +1495,7 @@
 - A full snare only in the biggest choruses, if at all.
 
 ### Hats and cymbals
-- Many folk tracks have no hats; tambourine and shaker 8ths replace them, as in the Stomp & Clap groove.
+- Many folk tracks have no hats, like the Stomp & Clap groove: its Perc 1 lane (tambourine) doubles the claps and Perc 2 (shaker) plays 8ths.
 - Where there are cymbals, a dark ride or a soft crash on the 1 of the chorus.
 
 ### Percussion and toms
@@ -1515,12 +1517,12 @@
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
-| 66 to 80 BPM (upbeat songs 120 to 140) | 50% (gospel 54 to 58%) | 8ths and 16ths, long builds | Kick with bass and synth pads |
+| 66 to 80 BPM (upbeat songs 100 to 140) | 50% (Gospel Chops 55%) | 8ths and 16ths, long builds | Kick with bass and synth pads |
 
 ### Kick
-- Beats 1 and 3 with a push on the & of 3 (step 11), as in the Worship groove.
+- Beats 1 and 3 with a push on the & of 3 (step 11) in bar 1, as in the Worship groove.
 - Big choruses often go four on the floor (a kick on every beat) for drive.
-- The Gospel Chops kit plays busy kicks with an 808.
+- The Gospel Chops kit plays busy kicks with an 808, at 100 BPM with a light 55% swing.
 
 ### Snare and clap
 - Cross-stick on 2 and 4 in verses, full snare in the chorus (steps 5 and 13).
@@ -1532,7 +1534,7 @@
 - Ride in the chorus, and cymbal swells (soft mallet rolls that grow louder) into new sections, landing on a crash.
 
 ### Percussion and toms
-- Tambourine on 2 and 4 and a shaker on 8ths, as in the Worship groove.
+- Tambourine on 2 and 4 and a shaker on 8ths, as in the Worship groove's Perc 1 and Perc 2 lanes.
 - Floor-tom builds: steady 8ths or quarters with mallets, louder over 4 to 8 bars.
 
 ### Fills and changes
@@ -1542,7 +1544,7 @@
 
 ### Sauce tips
 - Draw velocity ramps for builds, each bar a little louder than the last.
-- Keep the tempo steady. Worship teams play to a click and backing tracks.
+- Keep the tempo steady. Most modern worship teams play to a click and backing tracks.
 - Use a big hall or plate reverb, especially on toms.
 - Pick a style above for modern worship, gospel chops or ambient worship.
 
@@ -1551,7 +1553,7 @@
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
-| 66 to 80 BPM (upbeat songs 120 to 140) | 50% (straight) | 8ths and 16ths, long builds | Kick with bass and synth bass |
+| 66 to 80 BPM (upbeat songs 100 to 140) | 50% (straight) | 8ths and 16ths, long builds | Kick with bass and synth bass |
 
 ### Kick
 - The Worship groove: beats 1 and 3, plus the & of 3 (step 11) in bar 1.
@@ -1560,7 +1562,7 @@
 
 ### Snare and clap
 - Cross-stick on 2 and 4 for verses, full snare for choruses.
-- The Big Room groove: snare and clap together on 2 and 4 (steps 5 and 13).
+- The Big Room groove (104 BPM, for the Anthem and Electronic kits): snare and clap together on 2 and 4 (steps 5 and 13).
 - Half-time chorus or bridge: snare on beat 3 (step 9) only. Big and slow.
 
 ### Hats and cymbals
@@ -1588,7 +1590,7 @@
 
 | Tempo | Swing | Time feel | Low end |
 | --- | --- | --- | --- |
-| 70 to 130 BPM (praise breaks faster) | 54 to 58% | Lightly swung 16ths, ghost notes | Kick with an 808 or synth bass |
+| 70 to 130 BPM (praise breaks faster) | 50 to 58% (Gospel Chops 55%) | Lightly swung 16ths, ghost notes | Kick with an 808 or synth bass |
 
 ### Kick
 - Syncopated, as in the Gospel Chops groove: beat 1, the a of 1 (step 4), the & of 2 (step 7) and the & of 3 (step 11).
@@ -1609,7 +1611,7 @@
 
 ### 808 and bass
 - The 808 doubles most kicks; leave a few without it for punch.
-- Keep 808s short so fast kicks stay clear. The Choir Hall kit drops the 808; Trap Gospel uses the Bounce groove.
+- Keep 808s short so fast kicks stay clear. The Choir Hall kit drops the 808; Trap Gospel uses the Bounce groove at trap tempo (150 BPM, clap on beat 3).
 
 ### Fills and changes
 - Chops: fast 16th and 32nd runs around snare and toms, often in groups of six (sextuplets), ending on a crash.
@@ -1618,7 +1620,7 @@
 
 ### Sauce tips
 - Ghost notes around 30 to 55 velocity, backbeats near the top.
-- Swing the 16ths about 54 to 58% and nudge the backbeat slightly late.
+- The Gospel Chops groove swings its 16ths at 55%. Go up to 58% for a looser feel, and nudge the backbeat slightly late.
 - Use a tight, bright, high-tuned snare.
 - Program chops at full speed, then remove a few notes so they breathe.
 
@@ -1639,7 +1641,7 @@
 - When a section opens up, try a soft half-time snare on beat 3 (step 9) with a long reverb.
 
 ### Hats and cymbals
-- Hats mostly drop out. A triangle or a shaker on 8ths at low velocity can take their place.
+- The grid's 8th hats are for the fullest parts. Elsewhere hats drop out, and a triangle or a shaker on 8ths at low velocity takes their place.
 - Cymbal swells with mallets are the main sound: start silent, grow over a bar or two, then fade.
 - A soft ride bell or a reverse cymbal adds movement.
 
@@ -1681,7 +1683,7 @@
 
 ### Percussion and toms
 - Low toms play the ostinato: on every beat plus the & of 3 (step 11), turning into 16ths at the end of bar 2.
-- Mid toms answer the low toms (steps 11, 13 and 15).
+- Mid toms double the low toms on accents: the & of 3 (step 11) in bar 1, steps 13 and 15 in bar 2.
 - A percussion part on every beat holds the pulse: taiko, frame drums, congas or woodblock.
 
 ### Fills and changes
@@ -1717,14 +1719,14 @@
 - Cymbal swells and reverse cymbals lead into every impact. Crash with the impact on the 1.
 
 ### Percussion and toms
-- Taiko and ensemble toms play the ostinato: low toms on the beats and the & of 3 (step 11), mid toms answering.
+- Taiko and ensemble toms play the ostinato: low toms on the beats and the & of 3 (step 11), mid toms doubling the accents.
 - Hero sections drive harder, with 8th or 16th-note toms under the melody.
 - The perc part on every beat holds the pulse.
 
 ### Fills and changes
 - The classic shape: tension, rise, hit, bigger section, rise, bigger hit, a final short hit (a "stinger").
 - The grid's bar 2 ends with low-tom 16ths and a second effect on beat 4 (step 13), leading into the next impact.
-- Stop dead for half a bar before the biggest hit.
+- Stop completely for half a bar before the biggest hit.
 
 ### Sauce tips
 - Stack each impact: boom, low tom, braam, crash, all on the same 1.
@@ -1781,7 +1783,7 @@
 - In frame-drum and darbuka patterns, the low tone (the "dum") works as the kick.
 
 ### Snare and clap
-- The grid's snare on beat 3 (step 9) can be a high taiko hit, a frame-drum slap or a group clap.
+- The grid's snare on beat 3 (step 9) can be a high taiko hit, a frame-drum accent or a group clap.
 - Frame drums and darbuka use a high, sharp "tek" in place of a snare.
 
 ### Hats and cymbals
@@ -1803,7 +1805,6 @@
 - Keep the timing human. Never quantize hand drums to 100%.
 - Vary velocity a lot: hand drums mix strong accents with soft filler strokes.
 - Use a natural room reverb so the drums sound like one ensemble.
-
 
 @@ era.0
 **The 60s sound.** Drums were played by a drummer in a real room, usually at the same time as the band, and captured with only a few microphones, sometimes just one overhead and one on the kick. Tape machines had only a few tracks, so the whole kit was often squeezed onto one track and sat behind the vocals. Kicks were round and boomy, snares rang, cymbals were dark and washy, and many hit records were mixed in mono.
@@ -1831,7 +1832,7 @@
 **R&B in the 60s.** This was the decade of Motown and soul: live drummers, a tambourine doubling the backbeat, hand claps and a roomy kit sitting behind the vocals. By the end of the decade James Brown's records were pushing the beat toward funk, with tight snares and syncopated kicks.
 
 @@ era.0.pop
-**Pop in the 60s.** Pop drums were live and roomy, played by session drummers and band members alike. Phil Spector's "Wall of Sound" bathed the kit in echo, Hal Blaine's intro to "Be My Baby" became one of the most famous beats ever, and the Beatles with Ringo Starr set the pop-rock template.
+**Pop in the 60s.** Pop drums were live and roomy, played by session drummers and band members alike. The "Wall of Sound" records bathed the kit in echo, Hal Blaine's intro to "Be My Baby" became one of the most famous beats ever, and the Beatles with Ringo Starr set the pop-rock template.
 
 @@ era.0.rock
 **Rock in the 60s.** Rock drums were live, loose and roomy, often recorded with a few mics onto a single track. Ringo Starr and Charlie Watts played swinging, in-the-pocket parts, Keith Moon played wild, fill-heavy ones, and by the end of the decade heavier bands were turning the kit up and letting the toms boom.
@@ -1840,10 +1841,10 @@
 **Country in the 60s.** The Nashville sound kept the drums soft and low, often brushes on the snare with a light kick, while Bakersfield acts like Buck Owens and Merle Haggard used brighter, driving backbeats. The train beat, a steady, chugging snare pattern with accents on 2 and 4, kept many songs rolling.
 
 @@ era.0.worship
-**Worship in the 60s.** Modern worship bands didn't exist yet: most church music was hymns with organ and piano, while gospel churches had live drummers, Hammond organ and hand claps. Picking the 60s gives your kit warm, roomy, live tones, which suits a hymn-room or gospel-choir feel with the modern patterns on top.
+**Worship in the 60s.** Modern worship bands didn't exist yet: most church music was hymns with organ and piano, while gospel had Hammond organ, hand claps and, in many churches, a live drummer. Picking the 60s gives your kit warm, roomy, live tones, which suits a hymn-room or gospel-choir feel with the modern patterns on top.
 
 @@ era.0.edm
-**EDM in the 60s.** Electronic dance music didn't exist yet; dance-floor drum machines came decades later. Picking the 60s keeps the modern dance patterns but swaps in warm, roomy, live tones, so try a vintage flip: a four on the floor groove on a 60s kit with tambourine on the offbeats, like a soul record built for the club.
+**EDM in the 60s.** Electronic dance music didn't exist yet; drum machines only reached the dance floor years later. Picking the 60s keeps the modern dance patterns but swaps in warm, roomy, live tones, so try a vintage flip: a four on the floor groove on a 60s kit with tambourine on the offbeats, like a soul record built for the club.
 
 @@ era.0.lofi
 **Lo-fi in the 60s.** Lo-fi hip-hop didn't exist yet, but 60s soul and jazz records are exactly what lo-fi producers love to sample. Picking the 60s gives the kit warm, roomy, live tones under the modern patterns, which suits a jazzy, brushy beat that sounds like a record you found in a crate.
@@ -1852,7 +1853,7 @@
 **Cinematic drums in the 60s.** Film scores used orchestral percussion: timpani, snare drum, bass drum and cymbals, plus jazz kits in spy and detective themes. Ennio Morricone's western scores added whip cracks, bells and unusual percussion. Picking the 60s gives roomy, warm, live tones while the patterns stay modern.
 
 @@ era.1
-**The 70s sound.** Studios moved to 16 and 24-track tape, so each drum could get its own close mic, and the dry, deadened sound took over: kicks with the front head off or a pillow inside, towels or tape on snares and toms, and small, dead rooms. Funk and soul drummers played tight, busy 16th-note hats with ghost notes (very soft snare hits between the main ones), and disco made the four on the floor kick (a kick on every beat) a dance-floor standard. Hard rock went the other way, with big live rooms like John Bonham's drums with Led Zeppelin.
+**The 70s sound.** Studios moved to 16 and 24-track tape, so each drum could get its own close mic, and the dry, deadened sound took over: kicks with the front head off or a pillow inside, towels or tape on snares and toms, and small, dead rooms. Funk and soul drummers played tight, busy 16th-note hats with ghost notes (very soft snare hits between the main ones), and disco made the four on the floor kick (a kick on every beat) a dance-floor standard. Hard rock went the other way, with drums recorded in big live rooms, like John Bonham's with Led Zeppelin.
 
 ### Gear and sounds
 - Kits with concert toms (one head, no bottom head) and metal snares like the Ludwig Supraphonic.
@@ -1868,7 +1869,7 @@
 - Avoid gated reverb, long 808 subs and bright modern hats.
 
 @@ era.1.hiphop
-**Hip-hop in the 70s.** Hip-hop was born at Bronx block parties, where DJs like Kool Herc looped the drum breaks of funk records to keep dancers going. The first rap records at the end of the decade, like "Rapper's Delight", used live studio bands, so the drums were dry, tight 70s funk and disco.
+**Hip-hop in the 70s.** Hip-hop was born at Bronx block parties, where DJs like Kool Herc stretched out the drum breaks of funk records, switching between two copies, to keep dancers going. The first rap records at the end of the decade, like "Rapper's Delight", used live studio bands, so the drums were dry, tight 70s funk and disco.
 
 @@ era.1.trap
 **Trap in the 70s.** Trap didn't exist yet; it came out of Atlanta in the 2000s. Picking the 70s keeps the modern trap patterns but gives the kit dry, deadened, warm tones, so try a vintage flip: a muffled funk kick and snare with a soft 808 underneath, like a trap beat built on a 70s soul sample.
@@ -1880,7 +1881,7 @@
 **Pop in the 70s.** Pop drums went dry and close-miked: soft rock had muffled, deadened kits, and disco brought the steady four on the floor kick with open hats on the offbeats. ABBA, the Bee Gees and Fleetwood Mac all had warm, tight, in-the-pocket drums.
 
 @@ era.1.rock
-**Rock in the 70s.** Hard rock grew huge, with John Bonham's big, roomy drums on Led Zeppelin records the best-known example, while soft rock and studio rock went dry and deadened. Late in the decade, punk bands like the Ramones played fast, straight 8th-note beats with no frills.
+**Rock in the 70s.** Hard rock grew huge, with John Bonham's big, roomy drums on Led Zeppelin records the best-known example, while soft rock and studio rock went dry and deadened. From the mid-70s, punk bands like the Ramones played fast, straight 8th-note beats with no frills.
 
 @@ era.1.country
 **Country in the 70s.** Outlaw country from Willie Nelson and Waylon Jennings brought looser, rock-influenced live drums, while the smoother countrypolitan sound kept the kit soft under strings. Tones were dry and warm, with shuffles, two-step beats and train beats all common.
@@ -1895,21 +1896,21 @@
 **Lo-fi in the 70s.** Lo-fi hip-hop didn't exist yet, but 70s jazz, soul and funk records are its favorite sample sources. Picking the 70s gives the kit dry, deadened, warm tones under the modern patterns, so try a vintage flip: a muffled kick, a soft snare and quiet 16th hats with plenty of swing.
 
 @@ era.1.cinematic
-**Cinematic drums in the 70s.** Big orchestral scores came back with John Williams' "Jaws" and "Star Wars", built on timpani, snare and bass drum. Action and detective films also used funk, like the 16th-note hi-hat that drives Isaac Hayes' "Theme from Shaft". Expect dry, warm tones.
+**Cinematic drums in the 70s.** Big orchestral scores came back with John Williams' "Jaws" and "Star Wars", and the drums were the orchestra's: timpani, snare drum, bass drum and cymbals. Action and detective films also used funk, like the 16th-note hi-hat that drives Isaac Hayes' "Theme from Shaft". Expect dry, warm tones.
 
 @@ era.2
 **The 80s sound.** Drum machines and digital samples arrived on hit records, and snares got huge. The LinnDrum and Oberheim DMX played sampled drums on pop and funk records, the Roland TR-808 and TR-909 powered electro, early hip-hop and dance music, and gated reverb (a big room or reverb cut off sharply by a gate) made snares and toms sound massive but short. Live drums were recorded in big rooms, compressed hard and soaked in bright digital reverb.
 
 ### Gear and sounds
 - Roland TR-808 (booming kick, snappy snare, handclap, cowbell) and TR-909 (punchy kick, crisp hats).
-- LinnDrum and Oberheim DMX: tight sampled kits heard on records by Prince and many others.
+- Linn machines (the LM-1, then the LinnDrum) and the Oberheim DMX: tight sampled kits heard on records by Prince and many others.
 - Simmons electronic drums, with their hexagonal pads and synthetic "zap" toms.
 - Gated reverb on snares and toms, made famous by Phil Collins' "In the Air Tonight".
 
 ### Get it in your DAW
 - Gate the snare reverb: send the snare to a big room or plate, then gate the reverb so it stops after a few hundred milliseconds.
 - Pick drum machine sounds (808, 909, Linn, DMX) or big, bright live snares, and layer a clap on the backbeat.
-- Quantize machine parts hard; save the swing for funk and early hip-hop.
+- Quantize machine parts hard; save the swing for funk, early hip-hop and new jack swing.
 - Write big tom fills and hit a crash on the downbeat of each new section.
 - Avoid gliding 808 basslines, trap hat rolls and crushing the mix with a limiter; 80s mixes keep more dynamics.
 
@@ -1920,10 +1921,10 @@
 **Trap in the 80s.** Trap didn't exist yet, but its key instrument did: the Roland TR-808, heard on 80s electro and early hip-hop. Picking the 80s keeps the modern trap patterns and gives the kit brighter, roomier, machine-like tones, so try a vintage flip: a gated snare and a classic 808 cowbell over modern hat rolls.
 
 @@ era.2.rnb
-**R&B in the 80s.** Drum machines moved in: the LinnDrum drove Prince's Minneapolis sound, and Linn and DMX beats with gated snares and claps were all over the decade's R&B. By the late 80s, Teddy Riley's new jack swing mixed swung drum machine beats with hip-hop punch.
+**R&B in the 80s.** Drum machines moved in: Linn drum machines drove Prince's Minneapolis sound, and Linn and DMX beats with gated snares and claps were all over the decade's R&B. By the late 80s, Teddy Riley's new jack swing mixed swung drum machine beats with hip-hop punch.
 
 @@ era.2.pop
-**Pop in the 80s.** Big gated snares, drum machines and synth toms defined the decade. The LinnDrum and Oberheim DMX were all over the charts, Phil Collins made gated reverb famous, and even live drummers were compressed, layered and soaked in bright digital reverb.
+**Pop in the 80s.** Synth pop's big gated snares, drum machines and synth toms defined the decade. The LinnDrum and Oberheim DMX were all over the charts, Phil Collins made gated reverb famous, and even live drummers were compressed, layered and soaked in bright digital reverb.
 
 @@ era.2.rock
 **Rock in the 80s.** Big gated snares, huge toms and arena reverb took over, along with the glossy, polished drums of hair metal. Thrash metal went faster and tighter, with double kick drums driving the riffs, and some records layered live drums with samples or Simmons pads.
@@ -1935,38 +1936,38 @@
 **Worship in the 80s.** Modern worship bands were still to come, but contemporary Christian music picked up the decade's sound, with drum machines, gated snares and synth pads, while gospel choirs kept live drummers and hand claps. Picking the 80s gives the kit brighter, roomier, gated tones for a big, retro praise sound.
 
 @@ era.2.edm
-**EDM in the 80s.** House was born in Chicago and techno in Detroit in the mid-80s, built on the Roland TR-808 and TR-909: a four on the floor kick, open hats on the offbeats and claps on 2 and 4. Expect raw, simple machine sounds with little processing.
+**EDM in the 80s.** Disco lived on in Italo disco and boogie, and in the mid-80s house was born in Chicago and techno in Detroit, built on the Roland TR-808 and TR-909: a four on the floor kick, open hats on the offbeats and claps on 2 and 4. Expect raw, simple machine sounds with little processing.
 
 @@ era.2.lofi
-**Lo-fi in the 80s.** Lo-fi hip-hop didn't exist yet, though the samplers it is built on were just arriving at the end of the decade. Picking the 80s keeps the modern lo-fi patterns but gives the kit brighter, roomier, machine-like tones, so try a vintage flip: a soft, Linn-style kit, gently gated, under warm keys.
+**Lo-fi in the 80s.** Lo-fi hip-hop didn't exist yet, though the samplers behind its dusty sound were just arriving at the end of the decade. Picking the 80s keeps the modern lo-fi patterns but gives the kit brighter, roomier, machine-like tones, so try a vintage flip: a soft, Linn-style kit, gently gated, under warm keys.
 
 @@ era.2.cinematic
-**Cinematic drums in the 80s.** Synths and drum machines entered film scoring, from the synth scores of John Carpenter and Vangelis to electronic action themes like Harold Faltermeyer's "Axel F". Toms got gated and huge. Expect bright, roomy, electronic tones.
+**Cinematic drums in the 80s.** Synths and drum machines spread through film scoring, from the synth scores of John Carpenter and Vangelis to electronic action themes like Harold Faltermeyer's "Axel F". Toms got gated and huge. Expect bright, roomy, electronic tones.
 
 @@ era.3
 **The 90s sound.** Samplers ruled hip-hop and spread into R&B and pop. Producers chopped drum breaks from old funk and soul records on the E-mu SP-1200 and the Akai MPC60 and MPC3000, often pitched down, gritty and swung. Rock went back to natural, roomy live drums with grunge and alternative, while dance music ran on the TR-909 and on sampled breaks in house, techno, jungle and drum and bass. Mixes got punchier and louder but stayed warm.
 
 ### Gear and sounds
 - The E-mu SP-1200 (12-bit, gritty, short sample time) and the Akai MPC60 and MPC3000 with their famous swing; the Akai S950 sampler too.
-- The most-sampled breaks: James Brown's "Funky Drummer" and the "Amen" break from The Winstons' "Amen, Brother".
+- Two of the most-sampled breaks: James Brown's "Funky Drummer" and the "Amen" break from The Winstons' "Amen, Brother".
 - TR-808 and TR-909 sounds in house, techno, Miami bass and Southern rap.
 - Big natural rooms and heavy snares in grunge and alt rock.
 
 ### Get it in your DAW
-- Add 16th-note swing around 54 to 62% and let it do the bounce.
+- Add 16th-note swing around 54 to 62% and let it do the bounce (new jack swing goes further, close to a full triplet).
 - Lower the bit depth (12-bit is a good start) and pitch drums down a few semitones for weight and grit.
-- Layer a punchy kick and snare over a filtered break, and low-pass the break so it sits underneath.
+- Layer a punchy kick and snare over a break, and low-pass the break so it sits underneath.
 - Compress the drum bus hard, but keep reverb short and low.
 - Avoid rolling trap hats, long gliding 808s and an over-bright top end.
 
 @@ era.3.hiphop
-**Hip-hop in the 90s.** The golden era of boom bap: sampled breaks chopped on the SP-1200 and MPC, swung 16ths, dusty kicks and hard snares. On the West Coast, Dr. Dre's G-funk used slower, cleaner, laid-back grooves under funk synths, and in Memphis and the South the TR-808 kept booming.
+**Hip-hop in the 90s.** The golden era of boom bap: sampled breaks chopped on the SP-1200 and MPC, swung 16ths, dusty kicks and hard snares. On the West Coast, Dr. Dre's G-funk used cleaner, rolling, laid-back grooves under funk synths, and in Memphis and the South the TR-808 kept booming.
 
 @@ era.3.trap
-**Trap in the 90s.** Trap didn't exist yet, but its roots did: Memphis rap and Southern hip-hop leaned on booming TR-808 kicks, rattling hats and dark, sparse beats. Picking the 90s keeps the modern trap patterns but gives the kit punchy, warm, sampler-style tones, so try a vintage flip with gritty 12-bit drums over a modern 808.
+**Trap in the 90s.** Trap wasn't a named style yet, but its roots were here: Memphis rap and Southern hip-hop leaned on booming TR-808 kicks, rattling hats and dark, sparse beats. Picking the 90s keeps the modern trap patterns but gives the kit punchy, warm, sampler-style tones, so try a vintage flip with gritty 12-bit drums over a modern 808.
 
 @@ era.3.rnb
-**R&B in the 90s.** New jack swing gave way to hip-hop soul, with swung, sampled drums under smooth vocals, and Timbaland's stuttering, syncopated beats for Aaliyah pushed the rhythm forward. Late in the decade, the neo soul of D'Angelo and Erykah Badu brought back live, loose, behind-the-beat drumming.
+**R&B in the 90s.** New jack swing ruled the early 90s, then gave way to hip-hop soul, with swung, sampled drums under smooth vocals, and Timbaland's stuttering, syncopated beats for Aaliyah pushed the rhythm forward. From the mid-90s, the neo soul of D'Angelo and Erykah Badu brought back loose, behind-the-beat drums.
 
 @@ era.3.pop
 **Pop in the 90s.** Pop drums leaned on R&B and hip-hop, with swung, programmed beats and sampled loops, while teen pop from producers like Max Martin had bright, punchy, tightly programmed kits. Grunge and alt rock also put live, roomy drums back on the radio.
@@ -1975,13 +1976,13 @@
 **Rock in the 90s.** Grunge and alternative brought back big, natural, roomy drums played hard, with Dave Grohl's drumming on Nirvana's records as the classic example. Pop punk sped things up, and by the end of the decade nu metal mixed heavy riffs with hip-hop-style grooves.
 
 @@ era.3.country
-**Country in the 90s.** Arena-sized country from Garth Brooks and polished pop-country from Shania Twain gave the drums a big, punchy, radio-ready sound. Line-dance hits kept a steady beat, and the shuffles and two-steps of classic country were still everywhere.
+**Country in the 90s.** Arena-sized country from Garth Brooks and polished pop-country from Shania Twain gave the drums a big, punchy, radio-ready sound. Line-dance hits kept a steady beat, and honky tonk shuffles and two-steps were still everywhere.
 
 @@ era.3.worship
-**Worship in the 90s.** Modern worship began to take shape, with bands like Hillsong leading songs on a full rock kit, and Kirk Franklin brought hip-hop beats into gospel. Drums were punchy and warm: live kits, tambourine and big builds into the chorus.
+**Worship in the 90s.** Modern worship began to take shape, with church worship teams like Hillsong's leading songs on a full rock kit, and Kirk Franklin brought hip-hop beats into gospel. Drums were punchy and warm: live kits, tambourine and big builds into the chorus.
 
 @@ era.3.edm
-**EDM in the 90s.** Dance music exploded: house and techno ran on the TR-909, jungle and drum and bass chopped up the "Amen" break at high tempos, and big beat acts like The Chemical Brothers and Fatboy Slim mixed breaks with rock energy. Trance and UK garage arrived too.
+**EDM in the 90s.** Dance music took off: house and techno ran on the TR-909, jungle and drum and bass chopped up the "Amen" break at high tempos, and big beat acts like The Chemical Brothers and Fatboy Slim mixed breaks with rock energy. Trance and UK garage arrived too.
 
 @@ era.3.lofi
 **Lo-fi in the 90s.** Lo-fi hip-hop wasn't a genre yet, but its sound comes from here: dusty SP-1200 and MPC boom bap, and jazzy hip-hop from groups like A Tribe Called Quest. Picking the 90s gives the kit punchy, warm, sampler-style tones that fit the modern lo-fi patterns well.
@@ -1990,7 +1991,7 @@
 **Cinematic drums in the 90s.** Hans Zimmer and others blended orchestras with synths and big sampled drums, and action scores leaned on driving percussion loops. Picking the 90s gives punchy, warm tones, a good fit for hybrid scores that sound slightly retro.
 
 @@ era.4
-**The 2000s sound.** Recording moved into the computer, so drums were edited to the grid, sample-replaced and mixed louder than ever. Hip-hop and R&B went cleaner and harder: Timbaland and The Neptunes made sparse, quirky beats, while crunk and early trap brought back booming 808s. Rock and pop punk drums were tight, bright and often triggered, and the "loudness war" peaked, with whole mixes squashed by heavy limiting.
+**The 2000s sound.** Recording moved into the computer, so drums were edited to the grid, sample-replaced and mixed louder than ever. Hip-hop and R&B went cleaner and harder: Timbaland and The Neptunes made sparse, quirky beats, while crunk and early trap brought back booming 808s. Rock and pop punk drums were tight, bright and often triggered, and masters hit their loudest, with whole mixes squashed by heavy limiting.
 
 ### Gear and sounds
 - The Akai MPC2000XL and other MPCs, alongside software samplers and drum machines inside the computer.
@@ -1999,20 +2000,20 @@
 - Multi-sampled drum software that made realistic live kits possible at home.
 
 ### Get it in your DAW
-- Quantize tightly and keep swing light, except for neo soul and soulful hip-hop, which still swing hard.
+- Quantize tightly and keep swing light, except for neo soul and soulful hip-hop, which still swing more (about 58 to 62%).
 - Layer claps with snares, and give kicks a clear click and punch.
 - Use 808s with a short to medium decay and few glides.
-- Compress and limit firmly, but leave a little more air than a modern master.
+- Compress and limit firmly for that dense 2000s loudness, but stop before the drums lose their punch.
 - Avoid heavy lo-fi grit, big roomy reverb and wall-to-wall hi-hat rolls.
 
 @@ era.4.hiphop
 **Hip-hop in the 2000s.** Drums got cleaner and harder: The Neptunes and Timbaland built sparse, quirky beats, Kanye West sped up soul samples over crisp drums, and crunk brought booming 808s and loud claps from the South. J Dilla's loose, unquantized drums shaped soulful hip-hop and, later, lo-fi.
 
 @@ era.4.trap
-**Trap in the 2000s.** Trap was born in Atlanta, with producers like Shawty Redd, DJ Toomp and Zaytoven building it from 808 kicks, snare rolls and rattling hats. The sound was rawer and less polished than today, with shorter 808s and fewer glides.
+**Trap in the 2000s.** Trap took shape in Atlanta, with producers like Shawty Redd, DJ Toomp and Zaytoven building it from 808 kicks, snare rolls and rattling hats. The sound was rawer and less polished than today, with shorter 808s and fewer glides.
 
 @@ era.4.rnb
-**R&B in the 2000s.** Neo soul swung hard on loose, J Dilla-style drums, while mainstream R&B went crisp and sparse with Timbaland and The Neptunes, using claps, snaps and syncopated kicks. Drums were tight, clean and loud.
+**R&B in the 2000s.** Neo soul leaned back on loose, swung, J Dilla-style drums, while mainstream R&B went crisp and sparse with Timbaland and The Neptunes, using claps, snaps and syncopated kicks. Drums were tight, clean and loud.
 
 @@ era.4.pop
 **Pop in the 2000s.** Dance-pop's four on the floor kicks and claps sat alongside R&B-style beats from Timbaland and The Neptunes. Drums were tight, quantized and very loud, with heavy limiting on the whole mix.
@@ -2052,22 +2053,22 @@
 - Avoid tape hiss, dusty grit and heavy 90s swing unless you want a throwback.
 
 @@ era.5.hiphop
-**Hip-hop in the 2010s.** Trap took over mainstream hip-hop, but boom bap lived on in the underground and in artists like Kendrick Lamar, who mixed jazz, funk and live drums with modern beats. Drums were crisp and clean, with 808s under almost everything.
+**Hip-hop in the 2010s.** Trap took over mainstream hip-hop, but boom bap lived on in the underground, and artists like Kendrick Lamar mixed jazz, funk and live drums with modern beats. Drums were crisp and clean, with 808s under almost everything.
 
 @@ era.5.trap
 **Trap in the 2010s.** Trap's big decade: Metro Boomin and many others made long, gliding 808s, fast hat rolls and half-time snares the sound of mainstream rap. Along the way, drill and plugg branched off into styles of their own.
 
 @@ era.5.rnb
-**R&B in the 2010s.** Alt R&B from The Weeknd, Frank Ocean and others brought dark, sparse, reverb-soaked beats with trap hats and 808s. Trap soul followed, and the backbeat was often a soft snap or rimshot instead of a big snare.
+**R&B in the 2010s.** Alt R&B from The Weeknd, Frank Ocean and others brought dark, sparse, reverb-soaked beats, and trap hats and 808s soon moved in. Trap soul followed, and the backbeat was often a soft snap or rimshot instead of a big snare.
 
 @@ era.5.pop
-**Pop in the 2010s.** EDM drops and trap 808s moved into pop, and drums turned sparse and punchy, built from claps, snaps and tight kicks. Late in the decade, quiet, close-sounding pop like Billie Eilish's used minimal, bass-heavy beats.
+**Pop in the 2010s.** Dance pop's four on the floor kicks and EDM drops ruled the early 2010s, then trap 808s moved in and drums turned sparse and punchy, built from claps, snaps and tight kicks. Late in the decade, quiet, close-sounding pop like Billie Eilish's used minimal, bass-heavy beats.
 
 @@ era.5.rock
 **Rock in the 2010s.** Rock radio got polished and arena-ready, with big stomps and claps from bands like Imagine Dragons, and indie bands mixed live drums with programmed loops. Metal drums were triggered, edited and machine-tight.
 
 @@ era.5.country
-**Country in the 2010s.** Bro-country acts like Florida Georgia Line brought programmed loops, snaps and claps in alongside live drums, and Lil Nas X's "Old Town Road" in 2019 put trap drums under a country song. Drums were bright, clean and compressed.
+**Country in the 2010s.** Bro-country acts like Florida Georgia Line brought programmed loops, snaps and claps in alongside live drums, and Lil Nas X's "Old Town Road", the huge country-rap hit of 2019, put trap drums under a country tune. Drums were bright, clean and compressed.
 
 @@ era.5.worship
 **Worship in the 2010s.** Hillsong United, Bethel Music and Elevation Worship led a polished, big-room sound with click tracks, electronic loops under the band, floor tom builds and four on the floor choruses. Fast gospel "chops" fills also spread widely through drummers' online videos.
@@ -2101,13 +2102,13 @@
 **Hip-hop today.** Everything lives side by side: trap and drill lead the charts, boom bap and jazzy beats have a strong revival, and producers mix sampled breaks with hard 808s. Drums are loud and polished, often clipped on the drum bus for punch.
 
 @@ era.6.trap
-**Trap today.** Trap has split into many lanes: the sliding 808s and syncopated snares of UK and NY drill, the distorted 808s of rage, the soft, melodic bounce of plugg and hard Atlanta trap. Drums are crisp, clipped and loud, with 808s tuned tight to the key.
+**Trap today.** Trap has split into many lanes: hard Atlanta trap, the sliding 808s and syncopated snares of UK and NY drill, the distorted 808s of rage and the soft, melodic bounce of plugg. Drums are crisp, clipped and loud, with 808s tuned tight to the key.
 
 @@ era.6.rnb
 **R&B today.** Modern R&B mixes trap-soul 808s and snaps with Afrobeats rhythms and 90s-style throwback grooves, while retro acts like Silk Sonic revived live 70s soul drums. Production is soft, warm and polished, with plenty of space for the voice.
 
 @@ era.6.pop
-**Pop today.** Pop borrows from everywhere: 80s revival drums like The Weeknd's "Blinding Lights", disco revival, Afrobeats and Jersey club rhythms, and trap 808s. Drums are tight, punchy and very polished, often minimal so the vocal leads.
+**Pop today.** Pop borrows from everywhere: soft, close bedroom pop made at home, 80s revival drums like The Weeknd's "Blinding Lights", disco revival, Afrobeats and Jersey club rhythms, and trap 808s. Drums are tight, punchy and very polished, often minimal so the vocal leads.
 
 @@ era.6.rock
 **Rock today.** Modern rock mixes are tight, loud and often layered with samples, and some records put live drums over programmed loops and 808s. A pop punk revival brought fast, bright punk beats back to the charts.
@@ -2119,12 +2120,10 @@
 **Worship today.** Maverick City Music and others brought gospel-influenced live grooves and long, spontaneous sections, while many churches run electronic loops, synth bass and four on the floor builds under a live kit. Trap gospel and electronic worship sit alongside both.
 
 @@ era.6.edm
-**EDM today.** Tech house and melodic techno lead the clubs, drum and bass and UK garage are back in a big way, and harder, faster techno is popular too. Drums are tight, punchy and loud, with clean, sub-heavy kicks.
+**EDM today.** Techno leads, from melodic techno to harder, faster styles, with tech house close behind, and drum and bass and UK garage are back in a big way. Drums are tight, punchy and loud, and kicks are sub-heavy, with a rumbling low end in much of techno.
 
 @@ era.6.lofi
 **Lo-fi today.** Lo-fi is a huge streaming genre with many lanes, from jazzy chillhop to sad lo-fi trap with soft 808s. Production is cleaner than the dusty originals, with vinyl texture added on purpose. Picking today gives polished tones, so add tape and vinyl character yourself.
 
 @@ era.6.cinematic
 **Cinematic drums today.** Hybrid scoring rules: orchestral drums layered with sound-designed hits, sub drops, synth pulses and processed percussion. Trailers lean on huge impacts, a moment of silence before the drop and rhythmic risers. Tones are clean, wide and hard-hitting.
-
-

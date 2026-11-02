@@ -1,4 +1,5 @@
 #include "KitsPage.h"
+#include "core/MyGrooves.h"
 
 namespace ggui
 {
@@ -95,6 +96,110 @@ namespace ggui
             std::function<void()> onLoaded;
             juce::TextButton load { "LOAD" }, exp { "EXPORT" }, second;
         };
+
+        // One of my grooves: a little picture of it, where it came from, and what to do with it
+        class GrooveRow : public juce::Component
+        {
+        public:
+            GrooveRow (GrooveGrabberProcessor& p, const gg::mygrooves::Entry& e,
+                       std::function<void (const juce::String&)> openFn, std::function<void()> usedFn)
+                : proc (p), entry (e), onOpen (std::move (openFn)), onUsed (std::move (usedFn))
+            {
+                open.getProperties().set ("style", "accent");
+                open.getProperties().set ("accent", pal().blue.toString());
+                open.setTooltip ("Show it on SAUCE: play it, change it, drag it into your DAW");
+                open.onClick = [this] { if (onOpen) onOpen (entry.groove->id); };
+                use.getProperties().set ("style", "ghost");
+                use.setTooltip ("BUILD's preview plays this groove (and the export's Groove MIDI uses it)");
+                use.onClick = [this]
+                {
+                    proc.setGrooveId (entry.groove->id);
+                    if (onUsed) onUsed();
+                };
+                del.getProperties().set ("style", "ghost");
+                del.setTooltip ("Delete this groove (click twice)");
+                del.onClick = [this]
+                {
+                    if (! armed)
+                    {
+                        armed = true;
+                        del.setButtonText ("SURE?");
+                        juce::Timer::callAfterDelay (4000, [safe = juce::Component::SafePointer<GrooveRow> (this)]
+                        {
+                            if (safe != nullptr) { safe->armed = false; safe->del.setButtonText ("DELETE"); }
+                        });
+                        return;
+                    }
+                    const auto id = entry.groove->id;
+                    auto* pr = &proc;
+                    juce::MessageManager::callAsync ([id, pr] { pr->deleteMyGroove (id); pr->sendChangeMessage(); });
+                };
+                for (auto* b : { &open, &use, &del }) addAndMakeVisible (*b);
+            }
+
+            void resized() override
+            {
+                auto r = getLocalBounds().reduced (12, 14);
+                del.setBounds (r.removeFromRight (84));
+                r.removeFromRight (6);
+                use.setBounds (r.removeFromRight (120));
+                r.removeFromRight (6);
+                open.setBounds (r.removeFromRight (84));
+            }
+
+            void paint (juce::Graphics& g) override
+            {
+                const auto& p = pal();
+                const auto& gr = *entry.groove;
+                auto r = getLocalBounds().toFloat().reduced (2.0f, 3.0f);
+                g.setColour (p.raised);
+                g.fillRoundedRectangle (r, 10.0f);
+                g.setColour (proc.grooveId == gr.id ? p.blue : p.line);
+                g.drawRoundedRectangle (r.reduced (0.5f), 10.0f, proc.grooveId == gr.id ? 1.4f : 1.0f);
+                auto in = getLocalBounds().reduced (16, 10).withTrimmedRight (330);
+                auto strip = in.removeFromRight (200).reduced (0, 8).toFloat();
+                in.removeFromLeft (22);
+                auto top = in.removeFromTop (in.getHeight() / 2);
+                g.setColour (p.text);
+                g.setFont (headFont (14.0f));
+                g.drawFittedText (gr.name.toUpperCase(), top, juce::Justification::bottomLeft, 1, 0.7f);
+                g.setColour (p.dim);
+                g.setFont (uiFont (14.0f, false));
+                juce::String info = gg::genreName (entry.genre);
+                if (const int si = gg::styleIndex (entry.genre, entry.styleId); si > 0) info << ": " << gg::styleFor (entry.genre, si).name;
+                info << "  -  " << juce::String (gr.bpm, 0) << " BPM  -  swing " << gg::swingPercent (gr) << "%";
+                if (entry.from.isNotEmpty()) info << "  -  from " << gg::grooveFor (entry.from).name;
+                if (proc.grooveId == gr.id) info << "  -  on BUILD now";
+                g.drawFittedText (info, in, juce::Justification::topLeft, 1, 0.7f);
+
+                // the pattern in miniature: a row per drum, a dot per hit
+                std::vector<gg::Slot> lanes;
+                for (const auto& h : gr.hits) if (std::find (lanes.begin(), lanes.end(), h.slot) == lanes.end()) lanes.push_back (h.slot);
+                std::sort (lanes.begin(), lanes.end(), [] (gg::Slot a, gg::Slot b) { return (int) a < (int) b; });
+                if (! lanes.empty())
+                {
+                    const float laneH = strip.getHeight() / (float) lanes.size();
+                    const float stepW = strip.getWidth() / (float) (gr.bars * 16);
+                    g.setColour (p.sunken);
+                    g.fillRoundedRectangle (strip.expanded (2.0f), 4.0f);
+                    for (const auto& h : gr.hits)
+                    {
+                        const auto li = (int) (std::find (lanes.begin(), lanes.end(), h.slot) - lanes.begin());
+                        g.setColour (slotColour (h.slot).withAlpha (juce::jmap (h.velocity, 0.3f, 1.0f, 0.4f, 1.0f)));
+                        g.fillRect (juce::Rectangle<float> (strip.getX() + (float) (h.beat * 4.0) * stepW, strip.getY() + (float) li * laneH,
+                                                            juce::jmax (1.5f, stepW - 1.0f), juce::jmax (1.5f, laneH - 1.0f)));
+                    }
+                }
+            }
+
+        private:
+            GrooveGrabberProcessor& proc;
+            gg::mygrooves::Entry entry;
+            std::function<void (const juce::String&)> onOpen;
+            std::function<void()> onUsed;
+            juce::TextButton open { "OPEN" }, use { "USE ON BUILD" }, del { "DELETE" };
+            bool armed = false;
+        };
     }
 
     KitsPage::KitsPage (GrooveGrabberProcessor& p) : proc (p)
@@ -163,6 +268,45 @@ namespace ggui
     {
         const int scrollY = keepScroll ? viewport.getViewPositionY() : 0;
         rows.clear();
+        search.setTextToShowWhenEmpty (view.getSelected() == 2 ? "Search grooves: name, style, BPM..." : "Search kits: name, style, decade, key, BPM...", pal().faint);
+
+        if (view.getSelected() == 2)
+        {
+            // MY GROOVES
+            const auto all = gg::mygrooves::list();
+            std::array<int, gg::numGenres> counts {};
+            for (const auto& e : all) ++counts[(size_t) e.genre];
+            if (genreFilter >= 0 && counts[(size_t) genreFilter] == 0) genreFilter = -1;
+            kitsInView = (int) all.size();
+            for (int i = 0; i < genreChips.size(); ++i)
+            {
+                const int g = i - 1;
+                const int n = g < 0 ? kitsInView : counts[(size_t) g];
+                auto* b = genreChips[i];
+                b->setButtonText ((g < 0 ? juce::String ("ALL") : gg::genreFolderName ((gg::Genre) g).toUpperCase()) + "  " + juce::String (n));
+                b->setVisible (n > 0);
+                b->setToggleState (g == genreFilter, juce::dontSendNotification);
+            }
+            const auto words = juce::StringArray::fromTokens (search.getText().toLowerCase(), " ,", "\"");
+            for (const auto& e : all)
+            {
+                if (genreFilter >= 0 && (int) e.genre != genreFilter) continue;
+                juce::String hay;
+                hay << e.groove->name << " " << gg::genreName (e.genre) << " " << gg::genreFolderName (e.genre) << " " << juce::String (e.groove->bpm, 0) << " bpm";
+                if (const int si = gg::styleIndex (e.genre, e.styleId); si > 0) hay << " " << gg::styleFor (e.genre, si).name;
+                if (e.from.isNotEmpty()) hay << " " << gg::grooveFor (e.from).name;
+                hay = hay.toLowerCase().replaceCharacter ('-', ' ');
+                bool match = true;
+                for (auto w : words) { w = w.replaceCharacter ('-', ' ').trim(); if (w.isNotEmpty() && ! hay.contains (w)) match = false; }
+                if (match) content.addAndMakeVisible (rows.add (new GrooveRow (proc, e, onOpenGroove, onUseGroove)));
+            }
+            openFile.setVisible (false);
+            resized();
+            viewport.setViewPosition (0, scrollY);
+            repaint();
+            return;
+        }
+        openFile.setVisible (true);
 
         std::vector<std::pair<juce::File, gg::Kit>> list;
         if (view.getSelected() == 0) list = gg::kitstore::listSaved();
@@ -204,7 +348,7 @@ namespace ggui
         auto r = getLocalBounds().reduced (10, 8).reduced (14, 12);
         r.removeFromTop (26);
         auto top = r.removeFromTop (32);
-        view.setBounds (top.removeFromLeft (220));
+        view.setBounds (top.removeFromLeft (360));
         openFile.setBounds (top.removeFromRight (160));
         top.removeFromRight (12);
         top.removeFromLeft (12);
@@ -236,8 +380,9 @@ namespace ggui
         {
             g.setColour (p.dim);
             g.setFont (uiFont (16.0f, false));
-            const juce::String text = kitsInView > 0 ? "No kits match. Clear the search or pick ALL."
+            const juce::String text = kitsInView > 0 ? (view.getSelected() == 2 ? "No grooves match. Clear the search or pick ALL." : "No kits match. Clear the search or pick ALL.")
                                     : view.getSelected() == 0 ? "No saved kits yet. Press the heart on a kit, or SAVE KIT, to keep it here."
+                                    : view.getSelected() == 2 ? "No grooves yet. On SAUCE, change a pattern and press SAVE AS MY GROOVE: it's kept here for every song."
                                                               : "Kits you generate show up here.";
             g.drawFittedText (text, viewport.getBounds(), juce::Justification::centred, 2);
         }

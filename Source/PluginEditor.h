@@ -29,6 +29,7 @@ public:
     ggui::HelpPanel& getHelp()    { return help; }
     ggui::SaucePage& getSauce()   { return sauce; }
     ggui::ExportPanel& getExporter()   { return exporter; }
+    ggui::KitsPage& getKitsPage()      { return kitsPage; }
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;

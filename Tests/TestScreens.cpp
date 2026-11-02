@@ -114,7 +114,10 @@ int runScreenshots (const juce::File& outDir)
             std::cout << (edited ? "  ok: " : "  FAIL: ") << "pattern edited on SAUCE (" << id << "), and the preview plays the edit" << std::endl;
             if (! edited) ++failures;
 
-            // SAVE AS MY GROOVE: the name box, then the groove itself
+            // SAVE AS MY GROOVE: the name box, then the groove itself. The pattern it started from goes back to
+            // its original; BUILD keeps playing whatever it played.
+            const auto editedHits = proc.getGroove (id)->hits;
+            const auto buildGroove = proc.grooveId;
             sauce.startNaming();
             pump (150);
             save (*ed, outDir.getChildFile ("sauce-naming.png"));
@@ -123,14 +126,14 @@ int runScreenshots (const juce::File& outDir)
             const auto mine = sauce.getGrooveId();
             save (*ed, outDir.getChildFile ("sauce-mine.png"));
             const auto mg = gg::mygrooves::find (mine);
-            const bool saved = gg::mygrooves::isMine (mine) && mg != nullptr && mg->name == "Late Kick Bounce"
-                               && gg::sameHits (mg->hits, proc.getGroove (id)->hits);
-            std::cout << (saved ? "  ok: " : "  FAIL: ") << "saved as my groove, and SAUCE shows it" << std::endl;
+            const bool saved = gg::mygrooves::isMine (mine) && mg != nullptr && mg->name == "Late Kick Bounce" && gg::sameHits (mg->hits, editedHits)
+                               && ! proc.isGrooveEdited (id) && gg::sameHits (proc.getGroove (id)->hits, gg::grooveFor (id).hits)
+                               && proc.grooveId == buildGroove;
+            std::cout << (saved ? "  ok: " : "  FAIL: ") << "saved under its new name; the original is back to the original, BUILD unchanged" << std::endl;
             if (! saved) ++failures;
             sauce.getGrid().clickStep (0, 5, {});            // editing it saves it
             const bool savesAsYouGo = gg::mygrooves::find (mine)->hits.size() == mg->hits.size() + 1;
             // BUILD can play it; deleting it sends BUILD back to the style's groove
-            const auto buildGroove = proc.grooveId;
             proc.setGrooveId (mine);
             const bool plays = proc.grooveId == mine && proc.player.getGroove() == gg::mygrooves::find (mine).get();
             proc.deleteMyGroove (mine);
@@ -143,6 +146,21 @@ int runScreenshots (const juce::File& outDir)
             const bool ok = savesAsYouGo && plays && fellBack && missing;
             std::cout << (ok ? "  ok: " : "  FAIL: ") << "my groove saves as you edit, plays on BUILD, and deleting it falls back" << std::endl;
             if (! ok) ++failures;
+
+            // SAVE & REPLACE ON BUILD: BUILD plays yours in place of the original (which stays the original)
+            ed->getSauce().choose (proc.options.genre, proc.options.subStyle, proc.options.era);
+            pump (100);
+            const auto from = sauce.getGrooveId();
+            sauce.getGrid().clickStep (1, 7, {});                                         // a snare on the & of 2
+            const auto replacedHits = proc.getGroove (from)->hits;
+            sauce.startNaming();
+            sauce.finishNaming (true, "Bounce Two", true);
+            pump (200);
+            const auto two = sauce.getGrooveId();
+            const bool replaced = gg::mygrooves::isMine (two) && proc.grooveId == two && proc.player.getGroove() == gg::mygrooves::find (two).get()
+                                  && gg::sameHits (gg::mygrooves::find (two)->hits, replacedHits) && ! proc.isGrooveEdited (from);
+            std::cout << (replaced ? "  ok: " : "  FAIL: ") << "SAVE & REPLACE ON BUILD: BUILD plays yours, the original stays the original" << std::endl;
+            if (! replaced) ++failures;
         }
         if (! light)
         {
@@ -192,10 +210,25 @@ int runScreenshots (const juce::File& outDir)
                 if (in.openedOk() && mf.readFrom (in))
                     for (auto* ev : *mf.getTrack (0)) if (ev->message.isNoteOn()) ++notes;
                 const int want = 2 * (int) proc.getGroove (proc.grooveId)->hits.size();
-                const bool ok = proc.isGrooveEdited (proc.grooveId) && notes == want;
-                std::cout << (ok ? "  ok: " : "  FAIL: ") << "exported Groove .mid is the edited pattern (" << notes << " notes, want " << want << ")" << std::endl;
+                const bool ok = gg::mygrooves::isMine (proc.grooveId) && notes == want;
+                std::cout << (ok ? "  ok: " : "  FAIL: ") << "exported Groove .mid is the groove BUILD plays: yours (" << notes << " notes, want " << want << ")" << std::endl;
                 if (! ok) ++failures;
-                proc.resetGroove (proc.grooveId);
+            }
+            {
+                // MY KITS: your grooves, under MY GROOVES
+                ed->getExporter().setVisible (false);
+                ed->showTab (2);
+                ed->getKitsPage().setView (2);
+                pump (200);
+                save (*ed, outDir.getChildFile ("kits-grooves.png"));
+                const bool listed = ed->getKitsPage().numRows() == (int) gg::mygrooves::list().size() && ed->getKitsPage().numRows() >= 1;
+                std::cout << (listed ? "  ok: " : "  FAIL: ") << "MY KITS lists my grooves (" << ed->getKitsPage().numRows() << ")" << std::endl;
+                if (! listed) ++failures;
+                ed->getKitsPage().setView (0);
+                const auto two = proc.grooveId;
+                proc.setGrooveId (proc.firstGroove());
+                proc.deleteMyGroove (two);
+                ed->showTab (0);
             }
             proc.getSettings().set ("daw", "fl");
             if (auto* k = proc.getActiveKit()) ed->getExporter().show (*k);

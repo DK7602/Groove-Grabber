@@ -245,10 +245,11 @@ The buttons above the pads act on the whole kit: **REGENERATE** (new sounds for 
 
 Press the heart on a kit card, or **SAVE KIT** above the pads, to keep a kit. It keeps its name, sounds, pad settings, locks, style, decade, key, tempo and the description you typed.
 
-The MY KITS page has two views:
+The MY KITS page has three views:
 
 - **SAVED:** every kit you kept, filed in a folder for its genre (Documents\Groove Grabber\Kits\Hip-Hop, \Rock, \Country...). Kits saved by older versions are moved into their genre folders automatically.
 - **RECENT:** the last 48 kits you generated, saved or not, so a good one is never lost.
+- **MY GROOVES:** the patterns you saved as your own on SAUCE (see SAUCE: how the drums go). Each shows a small picture of the pattern, its genre and style, tempo, swing and the pattern it started from, with **OPEN** (show it on SAUCE to play, change or drag it), **USE ON BUILD** (BUILD's preview and the export's Groove MIDI use it) and **DELETE** (click twice). The genre tabs and search work here too.
 
 **Finding a kit**
 
@@ -321,7 +322,7 @@ The SAUCE page explains how drums are played and programmed in a genre, style an
 - Each row shows the note it plays in your DAW, for example "C1 (36)".
 - The buttons across the top pick between the style's grooves.
 - **Play** (or the Space bar) plays it with the kit you're editing on BUILD. It plays at your song's tempo while you're on your song's style, and at the groove's own tempo when you're reading up on another.
-- **DRAG MIDI** drags four bars of it into your DAW, on the same notes as every Groove Grabber kit (MIDI channel 1). **Drop it on the lane of your drum track** (in Cubase, your Groove Agent SE or Groove Grabber track), at the bar where it should start. Dropped below the last track, most DAWs make a new track with no instrument on it, so it stays silent. The files are kept in Documents\Groove Grabber\Sauce MIDI.
+- **DRAG MIDI** shows the tempo and swing it plays at, and drags four bars of it into your DAW, on the same notes as every Groove Grabber kit (MIDI channel 1). **Drop it on the lane of your drum track** (in Cubase, your Groove Agent SE or Groove Grabber track), at the bar where it should start. Dropped below the last track, most DAWs make a new track with no instrument on it, so it stays silent. The files are kept in Documents\Groove Grabber\Sauce MIDI.
 
 **Editing the pattern**
 
@@ -337,8 +338,11 @@ The SAUCE page explains how drums are played and programmed in a genre, style an
 An edit belongs to one song. To keep a pattern for all your songs, save it as your own:
 
 1. Shape the pattern (or take a style's pattern as it is) and press **SAVE AS MY GROOVE**.
-2. Type a name ("Late Snare Bounce") and press Enter or **SAVE**. Esc or **CANCEL** leaves it.
-3. It's saved on your computer in Documents\Groove Grabber\My Grooves, with its tempo and swing.
+2. Type a name ("Late Snare Bounce"), then:
+    - **SAVE** (or Enter) keeps your version under its new name. The pattern you started from goes back to its original, so BUILD's groove list still has the original under its own name. (UNDO on the original brings your changes back.)
+    - **SAVE & REPLACE ON BUILD** does the same, and BUILD's preview plays your version in place of the original (and the export's Groove MIDI uses it).
+    - **CANCEL** (or Esc) leaves it.
+3. It's saved on your computer in Documents\Groove Grabber\My Grooves, with its tempo and swing, and listed under MY GROOVES here and on the MY KITS page.
 
 - **MY GROOVES** (next to the pattern buttons) lists your grooves, this genre's first and the rest under Other genres. Pick one to see it, play it, change it or drag it into your DAW.
 - While one of your grooves is showing, it's marked **MY GROOVE**. Changes save to it as you go (UNDO still works), **RENAME** gives it a new name, and **DELETE** removes it (click it twice: the first click asks SURE?).
@@ -352,7 +356,7 @@ An edit belongs to one song. To keep a pattern for all your songs, save it as yo
 - **Sauce tips:** velocity, ghost notes, timing, layering and mix moves.
 - With a decade picked, **In the 90s** (or whichever) adds how that genre's drums sounded then, the gear of the time and how to get that sound in your DAW.
 
-Swing is given MPC-style: 50% is straight, about 54 to 58% light, 60 to 62% heavy and 66% a full triplet. DAWs name their swing controls differently, so match the feel rather than the number.
+Swing is given MPC-style: 50% is straight, about 54 to 58% light, 60 to 62% heavy and 66% a full triplet. The DRAG MIDI handle shows the swing the pattern plays at (for example "4 bars, 92 BPM, swing 60%"), and BUILD's swing slider shows its value the same way when you point at it. DAWs name their swing controls differently, so match the feel rather than the number.
 
 ## Working with Key Compass, Song Savant and Sample Snagger
 
@@ -488,7 +492,8 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | Open hats ring over closed hats | Put the Closed Hat, Pedal Hat and Open Hat pads (notes 42, 44 and 46) in the same choke / exclusive group. |
 | A pattern you dragged in from SAUCE doesn't play | It was dropped on empty space, so your DAW made a new track with no instrument. Drag the part onto your drum track (Groove Agent, Groove Grabber...), or set that track's output to your drum instrument. Next time, drop it straight on the drum track's lane. |
 | You changed a pattern on SAUCE and want the original back | Press RESET under the pattern. UNDO brings your version back. |
-| You want a pattern in every song, not just this one | SAUCE: SAVE AS MY GROOVE. It's then under MY GROOVES on SAUCE and in BUILD's groove list. |
+| You want a pattern in every song, not just this one | SAUCE: SAVE AS MY GROOVE. It's then under MY GROOVES on SAUCE, in BUILD's groove list and on the MY KITS page. |
+| You saved your version and want BUILD to use it instead of the original | Pick it in BUILD's groove list (MY GROOVES section), or press USE ON BUILD on the MY KITS page. Next time, save with SAVE & REPLACE ON BUILD. |
 | You moved or renamed your drum folders | Remove the old folder on the LIBRARY page and add it again. Saved kits point at the old file locations. |
 | The first scan takes a while | Every sound is analysed once. Later scans only look at new files, and you can keep working meanwhile. |
 
