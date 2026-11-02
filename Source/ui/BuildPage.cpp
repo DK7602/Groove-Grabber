@@ -297,7 +297,11 @@ namespace ggui
         swing.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
         swing.setRange (0.0, 70.0, 1.0);
         swing.setTooltip ("Swing");
-        swing.onValueChange = [this] { proc.player.setSwing ((float) swing.getValue() / 100.0f); };
+        swing.onValueChange = [this]
+        {
+            proc.player.setSwing ((float) swing.getValue() / 100.0f);
+            swing.setTooltip ("Swing: " + juce::String (juce::roundToInt (50.0 + swing.getValue() / 3.0)) + "% (50% = straight, 66% = a full triplet feel)");
+        };
         swing.getProperties().set ("accent", pal().purple.toString());
         addAndMakeVisible (swing);
 
@@ -352,6 +356,7 @@ namespace ggui
             if (gr.id == proc.grooveId) groove.setSelectedId ((int) i + 1, juce::dontSendNotification);
         }
         swing.setValue (proc.player.getSwing() * 100.0, juce::dontSendNotification);
+        swing.setTooltip ("Swing: " + juce::String (juce::roundToInt (50.0 + proc.player.getSwing() * 100.0 / 3.0)) + "% (50% = straight, 66% = a full triplet feel)");
         volume.setValue (proc.player.getVolume() * 100.0, juce::dontSendNotification);
         follow.setToggleState (proc.player.isFollowingHost(), juce::dontSendNotification);
         swing.getProperties().set ("accent", pal().purple.toString());

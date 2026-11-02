@@ -27,6 +27,8 @@ namespace gg
     const std::vector<Groove>& allGrooves();
     const Groove& grooveFor (const juce::String& id);          // falls back to the first
     double swungBeat (double beat, float swing, bool eighths = false) noexcept;   // delays the off-beat 16ths (or 8ths)
+    // A groove's swing the way MPCs and most DAWs show it: 50% = straight, 66% = a full triplet feel
+    int swingPercent (const Groove&) noexcept;
 
     // A Standard MIDI File of the groove on GM drum notes, repeated 'times'. Channel 1, which every sampler
     // listens to (the old GM drum channel 10 left Groove Agent silent on a plain MIDI track).

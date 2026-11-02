@@ -321,7 +321,7 @@ The SAUCE page explains how drums are played and programmed in a genre, style an
 - Each row shows the note it plays in your DAW, for example "C1 (36)".
 - The buttons across the top pick between the style's grooves.
 - **Play** (or the Space bar) plays it with the kit you're editing on BUILD. It plays at your song's tempo while you're on your song's style, and at the groove's own tempo when you're reading up on another.
-- **DRAG MIDI** drags four bars of it into your DAW, on the same notes as every Groove Grabber kit (MIDI channel 1). **Drop it on the lane of your drum track** (in Cubase, your Groove Agent SE or Groove Grabber track), at the bar where it should start. Dropped below the last track, most DAWs make a new track with no instrument on it, so it stays silent. The files are kept in Documents\Groove Grabber\Sauce MIDI.
+- **DRAG MIDI** shows the tempo and swing it plays at, and drags four bars of it into your DAW, on the same notes as every Groove Grabber kit (MIDI channel 1). **Drop it on the lane of your drum track** (in Cubase, your Groove Agent SE or Groove Grabber track), at the bar where it should start. Dropped below the last track, most DAWs make a new track with no instrument on it, so it stays silent. The files are kept in Documents\Groove Grabber\Sauce MIDI.
 
 **Editing the pattern**
 
@@ -352,7 +352,7 @@ An edit belongs to one song. To keep a pattern for all your songs, save it as yo
 - **Sauce tips:** velocity, ghost notes, timing, layering and mix moves.
 - With a decade picked, **In the 90s** (or whichever) adds how that genre's drums sounded then, the gear of the time and how to get that sound in your DAW.
 
-Swing is given MPC-style: 50% is straight, about 54 to 58% light, 60 to 62% heavy and 66% a full triplet. DAWs name their swing controls differently, so match the feel rather than the number.
+Swing is given MPC-style: 50% is straight, about 54 to 58% light, 60 to 62% heavy and 66% a full triplet. The DRAG MIDI handle shows the swing the pattern plays at (for example "4 bars, 92 BPM, swing 60%"), and BUILD's swing slider shows its value the same way when you point at it. DAWs name their swing controls differently, so match the feel rather than the number.
 
 ## Working with Key Compass and Sample Snagger
 

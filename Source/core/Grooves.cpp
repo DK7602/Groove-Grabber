@@ -58,14 +58,14 @@ namespace gg
         std::vector<Groove> makeAll()
         {
             std::vector<Groove> v;
-            v.push_back (make ("boombap1", "Boom Bap", 90, 0.5f, {
+            v.push_back (make ("boombap1", "Boom Bap", 90, 0.30f, {      // 60% (MPC-style swing)
                 "K:x-------x-x-----|x------x--x---x-",
                 "S:----x-------x---|----x-------x---",
                 "H:x-x-x-x-x-x-x-x-|x-x-x-x-x-x-x-x-",
                 "O:----------------|--------------o-",
                 "1:--o---o---o---o-|--o---o---o---o-",
                 "Y:x---------------|----------------" }));
-            v.push_back (make ("boombap2", "Dusty Swing", 88, 0.62f, {
+            v.push_back (make ("boombap2", "Dusty Swing", 88, 0.36f, {   // 62%
                 "K:x-----x---x-----|x-----x-x-----x-",
                 "S:----x-------x---|----x-------x--.",
                 "H:x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.",
@@ -183,7 +183,7 @@ namespace gg
                 "H:x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.",
                 "1:----------x-----|----------x-----",
                 "2:---x-------x----|---x-------x----" }));
-            v.push_back (make ("lofi1", "Lo-Fi", 82, 0.6f, {
+            v.push_back (make ("lofi1", "Lo-Fi", 82, 0.36f, {               // 62%
                 "K:x------x--x-----|x-------x-x-----",
                 "S:----x-------x---|----x-------x--.",
                 "H:x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.",
@@ -257,7 +257,7 @@ namespace gg
                 "C:--------x-------|--------x-------",
                 "H:x-x-x-x-x-x-x-x-|x-x-x-xrx-x-xrxr",
                 "Y:x---------------|----------------" }));
-            v.push_back (make ("newjack1", "New Jack Swing", 104, 0.55f, {
+            v.push_back (make ("newjack1", "New Jack Swing", 104, 0.45f, {   // 65%
                 "K:x---x-x---x-----|x---x-x---x--x--",
                 "S:----x--.----x---|----x--.----x-..",
                 "C:----x-------x---|----x-------x---",
@@ -359,6 +359,12 @@ namespace gg
         if (((long long) whole) % 2 == 1 && std::abs (pos - whole) < 1.0e-6)
             return beat + swing * (eighths ? 1.0 / 3.0 : 1.0 / 6.0);
         return beat;
+    }
+
+    int swingPercent (const Groove& g) noexcept
+    {
+        // the late note's place between its two neighbours: (0.5 + swing / 3) of the way, for 16ths and 8ths alike
+        return juce::roundToInt (50.0 + g.swing * 100.0 / 3.0);
     }
 
     juce::MemoryBlock grooveToMidi (const Groove& g, double bpm, float swing, int times)

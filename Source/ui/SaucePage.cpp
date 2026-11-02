@@ -978,7 +978,9 @@ namespace ggui
             g.drawText ("DRAG MIDI", in.removeFromTop (in.getHeight() * 0.55f), juce::Justification::bottomLeft);
             g.setColour (p.dim);
             g.setFont (uiFont (12.5f, false));
-            g.drawText ("4 bars at " + juce::String (previewTempo(), 0) + " BPM", in, juce::Justification::topLeft);
+            const auto cg = currentGroove();
+            g.drawText ("4 bars, " + juce::String (previewTempo(), 0) + " BPM" + (cg != nullptr ? ", swing " + juce::String (gg::swingPercent (*cg)) + "%" : juce::String()),
+                        in, juce::Justification::topLeft);
         }
         if (naming)
         {

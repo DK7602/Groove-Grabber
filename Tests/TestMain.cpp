@@ -732,6 +732,42 @@ namespace
                 if (t.containsIgnoreCase (w)) unclean.add (k + " (" + w + ")");
         }
         check (unclean.isEmpty(), "SAUCE is plain ASCII and clean: " + unclean.joinIntoString (", "));
+        {
+            // each style's table agrees with what its patterns play: the swing range holds every groove's swing,
+            // the tempo range holds the style's starting tempo
+            auto numbersIn = [] (const juce::String& cell, int lo, int hi)
+            {
+                std::vector<int> v;
+                juce::String digits;
+                for (auto c : cell + " ")
+                {
+                    if (juce::CharacterFunctions::isDigit (c)) { digits << juce::String::charToString (c); continue; }
+                    if (digits.isNotEmpty()) { const int n = digits.getIntValue(); if (n >= lo && n <= hi) v.push_back (n); digits.clear(); }
+                }
+                return v;
+            };
+            juce::StringArray off;
+            for (int g = 0; g < gg::numGenres; ++g)
+                for (const auto& st : gg::stylesOf ((gg::Genre) g))
+                {
+                    const auto lines = juce::StringArray::fromLines (gg::sauceSection (st.id));
+                    const int sep = lines.indexOf ("| --- | --- | --- | --- |");
+                    if (sep < 1 || sep + 1 >= lines.size()) { off.add (st.id + " (no table)"); continue; }
+                    auto cells = juce::StringArray::fromTokens (lines[sep + 1], "|", "");
+                    cells.removeEmptyStrings (true);
+                    if (cells.size() < 2) { off.add (st.id + " (table row)"); continue; }
+                    const auto tempo = numbersIn (cells[0], 40, 250), swing = numbersIn (cells[1], 45, 80);
+                    if (tempo.empty() || st.bpm < *std::min_element (tempo.begin(), tempo.end()) - 0.5 || st.bpm > *std::max_element (tempo.begin(), tempo.end()) + 0.5)
+                        off.add (st.id + " tempo " + juce::String (st.bpm, 0) + " vs \"" + cells[0].trim() + "\"");
+                    for (const auto* gr : gg::sauceGrooves (st))
+                    {
+                        const int pct = gg::swingPercent (*gr);
+                        if (swing.empty() || pct < *std::min_element (swing.begin(), swing.end()) || pct > *std::max_element (swing.begin(), swing.end()))
+                            off.add (st.id + " swing " + juce::String (pct) + "% (" + gr->id + ") vs \"" + cells[1].trim() + "\"");
+                    }
+                }
+            check (off.isEmpty(), "every style's tempo and swing ranges hold what its patterns play: " + off.joinIntoString ("; "));
+        }
         const auto md = gg::sauceMarkdown (gg::Genre::boomBap, gg::styleIndex (gg::Genre::boomBap, "hiphop.east"), 3);
         check (md.startsWith ("**The pocket.**") && md.contains ("## In the 90s") && md.contains ("**Hip-hop in the 90s.**") && md.contains ("### Gear and sounds"),
                "East Coast in the 90s: the style, then the decade in hip-hop, then the decade");
@@ -746,6 +782,16 @@ namespace
                && std::abs (gg::swungBeat (0.25, 0.5f, false) - (0.25 + 0.5 / 6.0)) < 1.0e-9 && std::abs (gg::swungBeat (1.0, 0.5f, true) - 1.0) < 1.0e-9,
                "swing: 8ths for a shuffle, 16ths otherwise");
         check (gg::grooveFor ("country2").swingEighths && ! gg::grooveFor ("boombap1").swingEighths, "the Shuffle groove swings its 8ths");
+        check (gg::swingPercent (gg::grooveFor ("boombap1")) == 60 && gg::swingPercent (gg::grooveFor ("boombap2")) == 62
+               && gg::swingPercent (gg::grooveFor ("lofi1")) == 62 && gg::swingPercent (gg::grooveFor ("newjack1")) == 65
+               && gg::swingPercent (gg::grooveFor ("country2")) == 62 && gg::swingPercent (gg::grooveFor ("trap1")) == 50,
+               "swing in MPC terms: boom bap 60%, dusty 62%, lo-fi 62%, new jack 65%, shuffle 62%, trap straight");
+        {
+            // no groove swings past a full triplet
+            juce::StringArray tooMuch;
+            for (const auto& g : gg::allGrooves()) if (gg::swingPercent (g) > 66) tooMuch.add (g.id);
+            check (tooMuch.isEmpty(), "no groove swings past a triplet: " + tooMuch.joinIntoString (", "));
+        }
 
         // the pattern MIDI is on channel 1 (channel 10 left Groove Agent silent on a plain MIDI track)
         {
