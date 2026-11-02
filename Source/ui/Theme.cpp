@@ -1,5 +1,6 @@
 #include "Theme.h"
 #include "GGBinaryData.h"
+#include "../core/Settings.h"
 
 namespace ggui
 {
@@ -69,7 +70,7 @@ namespace ggui
                 semi  = juce::Typeface::createSystemTypefaceFor (GGBinary::RajdhaniSemiBold_ttf, GGBinary::RajdhaniSemiBold_ttfSize);
                 rbold = juce::Typeface::createSystemTypefaceFor (GGBinary::RajdhaniBold_ttf, GGBinary::RajdhaniBold_ttfSize);
             }
-            ~Fonts() override       { clearSingletonInstance(); }
+            ~Fonts() override       { clearSingletonInstance(); gg::log::write ("fonts let go"); }
             JUCE_DECLARE_SINGLETON_INLINE (Fonts, false)
         };
 

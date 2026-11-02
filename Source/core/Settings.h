@@ -20,6 +20,15 @@ namespace gg
         juce::String safeFileName (const juce::String&, int maxLength = 60);
     }
 
+    // A short record of Groove Grabber opening and closing: Documents/Groove Grabber/Groove Grabber log.txt. If a DAW
+    // ever hangs, its last lines show how far closing got. Safe to call while the plug-in is being unloaded (plain C
+    // file writing, no JUCE objects).
+    namespace log
+    {
+        void write (const juce::String&);
+        void write (const char*);
+    }
+
     struct SourceFolder
     {
         juce::File folder;

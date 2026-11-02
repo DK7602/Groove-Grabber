@@ -57,7 +57,14 @@ namespace gg
     {
         stopTimer();
         cancelScan();
-        stopThread (8000);
+        // wait for the scan to finish what it's doing: a thread stopped by force can leave Windows' memory locks held,
+        // and the DAW freezes later (at quit)
+        const auto t0 = juce::Time::getMillisecondCounter();
+        const bool stopped = waitForThreadToExit (30000);
+        if (! stopped) log::write ("library: the scan was still running after 30 seconds, stopping it by force");
+        else if (juce::Time::getMillisecondCounter() - t0 > 1000)
+            log::write ("library: the scan stopped in " + juce::String (juce::Time::getMillisecondCounter() - t0) + " ms");
+        stopThread (1000);
     }
 
     juce::File Library::getCacheFile() const   { return paths::appDataDir().getChildFile ("library.ggl"); }
@@ -394,7 +401,7 @@ namespace gg
                     wait (250);
                 }
                 if (threadShouldExit())
-                    pool.removeAllJobs (true, 4000);
+                    pool.removeAllJobs (true, 30000);    // each job stops after its current file: never stopped by force
             }
 
             if (threadShouldExit())

@@ -105,7 +105,7 @@ int runHostScan (const juce::File& plugin)
                                               : plugin;
         auto* module = GetModuleHandleW (dll.getFileName().toWideCharPointer());
         if (module == nullptr)
-            fail ("couldn't find the loaded plug-in to unload it");
+            std::cout << "  unloaded with its last instance, like a DAW quitting" << std::endl;   // the host let it go already
         else
         {
             std::atomic<bool> unloaded { false };

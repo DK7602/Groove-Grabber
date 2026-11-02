@@ -12,6 +12,12 @@ GrooveGrabberProcessor::GrooveGrabberProcessor()
     player.setTempo (options.style().bpm);
     library->addChangeListener (this);
     addChangeListener (this);       // keeps the state snapshot up to date
+
+    // the last line written when the DAW unloads the plug-in (at quit): if it hangs there, the log says so
+    struct UnloadNote { ~UnloadNote() { gg::log::write ("unloading the plug-in (the DAW is quitting or letting go of it)"); } };
+    static UnloadNote unloadNote;
+    (void) unloadNote;
+    gg::log::write ("Groove Grabber " GG_VERSION " opened" + juce::String (isStandalone() ? " (app)" : ""));
 }
 
 GrooveGrabberProcessor::~GrooveGrabberProcessor()
@@ -19,7 +25,12 @@ GrooveGrabberProcessor::~GrooveGrabberProcessor()
     alive->store (false);
     library->removeChangeListener (this);
     removeChangeListener (this);
-    worker.removeAllJobs (true, 5000);
+    // wait for background work (rendering, exporting, harvesting) to finish: a thread stopped by force can leave
+    // Windows' memory locks held, and the DAW freezes later (at quit)
+    const auto t0 = juce::Time::getMillisecondCounter();
+    const bool done = worker.removeAllJobs (true, 30000);
+    gg::log::write (done ? "closed (background work finished in " + juce::String (juce::Time::getMillisecondCounter() - t0) + " ms)"
+                         : juce::String ("closed, but background work was still running after 30 seconds"));
 }
 
 bool GrooveGrabberProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const

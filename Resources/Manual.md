@@ -485,6 +485,7 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | Pads sound out of tune with your song | Set the right KEY in the header, or switch off "Tune kick, 808, toms to key". Fine-tune with the pad's TUNE knob. |
 | The plug-in doesn't show up in your DAW | It's an instrument: look in your instrument list (Cubase: under Drum, by Grabber Audio). On Windows the VST3 is in C:\Program Files\Common Files\VST3. In Cubase, if it was ever blocked, open Studio > VST Plug-in Manager, show the blocklist, select Groove Grabber and click Reactivate. |
 | No sound from the standalone app | Gear menu, **Audio / MIDI settings...**, and pick your output device. |
+| Your DAW froze while closing a project or quitting | Fixed in 1.0.13 (Cubase could freeze when it quit). If it ever happens again, send Documents\Groove Grabber\Groove Grabber log.txt: its last lines show how far closing got. |
 | The groove drifts from your song | Turn on **Follow DAW** in the groove bar. |
 | Sounds land on the wrong pads in your sampler | Keep "Silent files for empty pads" on, and drop all 22 files on the note 36 pad. In Groove Agent, drop on the lowest drop icon; in Studio One, hold Shift. See Exporting to your DAW. |
 | All the files stacked up on one pad | The sampler layered them. Drop them again the way your DAW spreads them (Exporting to your DAW), or one file per pad in FPC, REAPER and Kong. |
