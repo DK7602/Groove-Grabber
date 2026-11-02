@@ -335,6 +335,25 @@ int runScreenshots (const juce::File& outDir)
             panel.checkSongSavant();
             expect (! panel.isOfferingSongSavant(), "once used, it isn't offered again");
             p.getSettings().set ("songSavantSeen", {});
+
+            // a style the words don't name ("modern trap" sent as NY Drill): it stays, through the window refreshing
+            gg::SongSavantSong drill;
+            drill.name = "Modern Trap";
+            drill.description = "modern trap";
+            drill.genre = (int) gg::Genre::trap;
+            drill.styleId = "trap.nydrill";
+            drill.key = 21;
+            drill.bpm = 142;
+            std::unique_ptr<GrooveGrabberEditor> ed (dynamic_cast<GrooveGrabberEditor*> (p.createEditor()));
+            ed->setSize (1440, 900);
+            pump (300);
+            p.useSongSavantSong (drill);
+            pump (600);
+            ed->refreshAll();
+            pump (300);
+            expect (p.options.style().id == "trap.nydrill" && ! p.kits.empty() && p.kits[0].styleId == "trap.nydrill",
+                    "a style sent from Song Savant stays (NY Drill): " + p.options.style().id);
+            ed.reset();
         }
         f.deleteFile();
     }
