@@ -181,6 +181,26 @@ void GrooveGrabberProcessor::setBpm (double bpm)
     notify();
 }
 
+void GrooveGrabberProcessor::useSongSavantSong (const gg::SongSavantSong& s)
+{
+    songName = s.name;
+    genreByHand = false;
+    applyDescription (s.description);               // the words: an artist, the feel, the character
+    if (s.era >= 0 && s.era != options.era) setEra (s.era);
+    if (s.genre >= 0) setGenre ((gg::Genre) s.genre);   // the genre and style Song Savant used win
+    gg::Genre g = options.genre;
+    int sub = 0;
+    if (s.styleId.isNotEmpty() && gg::findStyle (s.styleId, g, sub) && g == options.genre && sub != options.subStyle)
+        setStyle (sub);
+    if (s.bpm > 0) setBpm (s.bpm);
+    options.key = s.key;                            // the kick, 808 and toms are tuned to it as the kits are built
+    generate (false);
+    const auto built = statusMessage;
+    juce::String msg = "From Song Savant: " + s.name;
+    if (const auto sum = s.summary(); sum.isNotEmpty()) msg << " (" << sum << ")";
+    notify (msg + ". " + built);
+}
+
 void GrooveGrabberProcessor::setGrooveId (const juce::String& wanted)
 {
     // one of my grooves that's gone (deleted, or a song from another computer): the style's own groove

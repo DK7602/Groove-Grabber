@@ -16,6 +16,7 @@ namespace gg
         juce::File recordingsDir();          // Documents/Groove Grabber/My Recordings
         juce::File sampleSnaggerLibrary();   // Documents/Sample Snagger/Samples (Sample Snagger's default)
         juce::File keyCompassSongs();        // Key Compass's "My Songs" folder
+        juce::File songSavantSongs();        // Documents/Song Savant/Songs (songs Song Savant sends, *.sssong)
         juce::String safeFileName (const juce::String&, int maxLength = 60);
     }
 

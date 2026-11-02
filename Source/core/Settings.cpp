@@ -54,6 +54,16 @@ namespace gg
                      .getChildFile ("KeyCompass").getChildFile ("Songs");
         }
 
+        juce::File songSavantSongs()
+        {
+           #if GG_TEST_RUNNER
+            if (auto env = juce::SystemStats::getEnvironmentVariable ("GG_TEST_HOME", {}); env.isNotEmpty())
+                return juce::File (env).getChildFile ("Song Savant").getChildFile ("Songs");
+           #endif
+            return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
+                     .getChildFile ("Song Savant").getChildFile ("Songs");
+        }
+
         juce::String safeFileName (const juce::String& name, int maxLen)
         {
             auto s = juce::File::createLegalFileName (name.trim())

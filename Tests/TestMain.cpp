@@ -332,6 +332,29 @@ namespace
             check (songs[0].key == 14, "key from chords Dm Bb F C -> D minor, got " + gg::keyName (songs[0].key));
             check (songs[0].sections.size() == 2, "two sections");
         }
+
+        // a song sent from Song Savant
+        auto ss = testRoot().getChildFile ("ss/Back Roads.sssong");
+        ss.getParentDirectory().createDirectory();
+        ss.replaceWithText (R"({"app": "Song Savant", "format": 1, "version": "0.10.0", "name": "Back Roads",
+            "description": "modern country like Morgan Wallen, warm", "genre": "country", "style": "country.modern", "era": 6,
+            "key": 21, "bpm": 92, "sections": [{"name": "Intro", "bars": 4}, {"name": "Verse", "bars": 8}, {"name": "Chorus", "bars": 8}],
+            "drums": "Nashville Kit", "sent": "2026-11-02T10:00:00.000Z"})");
+        ss.getSiblingFile ("older.sssong").replaceWithText (R"({"app": "Song Savant", "name": "Older", "genre": "boombap", "key": 99, "bpm": 9000,
+            "sent": "2026-10-01T10:00:00.000Z"})");
+        ss.getSiblingFile ("not ours.sssong").replaceWithText (R"({"app": "Something Else", "name": "Nope"})");
+        const auto ssSongs = gg::listSongSavantSongs (ss.getParentDirectory());
+        check (ssSongs.size() == 2, "two Song Savant songs (one file isn't Song Savant's), got " + juce::String ((int) ssSongs.size()));
+        if (ssSongs.size() == 2)
+        {
+            const auto& b = ssSongs[0];
+            check (b.name == "Back Roads", "newest Song Savant song first");
+            check (b.genre == (int) gg::Genre::country && b.styleId == "country.modern" && b.era == 6, "genre, style and era");
+            check (b.key == 21 && std::abs (b.bpm - 92) < 0.1, "key and BPM");
+            check (b.sections.size() == 3 && b.sections[1] == "Verse (8 bars)", "sections");
+            check (b.summary() == "Country - Modern Nashville, A Minor, 92 BPM", "summary: " + b.summary());
+            check (ssSongs[1].genre == (int) gg::Genre::boomBap && ssSongs[1].key == -1 && ssSongs[1].bpm == 0, "a bad key and tempo are ignored");
+        }
     }
 
     //==============================================================================

@@ -58,7 +58,7 @@ Everything sits on four pages under one header bar. Hover over almost anything t
 | BUILD / LIBRARY / MY KITS / SAUCE | The four pages |
 | KEY | The song's key. The kick, 808 and toms are tuned to it. Minor keys are listed first. |
 | BPM | The song's tempo. Drag up or down, scroll, or double-click to type. |
-| KEY COMPASS | Takes the key and tempo from a Key Compass song or from a song file |
+| KEY COMPASS | Takes the key and tempo from a Key Compass song or a song file, or uses a song sent from Song Savant |
 | ? | This manual (also the F1 key) |
 | Gear | Settings: audio / MIDI (standalone app), export format and folder, the manual, About |
 | Sun / moon | Light / dark look (same as clicking the logo) |
@@ -162,7 +162,7 @@ Name an artist or a song and kit 1 takes their sound: "like Dr. Dre", "Still D.R
 - **An artist from another genre lends their decade and feel.** "Dr. Dre" with Rock picked gives a punchy, dry 90s rock kit with a little hip-hop in it.
 - **A genre typed in the box wins over the artist's own.** "Dr. Dre style rock song" stays Rock.
 - **Names that are everyday words need a cue:** "like Future", "Prince type beat", "in the style of Queen". Otherwise "future bass" would mean the rapper.
-- Names it doesn't know are ignored. For the real drums of a specific song, harvest them (see Working with Key Compass and Sample Snagger).
+- Names it doesn't know are ignored. For the real drums of a specific song, harvest them (see Working with Key Compass, Song Savant and Sample Snagger).
 
 ## BUILD: kit character and options
 
@@ -354,7 +354,7 @@ An edit belongs to one song. To keep a pattern for all your songs, save it as yo
 
 Swing is given MPC-style: 50% is straight, about 54 to 58% light, 60 to 62% heavy and 66% a full triplet. DAWs name their swing controls differently, so match the feel rather than the number.
 
-## Working with Key Compass and Sample Snagger
+## Working with Key Compass, Song Savant and Sample Snagger
 
 **Key Compass**
 
@@ -365,6 +365,16 @@ Click **KEY COMPASS** in the header:
 - **Choose the Key Compass songs folder...** if your songs live somewhere other than the default (AppData\Roaming\KeyCompass\Songs on Windows).
 
 With a key set and "Tune kick, 808, toms to key" on, the kit is tuned to your song.
+
+**Song Savant**
+
+Song Savant suggests the sounds for a whole song from the instruments you own. On its drum card, **SEND TO GROOVE GRABBER** passes the song over: its description, genre, style, decade, key and tempo (and the sections of its arrangement).
+
+- If Groove Grabber is open, the BUILD page shows **Song Savant sent "...": USE IT** under your description for a day. Click it and Groove Grabber sets everything and builds four kits for the song, with the kick, 808 and toms tuned to its key. The **X** next to it hides it.
+- Every song Song Savant sent is also in the **KEY COMPASS** menu, under SONG SAVANT SONGS. Picking one does the same.
+- Save the kits you like (SAVE KIT). Song Savant lists your saved kits as drum choices for its songs, and its starter drum parts play the right pads of an exported kit.
+
+The songs are small files in Documents\Song Savant\Songs.
 
 **Sample Snagger**
 

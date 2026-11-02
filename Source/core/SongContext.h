@@ -72,4 +72,27 @@ namespace gg
 
     // The key a list of chord names most likely belongs to ("Am F C G" -> A minor)
     int keyFromChords (const juce::StringArray& chords);
+
+    //==============================================================================
+    // A song sent from Song Savant (its SEND TO GROOVE GRABBER button): one JSON file per song in
+    // Documents/Song Savant/Songs (*.sssong). Song Savant uses the same genre and style ids.
+    struct SongSavantSong
+    {
+        juce::String name, description;
+        int genre = -1;                  // a Genre, -1 = from the description
+        juce::String styleId;            // "country.modern"; empty = the genre in general
+        int era = -1;
+        int key = -1;                    // 0..23, -1 = none
+        double bpm = 0;
+        juce::StringArray sections;      // "Verse (8 bars)": the song's shape in Song Savant's arrangement map
+        juce::String drums;              // the drum sound Song Savant picked
+        juce::Time sent;
+        juce::File file;
+
+        juce::String summary() const;    // "Country - Modern Nashville, A Minor, 92 BPM"
+    };
+
+    std::optional<SongSavantSong> readSongSavantSong (const juce::File&);
+    std::vector<SongSavantSong> listSongSavantSongs (const juce::File& folder, int maxSongs = 8);   // newest first
+    std::optional<SongSavantSong> newestSongSavantSong (const juce::File& folder);                // reads only that one
 }

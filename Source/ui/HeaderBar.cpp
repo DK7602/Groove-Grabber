@@ -99,7 +99,7 @@ namespace ggui
         addAndMakeVisible (bpm);
 
         keyCompass.setLabel ("KEY COMPASS");
-        keyCompass.setTooltip ("Take the key and tempo from a Key Compass song, or from a song file");
+        keyCompass.setTooltip ("Take the key and tempo from a Key Compass song or a song file, or use a song sent from Song Savant");
         keyCompass.onClick = [this] { showKeyCompassMenu(); };
         addAndMakeVisible (keyCompass);
 
@@ -246,13 +246,33 @@ namespace ggui
             if (s.bpm > 0) text << "  -  " << juce::String (s.bpm, 0) << " BPM";
             m.addItem ((int) i + 1, text);
         }
+        // songs sent from Song Savant: genre, style, key and tempo, and four kits built for them
+        const auto ssSongs = gg::listSongSavantSongs (gg::paths::songSavantSongs(), 8);
+        if (! ssSongs.empty())
+        {
+            m.addSeparator();
+            m.addSectionHeader ("SONG SAVANT SONGS");
+            for (size_t i = 0; i < ssSongs.size(); ++i)
+            {
+                const auto& s = ssSongs[i];
+                const auto sum = s.summary();
+                m.addItem (200 + (int) i, s.name + (sum.isNotEmpty() ? "    " + sum : juce::String()));
+            }
+        }
         m.addSeparator();
         m.addItem (100, "Detect key and tempo from a song file...");
         m.addItem (101, "Choose the Key Compass songs folder...");
 
-        m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&keyCompass), [this, songs, safe = juce::Component::SafePointer<HeaderBar> (this)] (int r)
+        m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&keyCompass), [this, songs, ssSongs, safe = juce::Component::SafePointer<HeaderBar> (this)] (int r)
         {
             if (safe == nullptr || r == 0) return;
+            if (r >= 200 && r < 200 + (int) ssSongs.size())
+            {
+                const auto& s = ssSongs[(size_t) r - 200];
+                proc.getSettings().set ("songSavantSeen", s.sent.toISO8601 (true));
+                proc.useSongSavantSong (s);
+                return;
+            }
             if (r > 0 && r <= (int) songs.size())
             {
                 const auto& s = songs[(size_t) r - 1];

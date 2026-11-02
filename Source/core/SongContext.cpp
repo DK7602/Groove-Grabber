@@ -499,4 +499,80 @@ namespace gg
         if ((int) out.size() > maxSongs) out.resize ((size_t) maxSongs);
         return out;
     }
+
+    //==============================================================================
+    juce::String SongSavantSong::summary() const
+    {
+        juce::StringArray bits;
+        if (genre >= 0)
+        {
+            juce::String g = genreName ((Genre) genre);
+            Genre sg; int sub = 0;
+            if (styleId.isNotEmpty() && findStyle (styleId, sg, sub) && sg == (Genre) genre && sub > 0)
+                g << " - " << styleFor (sg, sub).name;
+            bits.add (g);
+        }
+        if (key >= 0) bits.add (keyName (key));
+        if (bpm > 0) bits.add (juce::String (bpm, 0) + " BPM");
+        return bits.joinIntoString (", ");
+    }
+
+    std::optional<SongSavantSong> readSongSavantSong (const juce::File& f)
+    {
+        if (f.getSize() > 256 * 1024) return std::nullopt;
+        const auto v = juce::JSON::parse (f.loadFileAsString());
+        if (! v.isObject() || v["app"].toString() != "Song Savant") return std::nullopt;
+
+        SongSavantSong s;
+        s.file = f;
+        s.name = v["name"].toString().trim();
+        if (s.name.isEmpty()) s.name = f.getFileNameWithoutExtension();
+        s.description = v["description"].toString();
+        const auto gid = v["genre"].toString();
+        for (int g = 0; g < numGenres; ++g)
+            if (gid.isNotEmpty() && genreId ((Genre) g) == gid) s.genre = g;
+        s.styleId = v["style"].toString();
+        s.era = v.hasProperty ("era") ? juce::jlimit (-1, numEras - 1, (int) v["era"]) : -1;
+        s.key = v.hasProperty ("key") ? (int) v["key"] : -1;
+        if (s.key < -1 || s.key > 23) s.key = -1;
+        s.bpm = v.hasProperty ("bpm") ? (double) v["bpm"] : 0.0;
+        if (s.bpm < 40.0 || s.bpm > 250.0) s.bpm = 0.0;
+        if (auto* secs = v["sections"].getArray())
+            for (auto& sec : *secs)
+            {
+                const auto n = sec["name"].toString();
+                const int bars = (int) sec["bars"];
+                if (n.isNotEmpty()) s.sections.add (bars > 0 ? n + " (" + juce::String (bars) + " bars)" : n);
+            }
+        s.drums = v["drums"].toString();
+        s.sent = juce::Time::fromISO8601 (v["sent"].toString());
+        if (s.sent.toMilliseconds() == 0) s.sent = f.getLastModificationTime();
+        return s;
+    }
+
+    std::vector<SongSavantSong> listSongSavantSongs (const juce::File& folder, int maxSongs)
+    {
+        std::vector<SongSavantSong> out;
+        if (! folder.isDirectory()) return out;
+        for (const auto& entry : juce::RangedDirectoryIterator (folder, false, "*.sssong", juce::File::findFiles))
+            if (auto s = readSongSavantSong (entry.getFile()))
+                out.push_back (*s);
+        std::sort (out.begin(), out.end(), [] (auto& a, auto& b) { return a.sent > b.sent; });
+        if ((int) out.size() > maxSongs) out.resize ((size_t) maxSongs);
+        return out;
+    }
+
+    std::optional<SongSavantSong> newestSongSavantSong (const juce::File& folder)
+    {
+        if (! folder.isDirectory()) return std::nullopt;
+        juce::File newest;
+        juce::Time when;
+        for (const auto& entry : juce::RangedDirectoryIterator (folder, false, "*.sssong", juce::File::findFiles))
+            if (entry.getModificationTime() > when)
+            {
+                when = entry.getModificationTime();
+                newest = entry.getFile();
+            }
+        return newest == juce::File() ? std::nullopt : readSongSavantSong (newest);
+    }
 }

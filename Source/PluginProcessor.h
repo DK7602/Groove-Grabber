@@ -50,6 +50,8 @@ public:
     void setKey (int key);
     void setBpm (double bpm);
     juce::String firstGroove() const;              // kit 1's preview groove
+    // A song Song Savant sent: its description, genre, style, era, key and tempo, then four kits for it
+    void useSongSavantSong (const gg::SongSavantSong&);
 
     // ---- the four kits ----
     std::vector<gg::Kit> kits;

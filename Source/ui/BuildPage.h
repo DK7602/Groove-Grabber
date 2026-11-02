@@ -5,7 +5,7 @@
 
 namespace ggui
 {
-    class SongPanel : public juce::Component
+    class SongPanel : public juce::Component, private juce::Timer
     {
     public:
         explicit SongPanel (GrooveGrabberProcessor&);
@@ -13,11 +13,16 @@ namespace ggui
         void paint (juce::Graphics&) override;
         void resized() override;
         std::function<void()> onGenerate;
+        void checkSongSavant();                 // a song Song Savant just sent: offer it (also the tests)
+        bool isOfferingSongSavant() const       { return waiting.has_value(); }
 
     private:
+        void timerCallback() override           { checkSongSavant(); }
         void pushOptions();
         void syncDescription();
         GrooveGrabberProcessor& proc;
+        std::optional<gg::SongSavantSong> waiting;
+        juce::TextButton useSongSavant, skipSongSavant { "X" };
         juce::TextEditor description;
         juce::ComboBox genre, styleBox, era;
         gg::Genre stylesShownFor = gg::Genre::count;

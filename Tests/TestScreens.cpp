@@ -76,6 +76,18 @@ int runScreenshots (const juce::File& outDir)
         pump (300);
         const juce::String suffix = light ? "-light" : "";
         save (*ed, outDir.getChildFile ("build" + suffix + ".png"));
+        if (! light)
+        {
+            // a song Song Savant just sent: BUILD offers it under the description
+            auto f = gg::paths::songSavantSongs().getChildFile ("Back Roads.sssong");
+            f.getParentDirectory().createDirectory();
+            f.replaceWithText (R"({"app": "Song Savant", "name": "Back Roads", "genre": "country", "style": "country.modern", "key": 21, "bpm": 92, "sent": ")"
+                               + juce::Time::getCurrentTime().toISO8601 (true) + "\"}");
+            pump (2300);
+            save (*ed, outDir.getChildFile ("build-songsavant.png"));
+            f.deleteFile();
+            pump (2300);
+        }
         ed->showTab (1);
         pump (300);
         save (*ed, outDir.getChildFile ("library" + suffix + ".png"));
@@ -280,6 +292,51 @@ int runScreenshots (const juce::File& outDir)
         fresh.setStateInformation (mb.getData(), (int) mb.getSize());
         pump (200);
         std::cout << "  a new instance's own state restores without kits (no crash)" << std::endl;
+    }
+
+    // a song sent from Song Savant: everything set, four kits built, the build page offers it once
+    {
+        auto expect = [&failures] (bool ok, const juce::String& what)
+        {
+            std::cout << (ok ? "  ok: " : "  FAIL: ") << what << std::endl;
+            if (! ok) ++failures;
+        };
+        GrooveGrabberProcessor p;
+        for (int i = 0; i < 400 && p.library->isScanning(); ++i) pump (25);
+        const auto folder = gg::paths::songSavantSongs();
+        folder.createDirectory();
+        auto f = folder.getChildFile ("Back Roads.sssong");
+        juce::DynamicObject::Ptr o = new juce::DynamicObject();
+        o->setProperty ("app", "Song Savant");
+        o->setProperty ("name", "Back Roads");
+        o->setProperty ("description", "modern country like Morgan Wallen, warm");
+        o->setProperty ("genre", "country");
+        o->setProperty ("style", "country.modern");
+        o->setProperty ("key", 21);
+        o->setProperty ("bpm", 92);
+        o->setProperty ("sent", juce::Time::getCurrentTime().toISO8601 (true));
+        f.replaceWithText (juce::JSON::toString (juce::var (o.get())));
+
+        auto song = gg::newestSongSavantSong (folder);
+        expect (song.has_value() && song->name == "Back Roads", "the newest Song Savant song is read");
+        if (song)
+        {
+            ggui::SongPanel panel (p);
+            panel.setSize (420, 900);
+            expect (panel.isOfferingSongSavant(), "the build page offers a song Song Savant just sent");
+            p.useSongSavantSong (*song);
+            expect (p.options.genre == gg::Genre::country && p.options.style().id == "country.modern", "Song Savant's genre and style: " + p.options.style().id);
+            expect (p.options.key == 21 && std::abs (p.options.bpm - 92) < 0.1, "Song Savant's key and tempo");
+            expect (p.songName == "Back Roads" && p.description.contains ("Morgan Wallen"), "the song's name and description");
+            expect (p.kits.size() == 4, "four kits built for it");
+            expect (! p.kits.empty() && p.kits.front().key == 21, "the kits are made in the song's key");
+            expect (p.getStatusMessage().startsWith ("From Song Savant: Back Roads"), "says where the song came from: " + p.getStatusMessage());
+            p.getSettings().set ("songSavantSeen", song->sent.toISO8601 (true));
+            panel.checkSongSavant();
+            expect (! panel.isOfferingSongSavant(), "once used, it isn't offered again");
+            p.getSettings().set ("songSavantSeen", {});
+        }
+        f.deleteFile();
     }
 
     // the genre box and the description together

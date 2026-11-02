@@ -83,6 +83,57 @@ namespace ggui
         surprise.setAccent (pal().purple);
         surprise.onClick = [this] { syncDescription(); proc.generate (true); };
         addAndMakeVisible (surprise);
+
+        // a song sent from Song Savant (its SEND TO GROOVE GRABBER button): one click sets it all and builds the kits
+        useSongSavant.getProperties().set ("style", "accent");
+        useSongSavant.onClick = [this]
+        {
+            if (! waiting) return;
+            const auto s = *waiting;
+            proc.getSettings().set ("songSavantSeen", s.sent.toISO8601 (true));
+            checkSongSavant();
+            proc.useSongSavantSong (s);
+        };
+        addChildComponent (useSongSavant);
+        skipSongSavant.getProperties().set ("style", "ghost");
+        skipSongSavant.setTooltip ("Not now (it stays in the KEY COMPASS menu)");
+        skipSongSavant.onClick = [this]
+        {
+            if (waiting) proc.getSettings().set ("songSavantSeen", waiting->sent.toISO8601 (true));
+            checkSongSavant();
+        };
+        addChildComponent (skipSongSavant);
+        checkSongSavant();
+        startTimer (2000);
+    }
+
+    void SongPanel::checkSongSavant()
+    {
+        auto s = gg::newestSongSavantSong (gg::paths::songSavantSongs());
+        const auto seen = juce::Time::fromISO8601 (proc.getSettings().get ("songSavantSeen"));
+        const bool fresh = s.has_value() && s->sent > seen
+                             && (juce::Time::getCurrentTime() - s->sent).inHours() < 24.0;
+        const bool wasShown = waiting.has_value();
+        if (fresh)
+        {
+            if (! waiting || waiting->file != s->file || waiting->sent != s->sent)
+            {
+                waiting = s;
+                useSongSavant.setButtonText ("Song Savant sent \"" + s->name + "\": USE IT");
+                const auto sum = s->summary();
+                useSongSavant.setTooltip ("Sets the genre, style, key and tempo" + (sum.isNotEmpty() ? " (" + sum + ")" : juce::String())
+                                          + " and builds four kits for it, with the kick, 808 and toms tuned to the key");
+            }
+        }
+        else
+            waiting.reset();
+        if (waiting.has_value() != wasShown)
+        {
+            useSongSavant.setVisible (waiting.has_value());
+            skipSongSavant.setVisible (waiting.has_value());
+            resized();
+            repaint();
+        }
     }
 
     void SongPanel::syncDescription()
@@ -167,7 +218,13 @@ namespace ggui
         auto r = getLocalBounds().reduced (14, 12);
         r.removeFromTop (24);
         description.setBounds (r.removeFromTop (getHeight() < 760 ? 62 : 86));
-        understoodArea = r.removeFromTop (24);
+        understoodArea = r.removeFromTop (waiting ? 32 : 24);
+        {
+            auto row = understoodArea.reduced (0, 1);
+            skipSongSavant.setBounds (row.removeFromRight (26));
+            row.removeFromRight (4);
+            useSongSavant.setBounds (row);
+        }
         r.removeFromTop (4);
         {
             auto row = r.removeFromTop (30);
@@ -224,7 +281,8 @@ namespace ggui
         auto r = getLocalBounds().reduced (14, 12);
         drawSectionTitle (g, r.removeFromTop (20), "Your song", p.orange);
 
-        // what the description was understood as
+        // what the description was understood as (unless a song from Song Savant is offered there)
+        if (! waiting)
         {
             juce::String u;
             if (proc.understood.understood.size() > 0) u = proc.understood.understood.joinIntoString ("  -  ");
