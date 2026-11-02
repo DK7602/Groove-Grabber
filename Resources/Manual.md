@@ -384,7 +384,8 @@ Song Savant suggests the sounds for a whole song from the instruments you own. O
 
 - If Groove Grabber is open, the BUILD page shows **Song Savant sent "...": USE IT** under your description for a day. Click it and Groove Grabber sets everything and builds four kits for the song, with the kick, 808 and toms tuned to its key. The **X** next to it hides it.
 - Every song Song Savant sent is also in the **KEY COMPASS** menu, under SONG SAVANT SONGS. Picking one does the same.
-- Save the kits you like (SAVE KIT). Song Savant lists your saved kits as drum choices for its songs, and its starter drum parts play the right pads of an exported kit.
+- Click **SAVE KIT** on the kit you like. If Song Savant is open, that kit lands on its drum card by itself within a few seconds, locked, and Song Savant's starter drum parts and arrangement use it (Song Savant 0.10.1 or newer). Every other kit you save shows up among Song Savant's drum choices.
+- In your DAW, put Groove Grabber on an instrument track, open **MY KITS** and **LOAD** the kit, then drag Song Savant's drum part onto that track: it plays Groove Grabber's pads, and in 808 styles the 808 plays with the kick.
 
 The songs are small files in Documents\Song Savant\Songs.
 
