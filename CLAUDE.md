@@ -81,6 +81,7 @@ Before the 1.0.7 audit they were 61–79% with names and 34–37% from sound alo
 - Spectral flatness over empty top octaves (8-bit and band-limited samples) reads "tonal": measure it only over the band the sound covers.
 - Plain noise flutters, so the old burst counter called noisy snares claps. A burst needs a real gap (−6 dB and back up).
 - Ring time has to stop above the hiss floor, or hissy closed hats read as open.
+- Never keep fonts (`Typeface::Ptr`), images, timers or threads in statics. In a DAW, JUCE shuts down when the last Groove Grabber in the project closes, but a static lives until the DAW unloads the plug-in at quit. Releasing fonts or images there froze Cubase on quit (1.0.12, fixed in 1.0.13: `Fonts` is a `DeletedAtShutdown` singleton, the badge comes from `ImageCache`). The Windows `--host` test now unloads the plug-in the way a DAW does at quit, with a 30-second watchdog.
 - "808" alone in a name can be the drum machine ("808 Cow", "TR-808 Kit"), not the bass.
 - DAWs spread a multi-file drop differently: Groove Agent needs the lowest of three drop icons (C1 is in pad group 3, files 13-22 go to group 4), Studio One's Impact needs Shift, Live / Bitwig / Logic spread on their own, FPC, REAPER's RS5K and Kong layer instead. Pro Tools can't load the plug-in (AAX only). Note 36 is C1 in most DAWs, C2 in REAPER, C3 in FL Studio.
 - FL Studio's FPC finds samples by file name, so FL exports name each file "01 Kick - <kit>.wav" and skip the MPC program (it can only name 16-character files). Other DAWs keep "01 Kick.wav".

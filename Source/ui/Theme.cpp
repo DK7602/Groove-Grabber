@@ -55,7 +55,10 @@ namespace ggui
             return p;
         }
 
-        struct Fonts
+        // The fonts are let go when JUCE shuts down (in a DAW: when the last Groove Grabber in the project closes) and made
+        // again if another one opens. Never keep them in a static: that releases them when the DAW unloads the plug-in at
+        // quit, after the graphics they belong to are gone, which froze Cubase on quit (1.0.13).
+        struct Fonts : private juce::DeletedAtShutdown
         {
             juce::Typeface::Ptr black, bold, med, semi, rbold;
             Fonts()
@@ -66,12 +69,13 @@ namespace ggui
                 semi  = juce::Typeface::createSystemTypefaceFor (GGBinary::RajdhaniSemiBold_ttf, GGBinary::RajdhaniSemiBold_ttfSize);
                 rbold = juce::Typeface::createSystemTypefaceFor (GGBinary::RajdhaniBold_ttf, GGBinary::RajdhaniBold_ttfSize);
             }
+            ~Fonts() override       { clearSingletonInstance(); }
+            JUCE_DECLARE_SINGLETON_INLINE (Fonts, false)
         };
 
         Fonts& fonts()
         {
-            static Fonts f;
-            return f;
+            return *Fonts::getInstance();
         }
 
         juce::Font withTypeface (juce::Typeface::Ptr tf, float h)
@@ -171,8 +175,8 @@ namespace ggui
 
     juce::Image badgeImage()
     {
-        static juce::Image img = juce::ImageCache::getFromMemory (GGBinary::badge_256_png, GGBinary::badge_256_pngSize);
-        return img;
+        // (the image cache keeps it, and lets it go when JUCE shuts down: not a static, see Fonts)
+        return juce::ImageCache::getFromMemory (GGBinary::badge_256_png, GGBinary::badge_256_pngSize);
     }
 
     //==============================================================================
