@@ -805,6 +805,8 @@ namespace
                && std::abs (gg::swungBeat (0.25, 0.5f, false) - (0.25 + 0.5 / 6.0)) < 1.0e-9 && std::abs (gg::swungBeat (1.0, 0.5f, true) - 1.0) < 1.0e-9,
                "swing: 8ths for a shuffle, 16ths otherwise");
         check (gg::grooveFor ("country2").swingEighths && ! gg::grooveFor ("boombap1").swingEighths, "the Shuffle groove swings its 8ths");
+        check (gg::grooveFor ("blank").id == "blank" && gg::grooveFor ("blank").hits.empty() && gg::grooveFor ("blank").bars == 2
+               && gg::grooveFor ("blank").swing == 0.0f, "BLANK: two empty bars, straight");
         check (gg::swingPercent (gg::grooveFor ("boombap1")) == 60 && gg::swingPercent (gg::grooveFor ("boombap2")) == 62
                && gg::swingPercent (gg::grooveFor ("lofi1")) == 62 && gg::swingPercent (gg::grooveFor ("newjack1")) == 65
                && gg::swingPercent (gg::grooveFor ("country2")) == 62 && gg::swingPercent (gg::grooveFor ("trap1")) == 50,
@@ -868,7 +870,7 @@ namespace
             const auto* e = mg::entry (id);
             check (mg::isMine (id) && e != nullptr && e->file.existsAsFile() && e->groove->name == "Late Kick Bounce" && e->from == "boombap1"
                    && e->styleId == "hiphop.east" && mg::list().size() == before + 1, "SAVE AS MY GROOVE: a file under your name");
-            const auto old = mg::update (id, gg::withStep (*mg::find (id), gg::Slot::snare, 7, 1, gg::softHit));
+            const auto old = mg::update (id, gg::withStep (*mg::find (id), gg::Slot::snare, 7, 1, gg::softHit), 0.2f);
             check (old != nullptr && old->hits.size() == start.hits.size() && mg::find (id)->hits.size() == start.hits.size() + 1,
                    "editing my groove: a new version, the old one handed back");
             check (mg::rename (id, "Bounce Two") != nullptr && mg::find (id)->name == "Bounce Two" && mg::entry (id)->file.getFileName() == "Bounce Two.gggroove",

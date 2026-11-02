@@ -333,6 +333,9 @@ namespace gg
                 "Y:x---------------|----------------",
                 "F:x---------------|----------------",
                 "G:----------------|------------x---" }));
+            // a blank pad: two empty bars to build a pattern from scratch (SAUCE's BLANK)
+            v.push_back (make ("blank", "Blank", 100, 0.0f, {}));
+            v.back().bars = 2;
             return v;
         }
     }

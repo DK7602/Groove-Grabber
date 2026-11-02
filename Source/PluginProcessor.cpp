@@ -243,25 +243,30 @@ bool GrooveGrabberProcessor::isGrooveEdited (const juce::String& id) const
 
 void GrooveGrabberProcessor::editGroove (const juce::String& id, std::vector<gg::GrooveHit> hits)
 {
-    if (gg::mygrooves::isMine (id))
-    {
-        // your own groove: the change waits (with the song) until you SAVE it, so the saved groove never changes
-        // behind your back
-        const auto saved = gg::mygrooves::find (id);
-        if (saved == nullptr) return;
-        gg::sortHits (hits);
-        if (gg::sameHits (hits, saved->hits)) { resetGroove (id); return; }
-        auto g = std::make_shared<gg::Groove> (*saved);
-        g->hits = std::move (hits);
-        swapGroove (id, std::move (g));
-        return;
-    }
-    const auto& original = gg::grooveFor (id);
-    if (original.id != id) return;                       // not one of ours
+    editGroove (id, std::move (hits), getGroove (id)->swing);
+}
+
+void GrooveGrabberProcessor::setGrooveSwing (const juce::String& id, float swing)
+{
+    editGroove (id, getGroove (id)->hits, swing);
+    // whatever is playing it swings that way now (BUILD's preview, or SAUCE)
+    if (const auto* playing = player.getGroove(); playing != nullptr && playing->id == id) player.setSwing (getGroove (id)->swing);
+}
+
+void GrooveGrabberProcessor::editGroove (const juce::String& id, std::vector<gg::GrooveHit> hits, float swing)
+{
+    // what the change is made to: one of your grooves as it's saved (the change waits, with the song, until you
+    // SAVE it, so the saved groove never changes behind your back), or a built-in groove
+    std::shared_ptr<const gg::Groove> base;
+    if (gg::mygrooves::isMine (id)) base = gg::mygrooves::find (id);
+    else if (gg::grooveFor (id).id == id) base = std::shared_ptr<const gg::Groove> (std::shared_ptr<const gg::Groove>(), &gg::grooveFor (id));
+    if (base == nullptr) return;
     gg::sortHits (hits);
-    if (gg::sameHits (hits, original.hits)) { resetGroove (id); return; }
-    auto g = std::make_shared<gg::Groove> (original);
+    swing = juce::jlimit (0.0f, 0.5f, swing);
+    if (gg::sameHits (hits, base->hits) && std::abs (swing - base->swing) < 1.0e-4f) { resetGroove (id); return; }
+    auto g = std::make_shared<gg::Groove> (*base);
     g->hits = std::move (hits);
+    g->swing = swing;
     swapGroove (id, std::move (g));
 }
 
@@ -273,6 +278,7 @@ void GrooveGrabberProcessor::resetGroove (const juce::String& id)
 
 void GrooveGrabberProcessor::swapGroove (const juce::String& id, std::shared_ptr<const gg::Groove> edit)
 {
+    const float swingBefore = getGroove (id)->swing;
     if (const auto it = grooveEdits.find (id); it != grooveEdits.end())
     {
         retireGroove (it->second);
@@ -280,6 +286,9 @@ void GrooveGrabberProcessor::swapGroove (const juce::String& id, std::shared_ptr
     }
     if (edit != nullptr) grooveEdits[id] = std::move (edit);
     repointPlayer (id);
+    // a new swing (SWING on SAUCE, or UNDO / RESET of one) is heard right away; otherwise BUILD's slider stays as set
+    if (const auto* playing = player.getGroove(); playing != nullptr && playing->id == id && std::abs (playing->swing - swingBefore) > 1.0e-4f)
+        player.setSwing (playing->swing);
     notify();
 }
 
@@ -313,7 +322,7 @@ bool GrooveGrabberProcessor::saveGrooveChanges (const juce::String& id)
     const auto it = grooveEdits.find (id);
     if (! gg::mygrooves::isMine (id) || it == grooveEdits.end()) return false;
     auto hits = it->second->hits;
-    auto old = gg::mygrooves::update (id, std::move (hits));
+    auto old = gg::mygrooves::update (id, std::move (hits), it->second->swing);
     if (old == nullptr) return false;
     retireGroove (std::move (old));
     swapGroove (id, nullptr);                      // no changes waiting any more: it plays the saved groove
@@ -561,9 +570,16 @@ juce::String GrooveGrabberProcessor::makeState()
     o->setProperty ("active", activeKit);
     o->setProperty ("slot", gg::slotId (selectedSlot));
     o->setProperty ("groove", grooveId);
+    // the hits as 1.0.9 to 1.0.18 wrote them (so those versions still read a song saved here), the swing beside them
     auto* edits = new juce::DynamicObject();
-    for (const auto& [id, g] : grooveEdits) edits->setProperty (id, gg::hitsToVar (g->hits));
+    auto* swings = new juce::DynamicObject();
+    for (const auto& [id, g] : grooveEdits)
+    {
+        edits->setProperty (id, gg::hitsToVar (g->hits));
+        swings->setProperty (id, (double) g->swing);
+    }
     o->setProperty ("grooveEdits", juce::var (edits));
+    o->setProperty ("grooveSwing", juce::var (swings));
     o->setProperty ("swing", player.getSwing());
     o->setProperty ("volume", player.getVolume());
     o->setProperty ("follow", player.isFollowingHost());
@@ -611,10 +627,16 @@ void GrooveGrabberProcessor::applyState (const juce::String& text)
                 if (gg::mygrooves::isMine (id) && mine == nullptr) continue;
                 const auto& original = mine != nullptr ? *mine : gg::grooveFor (id);
                 if (original.id != id) continue;
+                // the hits, and the swing beside them in "grooveSwing" (songs from before 1.0.19 have none: the original's)
                 auto hits = gg::hitsFromVar (prop.value, original);
-                if (gg::sameHits (hits, original.hits)) continue;
+                float swing = original.swing;
+                const auto sv = v["grooveSwing"][prop.name];
+                if (sv.isDouble() || sv.isInt() || sv.isInt64())
+                    if (const double d = sv; std::isfinite (d)) swing = (float) juce::jlimit (0.0, 0.5, d);
+                if (gg::sameHits (hits, original.hits) && std::abs (swing - original.swing) < 1.0e-4f) continue;
                 auto g = std::make_shared<gg::Groove> (original);
                 g->hits = std::move (hits);
+                g->swing = swing;
                 restored[id] = std::move (g);
             }
         const auto now = juce::Time::getMillisecondCounter();

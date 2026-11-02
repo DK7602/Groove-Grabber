@@ -340,6 +340,25 @@ namespace ggui
             addAndMakeVisible (b);
         }
 
+        blankChip.getProperties().set ("style", "toggle");
+        blankChip.setTooltip ("A blank pattern: build one from scratch with the sounds of the kit you picked");
+        blankChip.onClick = [this] { openGroove ("blank"); };
+        addAndMakeVisible (blankChip);
+
+        swingSlider.setSliderStyle (juce::Slider::LinearHorizontal);
+        swingSlider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+        swingSlider.setRange (50.0, 66.0, 1.0);
+        swingSlider.setDoubleClickReturnValue (true, 50.0);
+        swingSlider.setTooltip ("Swing: 50% is straight, 54 to 58% light, 60 to 62% heavy, 66% a full triplet. Double-click for straight.");
+        swingSlider.getProperties().set ("accent", pal().purple.toString());
+        swingSlider.onDragStart = [this] { pushUndo(); };
+        swingSlider.onValueChange = [this]
+        {
+            if (! swingSlider.isMouseButtonDown()) pushUndo();          // (a scroll or a double-click: one step each)
+            setSwingPercent ((int) swingSlider.getValue());
+        };
+        addAndMakeVisible (swingSlider);
+
         for (auto* b : { &addDrum, &undo, &reset })
         {
             b->getProperties().set ("style", "ghost");
@@ -350,11 +369,13 @@ namespace ggui
         undo.setTooltip ("Take back your last change to this pattern");
         undo.onClick = [this]
         {
-            auto& steps = undoSteps[currentId()];
+            const auto id = currentId();
+            auto& steps = undoSteps[id];
             if (steps.empty()) return;
-            auto hits = std::move (steps.back());
+            auto snap = std::move (steps.back());
             steps.pop_back();
-            applyHits (std::move (hits));
+            proc.editGroove (id, std::move (snap.hits), snap.swing);     // (the saved version again clears the change)
+            showGroove();
         };
         reset.setTooltip ("Back to the original pattern (UNDO brings your version back)");
         reset.onClick = [this]
@@ -471,6 +492,16 @@ namespace ggui
         era = juce::jlimit (-1, gg::numEras - 1, e);
         grooveIndex = 0;
         showChoice();
+    }
+
+    void SaucePage::setSwingPercent (int percent)
+    {
+        const auto id = currentId();
+        if (id.isEmpty()) return;
+        proc.setGrooveSwing (id, (float) (juce::jlimit (50, 66, percent) - 50) * 3.0f / 100.0f);
+        if (playingHere) if (const auto g = currentGroove()) proc.player.setSwing (g->swing);
+        showGroove();
+        repaint (dragArea);
     }
 
     void SaucePage::updateKitButtons()
@@ -604,6 +635,11 @@ namespace ggui
         if (gg::mygrooves::isMine (id)) { pickMine (id); return; }
         if (gg::grooveFor (id).id != id) return;
         int index = grooveIds.indexOf (id);
+        if (index < 0 && id == "blank")
+        {
+            grooveIds.add (id);                  // (the BLANK button stands for it)
+            index = grooveIds.size() - 1;
+        }
         if (index < 0)
         {
             // a groove from another style: a button for it next to this style's
@@ -710,7 +746,7 @@ namespace ggui
                     if (proc.isGrooveEdited (from))
                     {
                         auto& steps = undoSteps[from];
-                        steps.push_back (proc.getGroove (from)->hits);
+                        steps.push_back ({ proc.getGroove (from)->hits, proc.getGroove (from)->swing });
                         proc.resetGroove (from);
                     }
                     if (replaceOnBuild) proc.setGrooveId (id);          // BUILD plays yours in its place
@@ -734,6 +770,17 @@ namespace ggui
         std::vector<gg::Slot> lanes;
         auto add = [&lanes] (gg::Slot s) { if (std::find (lanes.begin(), lanes.end(), s) == lanes.end()) lanes.push_back (s); };
         if (! gg::mygrooves::isMine (id)) for (const auto& h : gg::grooveFor (id).hits) add (h.slot);
+        if (id == "blank")
+        {
+            // a blank pad: a row for every sound in the kit you picked (or the usual drums, before there are kits)
+            if (const auto* k = const_cast<GrooveGrabberProcessor&> (proc).getActiveKit())
+            {
+                for (int i = 0; i < gg::numSlots; ++i)
+                    if (! k->slots[(size_t) i].isEmpty()) add ((gg::Slot) i);
+            }
+            if (lanes.empty())
+                for (auto s : { gg::Slot::kick, gg::Slot::snare, gg::Slot::clap, gg::Slot::closedHat, gg::Slot::openHat, gg::Slot::perc1 }) add (s);
+        }
         if (const auto g = proc.getGroove (id)) for (const auto& h : g->hits) add (h.slot);
         if (const auto it = addedLanes.find (id); it != addedLanes.end()) for (auto s : it->second) add (s);
         std::sort (lanes.begin(), lanes.end(), [] (gg::Slot a, gg::Slot b) { return (int) a < (int) b; });
@@ -768,6 +815,11 @@ namespace ggui
         if (mine) if (const auto g = currentGroove()) chip = "MY: " + g->name.toUpperCase();
         myChip.setButtonText (chip);
         myChip.setToggleState (mine, juce::dontSendNotification);
+        blankChip.setToggleState (id == "blank", juce::dontSendNotification);
+        if (const auto g = currentGroove())
+            swingSlider.setValue (gg::swingPercent (*g), juce::dontSendNotification);
+        swingSlider.setEnabled (id.isNotEmpty());
+        swingSlider.setVisible (! naming);
 
         for (auto* b : { &saveMine, &addDrum, &undo, &reset }) b->setVisible (! naming);
         const bool relayout = renameMine.isVisible() != (! naming && mine) || saveChanges.isVisible() != (! naming && mine && changed);
@@ -784,7 +836,8 @@ namespace ggui
         const auto id = currentId();
         if (id.isEmpty()) return;
         auto& steps = undoSteps[id];
-        steps.push_back (proc.getGroove (id)->hits);
+        const auto g = proc.getGroove (id);
+        steps.push_back ({ g->hits, g->swing });
         if (steps.size() > 64) steps.erase (steps.begin());
     }
 
@@ -982,12 +1035,30 @@ namespace ggui
             for (auto* b : kitButtons) { b->setBounds (ka.removeFromLeft (36).reduced (2, 3)); }
         }
         h.removeFromRight (12);
-        for (auto* c : grooveChips) { c->setBounds (h.removeFromLeft (juce::jmin (160, h.getWidth())).reduced (2, 3)); h.removeFromLeft (4); }
-        myChip.setBounds (h.removeFromLeft (juce::jmin (showingMine() ? 230 : 160, h.getWidth())).reduced (2, 3));
+        {
+            // BLANK, the style's grooves and MY GROOVES share what's left (narrower together on a small window)
+            // (BLANK keeps room for its word)
+            std::vector<std::pair<juce::Component*, int>> chips;
+            for (auto* c : grooveChips) chips.push_back ({ c, 150 });
+            chips.push_back ({ &myChip, showingMine() ? 230 : 160 });
+            int want = 0;
+            for (auto& c : chips) want += c.second;
+            const int room = juce::jmax (0, h.getWidth() - 4 * (int) chips.size());
+            const double scale = want + 76 > room ? (double) juce::jmax (0, room - 64) / want : 1.0;
+            blankChip.setBounds (h.removeFromLeft (scale < 1.0 ? 64 : 76).reduced (2, 3));
+            h.removeFromLeft (4);
+            for (auto& c : chips)
+            {
+                c.first->setBounds (h.removeFromLeft (juce::roundToInt (c.second * scale)).reduced (2, 3));
+                h.removeFromLeft (4);
+            }
+        }
         editBar = pa.removeFromBottom (30);
         {
             auto eb = editBar;
             const bool mine = showingMine();
+            swingArea = eb.withWidth (210);
+            swingSlider.setBounds (swingArea.withTrimmedLeft (52).withTrimmedRight (44).reduced (0, 4));
             reset.setBounds (eb.removeFromRight (mine ? 112 : 84).reduced (0, 1));
             eb.removeFromRight (6);
             undo.setBounds (eb.removeFromRight (70).reduced (0, 1));
@@ -1163,7 +1234,14 @@ namespace ggui
         }
         else
         {
-            auto eb = editBar.withRight ((saveChanges.isVisible() ? saveChanges.getX() : saveMine.getX()) - 12);
+            // SWING, at the left
+            g.setColour (p.dim);
+            g.setFont (headFont (10.0f).withExtraKerningFactor (0.12f));
+            g.drawText ("SWING", swingArea.withWidth (50), juce::Justification::centredLeft);
+            g.setColour (p.text);
+            g.setFont (uiFont (14.5f));
+            g.drawText (juce::String ((int) swingSlider.getValue()) + "%", swingArea.withTrimmedLeft (swingArea.getWidth() - 42), juce::Justification::centredRight);
+            auto eb = editBar.withRight ((saveChanges.isVisible() ? saveChanges.getX() : saveMine.getX()) - 12).withTrimmedLeft (swingArea.getWidth() + 14);
             const auto id = currentId();
             if (showingMine())
             {

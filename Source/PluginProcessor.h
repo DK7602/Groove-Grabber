@@ -79,6 +79,8 @@ public:
     // changes wait (with the song) until saved: a built-in groove keeps them as your edit for this song; one of
     // your grooves keeps them until SAVE (saveGrooveChanges) or SAVE AS COPY. The saved hits again clear them.
     void editGroove (const juce::String& id, std::vector<gg::GrooveHit> hits);
+    void editGroove (const juce::String& id, std::vector<gg::GrooveHit> hits, float swing);
+    void setGrooveSwing (const juce::String& id, float swing);   // 0 = straight .. 0.5 = a full triplet (SAUCE's SWING)
     void resetGroove (const juce::String& id);
 
     // ---- my grooves: patterns you saved as your own, for every song (core/MyGrooves) ----

@@ -71,6 +71,7 @@ namespace ggui
         PatternGrid& getGrid() noexcept               { return grid; }
         juce::String getGrooveId() const              { return currentId(); }
         void pickMine (const juce::String& id);       // show one of my grooves
+        void setSwingPercent (int percent);           // SWING (50 = straight .. 66 = a full triplet)
         void openGroove (const juce::String& id);     // show this groove (BUILD's EDIT IN SAUCE): mine, the style's, or any other
         void startNaming (bool rename = false);       // SAVE AS MY GROOVE / SAVE AS COPY (or RENAME): the name box
         // save (a new groove: the original pattern goes back to how it was), and with replaceOnBuild BUILD plays
@@ -105,7 +106,8 @@ namespace ggui
         int lastBuildGenre = -99, lastBuildStyle = -99, lastBuildEra = -99;
         juce::StringArray grooveIds;
         juce::String myShown;                         // one of my grooves, when it's the one shown
-        std::map<juce::String, std::vector<std::vector<gg::GrooveHit>>> undoSteps;   // this session's, per groove
+        struct Snapshot { std::vector<gg::GrooveHit> hits; float swing = 0; };
+        std::map<juce::String, std::vector<Snapshot>> undoSteps;                      // this session's, per groove
         std::map<juce::String, std::vector<gg::Slot>> addedLanes;                     // drums added with + ADD DRUM
 
         bool playingHere = false;
@@ -122,6 +124,9 @@ namespace ggui
                          nameCancel { "CANCEL" };
         juce::TextButton saveChanges { "SAVE" }, renameMine { "RENAME" };
         juce::OwnedArray<juce::TextButton> kitButtons;   // 01..04: which of BUILD's kits plays the pattern
+        juce::TextButton blankChip { "BLANK" };          // an empty pattern to build from scratch
+        juce::Slider swingSlider;                        // the pattern's swing, 50% (straight) .. 66% (triplet)
+        juce::Rectangle<int> swingArea;
         juce::Rectangle<int> kitArea;
         void updateKitButtons();
         OneShotTimer disarmDelete;

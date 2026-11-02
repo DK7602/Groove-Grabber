@@ -9,6 +9,7 @@ namespace gg::mygrooves
         {
             juce::CriticalSection lock;
             bool loaded = false;
+            juce::int64 lastBackupTime = 0;     // each backup a millisecond after the one before, so newest-first holds
             std::vector<Entry> entries;
         };
 
@@ -97,13 +98,14 @@ namespace gg::mygrooves
         }
 
         // A copy of the groove as it is now, before it's saved over, renamed or deleted
-        void backUp (const Entry& e, const juce::String& why)
+        void backUp (Store& s, const Entry& e, const juce::String& why)
         {
             auto v = toVar (e);
+            s.lastBackupTime = juce::jmax (juce::Time::currentTimeMillis(), s.lastBackupTime + 1);
             if (auto* o = v.getDynamicObject())
             {
                 o->setProperty ("backupReason", why);
-                o->setProperty ("backupTime", juce::Time::currentTimeMillis());
+                o->setProperty ("backupTime", s.lastBackupTime);
             }
             const auto dir = backupFolder();
             const auto stamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d %H-%M-%S");
@@ -182,17 +184,18 @@ namespace gg::mygrooves
         return id;
     }
 
-    std::shared_ptr<const Groove> update (const juce::String& id, std::vector<GrooveHit> hits)
+    std::shared_ptr<const Groove> update (const juce::String& id, std::vector<GrooveHit> hits, float swing)
     {
         auto& s = store();
         const juce::ScopedLock sl (s.lock);
         auto* e = findEntry (s, id);
         if (e == nullptr) return nullptr;
         auto old = e->groove;
-        backUp (*e, "before saving changes");
+        backUp (s, *e, "before saving changes");
         auto g = std::make_shared<Groove> (*old);
         sortHits (hits);
         g->hits = std::move (hits);
+        g->swing = juce::jlimit (0.0f, 0.5f, swing);
         e->groove = std::move (g);
         write (*e);
         return old;
@@ -206,7 +209,7 @@ namespace gg::mygrooves
         const auto clean = name.trim().substring (0, 60);
         if (e == nullptr || clean.isEmpty()) return nullptr;
         auto old = e->groove;
-        backUp (*e, "before renaming to " + clean);
+        backUp (s, *e, "before renaming to " + clean);
         auto g = std::make_shared<Groove> (*old);
         g->name = clean;
         e->groove = std::move (g);
@@ -226,7 +229,7 @@ namespace gg::mygrooves
             if (it->groove->id == id)
             {
                 auto g = it->groove;
-                backUp (*it, "deleted");
+                backUp (s, *it, "deleted");
                 it->file.deleteFile();
                 s.entries.erase (it);
                 return g;

@@ -30,7 +30,7 @@ namespace gg::mygrooves
 
     // A copy of the groove under your name; returns its id (empty if it couldn't be written)
     juce::String save (const Groove&, const juce::String& name, Genre, const juce::String& styleId);
-    std::shared_ptr<const Groove> update (const juce::String& id, std::vector<GrooveHit> hits);   // returns the old version
+    std::shared_ptr<const Groove> update (const juce::String& id, std::vector<GrooveHit> hits, float swing);   // returns the old version
     std::shared_ptr<const Groove> rename (const juce::String& id, const juce::String& name);       // returns the old version
     std::shared_ptr<const Groove> remove (const juce::String& id);                                // returns what was removed
 

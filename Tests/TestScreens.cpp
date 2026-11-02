@@ -161,8 +161,10 @@ int runScreenshots (const juce::File& outDir)
             const auto backupsBefore = gg::mygrooves::backups().size();
             sauce.pickMine (mine);
             sauce.getGrid().clickStep (0, 6, {});
+            sauce.setSwingPercent (56);
             const bool savedChanges = proc.saveGrooveChanges (mine) && ! proc.isGrooveEdited (mine)
                                       && gg::mygrooves::find (mine)->hits.size() == mg->hits.size() + 1
+                                      && gg::swingPercent (*gg::mygrooves::find (mine)) == 56
                                       && gg::mygrooves::backups().size() == backupsBefore + 1;
             proc.deleteMyGroove (copy);
             const bool savesAsYouGo = waits && copied && savedChanges;
@@ -186,6 +188,30 @@ int runScreenshots (const juce::File& outDir)
                                     && backs.front().why == "deleted";
             if (restoredOk) proc.deleteMyGroove (restored);
             std::cout << (restoredOk ? "  ok: " : "  FAIL: ") << "a deleted groove is kept in Backups and comes back with RESTORE" << std::endl;
+            // BLANK: an empty pattern with a row for every sound in the kit you picked; SWING works on it
+            sauce.openGroove ("blank");
+            int sounds = 0;
+            if (auto* k = proc.getActiveKit()) for (auto& sl : k->slots) if (! sl.isEmpty()) ++sounds;
+            const bool blankRows = sauce.getGrooveId() == "blank" && sauce.getGrid().numLanes() == sounds && sounds > 0
+                                   && proc.getGroove ("blank")->hits.empty();
+            sauce.getGrid().clickStep (0, 0, {});
+            sauce.getGrid().clickStep (0, 8, {});
+            sauce.setSwingPercent (60);
+            pump (150);
+            save (*ed, outDir.getChildFile ("sauce-blank.png"));
+            const bool blankEdits = proc.isGrooveEdited ("blank") && proc.getGroove ("blank")->hits.size() == 2
+                                    && gg::swingPercent (*proc.getGroove ("blank")) == 60;
+            std::cout << (blankRows && blankEdits ? "  ok: " : "  FAIL: ") << "BLANK: the kit's " << sounds
+                      << " sounds as rows, hits and SWING kept with the song" << std::endl;
+            if (! (blankRows && blankEdits)) ++failures;
+            // what plays it swings with it: a new SWING, and RESET of one, are heard right away
+            proc.setGrooveId ("blank");
+            const bool swingHeard = std::abs (proc.player.getSwing() - 0.3f) < 1.0e-4f;
+            proc.resetGroove ("blank");
+            const bool resetHeard = std::abs (proc.player.getSwing()) < 1.0e-4f && proc.getGroove ("blank")->hits.empty();
+            proc.setGrooveId (buildGroove);
+            std::cout << (swingHeard && resetHeard ? "  ok: " : "  FAIL: ") << "SWING and RESET are heard on the groove playing" << std::endl;
+            if (! (swingHeard && resetHeard)) ++failures;
             // EDIT IN SAUCE from BUILD: whatever BUILD plays, even a groove from another style
             sauce.openGroove ("disco1");
             const bool opened = sauce.getGrooveId() == "disco1";
@@ -220,6 +246,9 @@ int runScreenshots (const juce::File& outDir)
             ed->setSize (1180, 760);
             pump (200);
             save (*ed, outDir.getChildFile ("sauce-small.png"));
+            ed->getSauce().choose (gg::Genre::boomBap, 0, 4);
+            pump (200);
+            save (*ed, outDir.getChildFile ("sauce-small-two.png"));
             ed->setSize (1440, 900);
             ed->getSauce().choose (gg::Genre::trap, gg::styleIndex (gg::Genre::trap, "trap.atlanta"), 6);
             pump (200);
@@ -338,6 +367,7 @@ int runScreenshots (const juce::File& outDir)
     // saved state: round trip, and a damaged / oversized one doesn't crash
     {
         proc.editGroove ("trap1", gg::withStep (*proc.getGroove ("trap1"), gg::Slot::kick, 3, 2, gg::mediumHit));
+        proc.setGrooveSwing ("trap1", 0.24f);
         pump (100);
         juce::MemoryBlock mb;
         proc.getStateInformation (mb);
@@ -346,11 +376,12 @@ int runScreenshots (const juce::File& outDir)
         const bool same = other.kits.size() == proc.kits.size() && other.description == proc.description;
         if (! same) { std::cout << "  FAIL: state round trip" << std::endl; ++failures; }
         const bool keptEdit = other.isGrooveEdited ("trap1") && gg::sameHits (other.getGroove ("trap1")->hits, proc.getGroove ("trap1")->hits)
-                              && ! other.isGrooveEdited ("boombap1");
+                              && std::abs (other.getGroove ("trap1")->swing - 0.24f) < 1.0e-4f && ! other.isGrooveEdited ("boombap1")
+                              && juce::JSON::parse (mb.toString())["grooveEdits"]["trap1"].isArray();   // (what 1.0.9 to 1.0.18 read)
         std::cout << (keptEdit ? "  ok: " : "  FAIL: ") << "an edited pattern is saved with the song" << std::endl;
         if (! keptEdit) ++failures;
-        proc.editGroove ("trap1", gg::grooveFor ("trap1").hits);
-        if (proc.isGrooveEdited ("trap1")) { std::cout << "  FAIL: the original's hits should reset the edit" << std::endl; ++failures; }
+        proc.editGroove ("trap1", gg::grooveFor ("trap1").hits, gg::grooveFor ("trap1").swing);
+        if (proc.isGrooveEdited ("trap1")) { std::cout << "  FAIL: the original's hits and swing should reset the edit" << std::endl; ++failures; }
         auto v = juce::JSON::parse (mb.toString());
         if (auto* a = v["kits"].getArray()) { auto copy = *a; for (auto& k : copy) a->add (k); }   // 8 kits
         const auto big = juce::JSON::toString (v);
