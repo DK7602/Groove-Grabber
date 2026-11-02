@@ -636,8 +636,17 @@ namespace
             auto forFL = eo;
             forFL.daw = "fl";
             forFL.destination = testRoot().getChildFile ("ExportsFL");
-            const auto flInfo = gg::exportKit (kits[0], forFL).infoFile.loadFileAsString();
-            check (flInfo.contains ("\nC3   36   01 Kick.wav") && flInfo.contains ("FPC"), "kit info for FL Studio: note 36 is C3, FPC steps");
+            const auto flRes = gg::exportKit (kits[0], forFL);
+            const auto flInfo = flRes.infoFile.loadFileAsString();
+            const auto suffix = " - " + flRes.folder.getFileName() + ".wav";
+            check (flInfo.contains ("\nC3   36   01 Kick" + suffix) && flInfo.contains ("FPC"), "kit info for FL Studio: note 36 is C3, FPC steps");
+            bool allNamed = flRes.padFiles.size() == gg::numPads;
+            for (int i = 0; i < flRes.padFiles.size(); ++i)
+                if (! flRes.padFiles[i].getFileName().startsWith (juce::String (i + 1).paddedLeft ('0', 2) + " ") || ! flRes.padFiles[i].getFileName().endsWith (suffix))
+                    allNamed = false;
+            check (allNamed && flRes.padFiles[0].getFileName() == "01 Kick" + suffix, "FL Studio: every file carries the kit name (" + flRes.padFiles[0].getFileName() + ")");
+            check (! flRes.programFile.existsAsFile() && flRes.folder.findChildFiles (juce::File::findFiles, false, "*.pgm").isEmpty(),
+                   "FL Studio: no MPC program (it can't name files that long)");
             auto forCubase = eo;
             forCubase.daw = "cubase";
             forCubase.destination = testRoot().getChildFile ("ExportsCubase");

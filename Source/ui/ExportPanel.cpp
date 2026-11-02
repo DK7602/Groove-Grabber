@@ -70,7 +70,7 @@ namespace ggui
             const int id = daw.getSelectedId();
             const auto& all = gg::dawGuides();
             proc.getSettings().set ("daw", id <= 1 ? juce::String() : all[(size_t) juce::jlimit (0, (int) all.size() - 1, id - 2)].id);
-            if (gg::chosenDaw (proc.getSettings().get ("daw")) == "mpc") bits.setSelected (0);     // MPC hardware needs 16-bit
+            updateForDaw();
             repaint();
         };
         addAndMakeVisible (daw);
@@ -110,6 +110,20 @@ namespace ggui
         daw.setSelectedId (selected, juce::dontSendNotification);
     }
 
+    void ExportPanel::updateForDaw()
+    {
+        const auto id = gg::chosenDaw (proc.getSettings().get ("daw"));
+        if (id == "mpc") bits.setSelected (0);                  // MPC hardware needs 16-bit
+        const bool fl = id == "fl";
+        if (fl == mpc.isEnabled())                              // switching to or from FL Studio
+        {
+            mpc.setEnabled (! fl);
+            mpc.setToggleState (! fl, juce::dontSendNotification);
+            mpc.setButtonText (fl ? "MPC program: off for FL Studio (its files carry the kit's name)"
+                                  : "MPC program (.pgm) for MPCs and samplers that import them");
+        }
+    }
+
     void ExportPanel::show (const gg::Kit& k)
     {
         fillDaws();
@@ -122,6 +136,7 @@ namespace ggui
         rate.setSelected (proc.getSettings().getExportSampleRate() > 46000 ? 1 : 0);
         genreFolder.setToggleState (proc.getSettings().getExportGenreFolders(), juce::dontSendNotification);
         genreFolder.setButtonText ("In a genre folder (Exports > " + gg::genreFolderName (k.genre) + " > your kit)");
+        updateForDaw();
         reveal.setVisible (false);
         setVisible (true);
         toFront (true);
@@ -140,7 +155,7 @@ namespace ggui
         proc.getSettings().setExportSampleRate (rate.getSelected() == 1 ? 48000.0 : 44100.0);
         gg::ExportOptions o;
         o.destination = proc.getSettings().getExportDir();
-        o.mpcProgram = mpc.getToggleState();
+        o.mpcProgram = mpc.getToggleState() && mpc.isEnabled();
         o.grooveMidi = midi.getToggleState();
         o.placeholders = placeholders.getToggleState();
         o.genreFolder = genreFolder.getToggleState();

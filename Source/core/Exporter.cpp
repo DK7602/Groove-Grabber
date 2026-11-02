@@ -84,6 +84,11 @@ namespace gg
         }
 
         const auto& daw = dawGuide (chosenDaw (o.daw));
+        // FL Studio's FPC finds samples by file name, so every kit's "01 Kick.wav" would look the same to it:
+        // there, each file carries the kit's name too ("01 Kick - Heavy Crate.wav"). An MPC program can't
+        // point at names that long (16 characters), so it's left out then.
+        const bool kitInNames = daw.id == "fl";
+        const bool writeMpc = o.mpcProgram && ! kitInNames;
         std::array<juce::String, numPads> mpcNames;
         juce::String table;
         for (int i = 0; i < numPads; ++i)
@@ -94,7 +99,7 @@ namespace gg
             const bool empty = audio == nullptr || audio->getNumSamples() == 0;
             if (empty && ! o.placeholders) continue;
 
-            const auto name = padFileName (i, empty);
+            const auto name = padFileName (i, empty) + (kitInNames ? " - " + r.folder.getFileName() : juce::String());
             const auto file = r.folder.getChildFile (name + ".wav");
             bool ok;
             if (empty)
@@ -129,7 +134,7 @@ namespace gg
             table << "\n";
         }
 
-        if (o.mpcProgram)
+        if (writeMpc)
         {
             r.programFile = r.folder.getChildFile (kitName.substring (0, 16).trim() + ".pgm");
             r.programFile.replaceWithData (makeMpcProgram (mpcNames).getData(), (size_t) mpc::templateSize);
@@ -158,10 +163,10 @@ namespace gg
              << "---------------------------------\n" << table << "\n"
              << "LOAD INTO " << (daw.id == "other" ? juce::String ("YOUR SAMPLER") : daw.sampler.toUpperCase() + " (" + daw.name.toUpperCase() + ")") << "\n"
              << "----------------------\n"
-             << dawGuideText (daw, numPads, padFileName (numPads - 1, false)) << "\n"
+             << dawGuideText (daw, numPads, r.padFiles.isEmpty() ? padFileName (numPads - 1, false) : r.padFiles.getLast().getFileNameWithoutExtension()) << "\n"
              << (daw.id != "other" ? "Note names: " + daw.name + " calls MIDI note 36 " + dawNoteName (36, daw) + ".\n" : juce::String())
              << "Another DAW? Every DAW's steps are in Groove Grabber's manual (F1 > Exporting to your DAW).\n\n"
-             << "Other options: " << (o.mpcProgram ? "'" + r.programFile.getFileName() + "' is an MPC 1000 program with every pad and note\n"
+             << "Other options: " << (writeMpc ? "'" + r.programFile.getFileName() + "' is an MPC 1000 program with every pad and note\n"
                                                     "already set, for MPCs and samplers that import MPC programs.\n" : juce::String())
              << (o.grooveMidi ? "'" + r.midiFile.getFileName() + "' is the preview groove on the same notes (your edit of it, if you made one on SAUCE).\n" : juce::String())
              << "\nThe original sounds are listed above so you always know which pack each one came from\n"

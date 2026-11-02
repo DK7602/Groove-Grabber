@@ -7,8 +7,8 @@ namespace ggui
     //==============================================================================
     PatternGrid::PatternGrid()
     {
-        setTooltip ("Click a step to add or take away a hit (drag along a row for several). "
-                    "Right-click: hard, medium, soft. Ctrl-click (Alt-click on a Mac): a roll.");
+        setTooltip ("Click a step to add or take away a hit (drag along a row for several). Right-click: hard, medium, soft. "
+                    "Ctrl-click (Alt-click on a Mac): 2 quick hits in the step, again for 3 (a triplet roll), again for 1.");
     }
 
     void PatternGrid::setGroove (std::shared_ptr<const gg::Groove> g, std::vector<gg::Slot> l)
@@ -823,11 +823,18 @@ namespace ggui
             }
             else if (! id.isEmpty())
             {
-                g.setColour (p.dim);
-                g.setFont (uiFont (14.0f, false));
-                g.drawFittedText (juce::String ("Click a step to add or take away a hit (drag for several). Right-click: hard, medium, soft. Ctrl-click (Alt on a Mac): a roll.")
-                                      + (proc.kits.empty() ? "  Generate kits on BUILD to hear it with your sounds." : ""),
-                                  eb, juce::Justification::centredLeft, 1, 0.75f);
+                juce::AttributedString as;
+                as.setLineSpacing (1.0f);
+                const auto key = uiFont (13.5f), plainText = uiFont (13.5f, false);
+                as.append ("Click", key, p.text);
+                as.append (" a step: add / take away (drag for several).   ", plainText, p.dim);
+                as.append ("Right-click", key, p.text);
+                as.append (": hard, medium, soft.   ", plainText, p.dim);
+                as.append ("Ctrl-click", key, p.text);
+                as.append (": 2 quick hits, again for 3 (a triplet roll).", plainText, p.dim);
+                if (proc.kits.empty()) as.append ("   Generate kits on BUILD to hear it with your sounds.", plainText, p.faint);
+                as.setJustification (juce::Justification::centredLeft);
+                as.draw (g, eb.toFloat());
             }
         }
 

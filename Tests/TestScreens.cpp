@@ -154,6 +154,10 @@ int runScreenshots (const juce::File& outDir)
                 if (! ok) ++failures;
                 proc.resetGroove (proc.grooveId);
             }
+            proc.getSettings().set ("daw", "fl");
+            if (auto* k = proc.getActiveKit()) ed->getExporter().show (*k);
+            pump (200);
+            save (*ed, outDir.getChildFile ("export-fl.png"));
             proc.getSettings().set ("daw", {});
             ed->getExporter().setVisible (false);
             ed->setSize (1180, 760);

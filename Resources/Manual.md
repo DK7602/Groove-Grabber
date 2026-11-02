@@ -271,7 +271,7 @@ Each kit shows its genre, style, decade, key, BPM, how many pads it fills and wh
 - **Name:** the kit's name, which becomes the folder name. Change it if you like.
 - **FOR:** the DAW the loading steps are written for. **Automatic** picks the DAW Groove Grabber is running in (Cubase, Live, FL Studio, Logic, Studio One, REAPER, Bitwig, Reason...). Pick one by hand in the app, or to get another DAW's steps. MPC sets 16-bit for you.
 - **16-BIT / 24-BIT** and **44.1 kHz / 48 kHz.** Use 16-bit for MPCs and older samplers.
-- **MPC program (.pgm):** an MPC 1000 program with every pad and note set, for MPCs and samplers that import them.
+- **MPC program (.pgm):** an MPC 1000 program with every pad and note set, for MPCs and samplers that import them. (Off for FL Studio: its file names are too long for an MPC program.)
 - **Groove MIDI file:** the preview groove on the same notes, on MIDI channel 1 (your edited version if you edited it on SAUCE).
 - **Silent files for empty pads:** keeps the numbering steady when a kit doesn't fill every pad. Leave it on.
 - **In a genre folder:** puts the kit in a folder for its genre, for example Exports\Hip-Hop\90s Westside Classic. On by default.
@@ -288,6 +288,8 @@ Exports/Hip-Hop/90s Westside Classic/
   Kit Info.txt                      where every sound came from + the steps for your DAW
   90s Westside Classic.ggkit        reopen it in Groove Grabber
 ```
+
+**For FL Studio, each file also carries the kit's name**, for example "01 Kick - 90s Westside Classic.wav". FPC finds its samples by file name, so this keeps two kits' kicks from ever getting mixed up.
 
 **Note names differ between DAWs.** The files always sit on MIDI notes 36 to 57, but DAWs name those notes differently: note 36 is C1 in Cubase, Live, Logic, Studio One and Bitwig, C2 in REAPER and C3 in FL Studio. The export panel, Kit Info.txt and the SAUCE grid use your DAW's names.
 
@@ -324,7 +326,7 @@ The SAUCE page explains how drums are played and programmed in a genre, style an
 
 - **Click a step** to add a hit or take one away. Hold the mouse down and drag along the row to do several.
 - **Right-click** a hit to make it hard, medium or soft (a ghost note). Right-click an empty step for a soft ghost note.
-- **Ctrl-click** (Alt-click on a Mac) a hit to make it a roll: a quick double, then a triplet burst, then a single hit again.
+- **Ctrl-click** (Alt-click on a Mac) a step for a roll: 2 quick hits in that step, Ctrl-click again for 3 (a triplet roll, the fast hi-hat flutter in trap and drill), and again for 1 hit. Right-click it afterwards to make the roll softer.
 - **+ ADD DRUM** adds a row for a drum the pattern doesn't use yet (rim, toms, ride, percussion, FX...).
 - **UNDO** takes back your last change. **RESET** goes back to the original pattern (and UNDO brings your version back).
 - An edited pattern shows **EDITED**. Your version is saved with your song (in your DAW project), plays while you edit, and is also what BUILD's preview groove plays and what goes into the export's Groove MIDI file. The groove list on BUILD marks it "edited".
@@ -476,7 +478,7 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | Space | Play / stop the preview groove (on SAUCE: the pattern you're looking at) |
 | Click a step (SAUCE) | Add or take away a hit; drag along the row for several |
 | Right-click a step (SAUCE) | Hard, medium, soft |
-| Ctrl-click a step (SAUCE; Alt-click on a Mac) | A roll: double, triplet, single |
+| Ctrl-click a step (SAUCE; Alt-click on a Mac) | A roll: 2 quick hits, then 3 (triplet), then 1 |
 | Enter (in the description box) | Generate kits |
 | Esc | Close the manual or the export panel |
 | Double-click a slider or knob | Reset it |

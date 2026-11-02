@@ -20,6 +20,7 @@ namespace ggui
     private:
         void doExport();
         void fillDaws();
+        void updateForDaw();             // MPC: 16-bit; FL Studio: no MPC program (its files carry the kit name)
         GrooveGrabberProcessor& proc;
         juce::ComboBox daw;
         gg::Kit kit;

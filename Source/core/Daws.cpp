@@ -45,7 +45,7 @@ namespace gg
                 { "For the step sequencer: drag all {PADS} files onto the **Channel Rack**. Each one becomes its own channel, ready to program.",
                   "For the piano roll and the Groove MIDI: load **FPC** (preset: Empty) and drop each file on the pad that plays its note: 01 Kick on {FIRST} (note 36), 02 Rim on C#3, 03 Snare on D3 and so on up the pad map. Do one file at a time: several files dropped on one FPC pad become layers of that pad." },
                 "Hats (FPC): give the Closed Hat, Pedal Hat and Open Hat pads the same number in **CUT** and **BY**, so a closed hat cuts off an open one.",
-                "Keep it: FPC's menu > **Save preset as**. Keep the export folder where it is, as the preset points to its files.",
+                "Keep it: FPC's menu > **Save preset as**. Each file carries the kit's name (01 Kick - your kit.wav), so FPC never mixes up two kits' sounds. Keep the export folder where it is, as the preset points to its files.",
                 "into FPC's piano roll (FL calls note 36 C3, so the kick is on C3)"));
 
             v.push_back (guide ("logic", "Logic Pro", "Drum Machine Designer", "DRAG TO LOGIC - DRUM MACHINE DESIGNER",

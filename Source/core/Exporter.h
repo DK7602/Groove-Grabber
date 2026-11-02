@@ -2,7 +2,8 @@
 // Designer, Impact XT ... or any sampler / drum machine):
 //
 //   <Kit name>/
-//     01 Kick.wav ... 22 FX 2.wav   one file per pad, numbered in General MIDI pad order from C1 (note 36),
+//     01 Kick.wav ... 22 FX 2.wav   one file per pad, numbered in General MIDI pad order from C1 (note 36)
+//                                    (for FL Studio, with the kit's name too: "01 Kick - <Kit name>.wav"),
 //                                    so dropping them all on the sampler's first pad puts every sound on the
 //                                    right note. Empty pads get a silent file so the numbering never shifts.
 //     <Kit name>.pgm                 an Akai MPC 1000 program with every pad and note set (Groove Agent can
@@ -20,7 +21,7 @@ namespace gg
     struct ExportOptions
     {
         juce::File destination;          // the kit folder is made inside this
-        bool mpcProgram = true;
+        bool mpcProgram = true;          // (not for FL Studio, whose file names are too long for one)
         bool grooveMidi = true;
         bool placeholders = true;        // silent files for empty pads
         bool genreFolder = true;         // inside a folder per genre: Exports/Hip-Hop/<kit>
