@@ -131,8 +131,30 @@ int runScreenshots (const juce::File& outDir)
                                && proc.grooveId == buildGroove;
             std::cout << (saved ? "  ok: " : "  FAIL: ") << "saved under its new name; the original is back to the original, BUILD unchanged" << std::endl;
             if (! saved) ++failures;
-            sauce.getGrid().clickStep (0, 5, {});            // editing it saves it
-            const bool savesAsYouGo = gg::mygrooves::find (mine)->hits.size() == mg->hits.size() + 1;
+            // changing your groove: nothing is saved into it until SAVE
+            sauce.getGrid().clickStep (0, 5, {});
+            const bool waits = proc.isGrooveEdited (mine) && gg::mygrooves::find (mine)->hits.size() == mg->hits.size()
+                               && proc.getGroove (mine)->hits.size() == mg->hits.size() + 1;
+            save (*ed, outDir.getChildFile ("sauce-mine-changed.png"));
+            // SAVE AS COPY: the copy gets the changes, your groove stays exactly as it was saved
+            sauce.startNaming();
+            sauce.finishNaming (true, "Late Kick Copy");
+            pump (100);
+            const auto copy = sauce.getGrooveId();
+            const bool copied = gg::mygrooves::isMine (copy) && copy != mine && gg::mygrooves::find (copy)->hits.size() == mg->hits.size() + 1
+                                && ! proc.isGrooveEdited (mine) && gg::sameHits (gg::mygrooves::find (mine)->hits, mg->hits);
+            // SAVE: the changes go into it, and the version before is kept in Backups
+            const auto backupsBefore = gg::mygrooves::backups().size();
+            sauce.pickMine (mine);
+            sauce.getGrid().clickStep (0, 6, {});
+            const bool savedChanges = proc.saveGrooveChanges (mine) && ! proc.isGrooveEdited (mine)
+                                      && gg::mygrooves::find (mine)->hits.size() == mg->hits.size() + 1
+                                      && gg::mygrooves::backups().size() == backupsBefore + 1;
+            proc.deleteMyGroove (copy);
+            const bool savesAsYouGo = waits && copied && savedChanges;
+            std::cout << (waits ? "  ok: " : "  FAIL: ") << "changing your groove waits for SAVE" << std::endl;
+            std::cout << (copied ? "  ok: " : "  FAIL: ") << "SAVE AS COPY: a new groove with the changes, yours stays as saved" << std::endl;
+            std::cout << (savedChanges ? "  ok: " : "  FAIL: ") << "SAVE: the changes go into your groove, the version before into Backups" << std::endl;
             // BUILD can play it; deleting it sends BUILD back to the style's groove
             proc.setGrooveId (mine);
             const bool plays = proc.grooveId == mine && proc.player.getGroove() == gg::mygrooves::find (mine).get();
@@ -143,8 +165,19 @@ int runScreenshots (const juce::File& outDir)
             proc.setGrooveId ("my.gone-for-good");
             const bool missing = proc.grooveId == proc.firstGroove();
             proc.setGrooveId (buildGroove);
-            const bool ok = savesAsYouGo && plays && fellBack && missing;
-            std::cout << (ok ? "  ok: " : "  FAIL: ") << "my groove saves as you edit, plays on BUILD, and deleting it falls back" << std::endl;
+            // deleting kept a copy in Backups; restoring it brings it back as a groove of its own
+            const auto backs = gg::mygrooves::backups();
+            const auto restored = backs.empty() ? juce::String() : proc.restoreMyGroove (backs.front().file);
+            const bool restoredOk = gg::mygrooves::isMine (restored) && restored != mine && gg::mygrooves::find (restored) != nullptr
+                                    && backs.front().why == "deleted";
+            if (restoredOk) proc.deleteMyGroove (restored);
+            std::cout << (restoredOk ? "  ok: " : "  FAIL: ") << "a deleted groove is kept in Backups and comes back with RESTORE" << std::endl;
+            // EDIT IN SAUCE from BUILD: whatever BUILD plays, even a groove from another style
+            sauce.openGroove ("disco1");
+            const bool opened = sauce.getGrooveId() == "disco1";
+            std::cout << (opened ? "  ok: " : "  FAIL: ") << "EDIT IN SAUCE opens BUILD's groove, even from another style" << std::endl;
+            const bool ok = savesAsYouGo && plays && fellBack && missing && restoredOk && opened;
+            std::cout << (ok ? "  ok: " : "  FAIL: ") << "my groove plays on BUILD, and deleting it falls back" << std::endl;
             if (! ok) ++failures;
 
             // SAVE & REPLACE ON BUILD: BUILD plays yours in place of the original (which stays the original)

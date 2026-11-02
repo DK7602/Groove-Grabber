@@ -86,6 +86,20 @@ namespace ggui
     };
 
     //==============================================================================
+    // A timer that fires once, owned by the component that uses it, so it stops when that component goes (unlike
+    // juce::Timer::callAfterDelay, which could outlive the plug-in's shutdown in a DAW)
+    class OneShotTimer : private juce::Timer
+    {
+    public:
+        void start (int ms, std::function<void()> f)   { fn = std::move (f); startTimer (ms); }
+        void cancel()                                    { stopTimer(); fn = nullptr; }
+
+    private:
+        void timerCallback() override                    { stopTimer(); if (auto f = std::move (fn)) f(); }
+        std::function<void()> fn;
+    };
+
+    //==============================================================================
     // The status line at the bottom: a message that fades after a while
     class Toast : public juce::Component, private juce::Timer
     {

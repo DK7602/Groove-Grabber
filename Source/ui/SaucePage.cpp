@@ -315,18 +315,25 @@ namespace ggui
             const auto id = currentId();
             if (showingMine())
             {
-                // DELETE, once you've clicked it twice
+                // changes not saved yet: REVERT them (UNDO brings them back)
+                if (proc.isGrooveEdited (id))
+                {
+                    pushUndo();
+                    addedLanes.erase (id);
+                    proc.resetGroove (id);
+                    showGroove();
+                    return;
+                }
+                // DELETE, once you've clicked it twice (it's kept in Backups too)
                 if (! deleteArmed)
                 {
                     deleteArmed = true;
                     showGroove();
-                    juce::Timer::callAfterDelay (4000, [safe = juce::Component::SafePointer<SaucePage> (this)]
-                    {
-                        if (safe != nullptr && safe->deleteArmed) { safe->deleteArmed = false; safe->showGroove(); }
-                    });
+                    disarmDelete.start (4000, [this] { if (deleteArmed) { deleteArmed = false; showGroove(); } });
                     return;
                 }
                 deleteArmed = false;
+                disarmDelete.cancel();
                 myShown = {};
                 undoSteps.erase (id);
                 addedLanes.erase (id);
@@ -346,6 +353,21 @@ namespace ggui
         saveMine.setTooltip ("Keep this pattern as your own, under a name: it's in every song, here and in BUILD's groove list");
         saveMine.onClick = [this] { startNaming(); };
         addAndMakeVisible (saveMine);
+
+        saveChanges.getProperties().set ("style", "accent");
+        saveChanges.getProperties().set ("accent", pal().orange.toString());
+        saveChanges.setTooltip ("Put your changes into this groove (the version before is kept in Backups)");
+        saveChanges.onClick = [this]
+        {
+            const auto id = currentId();
+            if (proc.saveGrooveChanges (id)) addedLanes.erase (id);
+            showGroove();
+        };
+        addChildComponent (saveChanges);
+        renameMine.getProperties().set ("style", "ghost");
+        renameMine.setTooltip ("Give this groove a new name (nothing else changes)");
+        renameMine.onClick = [this] { startNaming (true); };
+        addChildComponent (renameMine);
 
         myChip.getProperties().set ("style", "toggle");
         myChip.setTooltip ("Your own grooves, saved with SAVE AS MY GROOVE");
@@ -418,6 +440,7 @@ namespace ggui
             subStyle = o.subStyle;
             era = o.era;
             showChoice();
+            openGroove (proc.grooveId);          // the pattern BUILD is playing
             return;
         }
         fillBoxes();
@@ -515,6 +538,28 @@ namespace ggui
         resized();
     }
 
+    void SaucePage::openGroove (const juce::String& id)
+    {
+        if (gg::mygrooves::isMine (id)) { pickMine (id); return; }
+        if (gg::grooveFor (id).id != id) return;
+        int index = grooveIds.indexOf (id);
+        if (index < 0)
+        {
+            // a groove from another style: a button for it next to this style's
+            grooveIds.add (id);
+            const auto& name = gg::grooveFor (id).name;
+            auto* b = grooveChips.add (new juce::TextButton (name.toUpperCase()));
+            b->getProperties().set ("style", "toggle");
+            b->setTooltip ("BUILD's groove: " + name);
+            const int i = grooveIds.size() - 1;
+            b->onClick = [this, i] { pickGroove (i); };
+            addAndMakeVisible (b);
+            index = i;
+        }
+        pickGroove (index);
+        resized();
+    }
+
     void SaucePage::showMyGroovesMenu()
     {
         const auto all = gg::mygrooves::list();
@@ -543,18 +588,28 @@ namespace ggui
         });
     }
 
-    void SaucePage::startNaming()
+    void SaucePage::startNaming (bool rename)
     {
         const auto g = currentGroove();
         if (g == nullptr) return;
-        renaming = showingMine();
-        juce::String name = renaming ? g->name : "My " + g->name;
+        renaming = rename && showingMine();
+        juce::String name = g->name;
         if (! renaming)
         {
-            // a name that isn't taken yet: My Boom Bap, My Boom Bap 2...
+            // a name that isn't taken yet: My Boom Bap, My Boom Bap 2... and for a copy of yours, the next number
+            // ("DK Trap 1" -> "DK Trap 2"), or "... 2"
             juce::StringArray taken;
             for (const auto& e : gg::mygrooves::list()) taken.add (e.groove->name);
-            for (int n = 2; taken.contains (name, true) && n < 100; ++n) name = "My " + g->name + " " + juce::String (n);
+            juce::String stem = showingMine() ? g->name : "My " + g->name;
+            int n = 1;
+            const auto digits = stem.getTrailingIntValue();
+            if (showingMine() && digits > 0 && stem.endsWith (juce::String (digits)))
+            {
+                n = digits;
+                stem = stem.dropLastCharacters (juce::String (digits).length()).trimEnd();
+            }
+            name = showingMine() ? stem + " " + juce::String (n + 1) : stem;
+            for (int k = n + 1; taken.contains (name, true) && k < n + 200; ++k) name = stem + " " + juce::String (k + (showingMine() ? 1 : 0));
         }
         naming = true;
         nameEdit.setColour (juce::TextEditor::backgroundColourId, pal().sunken);
@@ -589,9 +644,9 @@ namespace ggui
                 const auto id = proc.saveMyGroove (from, name, genre, style.id);
                 if (id.isNotEmpty())
                 {
-                    // your version lives on under its new name; the pattern you started from goes back to its
-                    // original (UNDO on it brings your edit back)
-                    if (! gg::mygrooves::isMine (from) && proc.isGrooveEdited (from))
+                    // your version lives on under its new name; the pattern you started from goes back to how it
+                    // was saved (UNDO on it brings your changes back)
+                    if (proc.isGrooveEdited (from))
                     {
                         auto& steps = undoSteps[from];
                         steps.push_back (proc.getGroove (from)->hits);
@@ -632,12 +687,18 @@ namespace ggui
         grid.setGroove (currentGroove(), id.isEmpty() ? std::vector<gg::Slot>() : lanesFor (id));
         const auto it = undoSteps.find (id);
         undo.setEnabled (it != undoSteps.end() && ! it->second.empty());
-        reset.setButtonText (mine ? (deleteArmed ? "SURE? DELETE" : "DELETE") : "RESET");
+        const bool changed = proc.isGrooveEdited (id);
+        if (changed) deleteArmed = false;
+        reset.setButtonText (mine ? (changed ? "REVERT" : (deleteArmed ? "SURE? DELETE" : "DELETE")) : "RESET");
         reset.getProperties().set ("style", mine && deleteArmed ? "accent" : "ghost");
-        reset.setTooltip (mine ? "Delete this groove from MY GROOVES (click twice)" : "Back to the original pattern (UNDO brings your version back)");
-        reset.setEnabled (mine || proc.isGrooveEdited (id) || (addedLanes.count (id) > 0 && ! addedLanes.at (id).empty()));
+        reset.setTooltip (mine ? (changed ? "Back to your groove as it's saved (UNDO brings your changes back)"
+                                          : "Delete this groove from MY GROOVES (click twice; a copy stays in Backups)")
+                               : "Back to the original pattern (UNDO brings your version back)");
+        reset.setEnabled (mine || changed || (addedLanes.count (id) > 0 && ! addedLanes.at (id).empty()));
         addDrum.setEnabled (id.isNotEmpty() && (int) lanesFor (id).size() < gg::numSlots);
-        saveMine.setButtonText (mine ? "RENAME" : "SAVE AS MY GROOVE");
+        saveMine.setButtonText (mine ? "SAVE AS COPY" : "SAVE AS MY GROOVE");
+        saveMine.setTooltip (mine ? "Save this as a new groove of its own; this one stays as it's saved"
+                                  : "Keep this pattern as your own, under a name: it's in every song, here and in BUILD's groove list");
         saveMine.setEnabled (id.isNotEmpty());
         saveMine.getProperties().set ("accent", pal().blue.toString());
 
@@ -648,6 +709,10 @@ namespace ggui
         myChip.setToggleState (mine, juce::dontSendNotification);
 
         for (auto* b : { &saveMine, &addDrum, &undo, &reset }) b->setVisible (! naming);
+        const bool relayout = renameMine.isVisible() != (! naming && mine) || saveChanges.isVisible() != (! naming && mine && changed);
+        renameMine.setVisible (! naming && mine);
+        saveChanges.setVisible (! naming && mine && changed);
+        if (relayout) resized();          // SAVE and RENAME come and go: the edit bar makes room for them
         for (auto* c : std::initializer_list<juce::Component*> { &nameEdit, &nameOk, &nameCancel }) c->setVisible (naming);
         nameReplace.setVisible (naming && ! renaming);
         repaint (patternArea);
@@ -855,13 +920,24 @@ namespace ggui
         editBar = pa.removeFromBottom (30);
         {
             auto eb = editBar;
-            reset.setBounds (eb.removeFromRight (showingMine() ? 112 : 84).reduced (0, 1));
+            const bool mine = showingMine();
+            reset.setBounds (eb.removeFromRight (mine ? 112 : 84).reduced (0, 1));
             eb.removeFromRight (6);
-            undo.setBounds (eb.removeFromRight (76).reduced (0, 1));
+            undo.setBounds (eb.removeFromRight (70).reduced (0, 1));
             eb.removeFromRight (6);
-            addDrum.setBounds (eb.removeFromRight (112).reduced (0, 1));
+            addDrum.setBounds (eb.removeFromRight (108).reduced (0, 1));
             eb.removeFromRight (6);
-            saveMine.setBounds (eb.removeFromRight (showingMine() ? 96 : 166).reduced (0, 1));
+            if (mine)
+            {
+                renameMine.setBounds (eb.removeFromRight (86).reduced (0, 1));
+                eb.removeFromRight (6);
+            }
+            saveMine.setBounds (eb.removeFromRight (mine ? 124 : 166).reduced (0, 1));
+            if (mine && saveChanges.isVisible())
+            {
+                eb.removeFromRight (6);
+                saveChanges.setBounds (eb.removeFromRight (74).reduced (0, 1));
+            }
 
             // naming a groove: the name box in place of the hint and the buttons
             auto nb = editBar;
@@ -1017,22 +1093,29 @@ namespace ggui
         }
         else
         {
-            auto eb = editBar.withRight (saveMine.getX() - 12);
+            auto eb = editBar.withRight ((saveChanges.isVisible() ? saveChanges.getX() : saveMine.getX()) - 12);
             const auto id = currentId();
             if (showingMine())
             {
+                // your groove: saved as it is, or with changes waiting for SAVE
+                const bool changed = proc.isGrooveEdited (id);
+                const auto colour = changed ? p.orange : p.blue;
                 auto tag = eb.removeFromLeft (96).withSizeKeepingCentre (96, 22).toFloat();
-                g.setColour (p.blue.withAlpha (0.18f));
+                g.setColour (colour.withAlpha (0.18f));
                 g.fillRoundedRectangle (tag, 6.0f);
-                g.setColour (p.blue);
+                g.setColour (colour);
                 g.drawRoundedRectangle (tag, 6.0f, 1.0f);
                 g.setFont (headFont (10.5f).withExtraKerningFactor (0.1f));
-                g.drawText ("MY GROOVE", tag, juce::Justification::centred);
+                g.drawText (changed ? "CHANGED" : "MY GROOVE", tag, juce::Justification::centred);
                 eb.removeFromLeft (10);
-                g.setColour (p.dim);
-                g.setFont (uiFont (14.0f, false));
-                g.drawFittedText ("Yours, in every song: changes save as you go. Pick it in BUILD's groove list to hear kits in it.",
-                                  eb, juce::Justification::centredLeft, 2, 0.8f);
+                if (eb.getWidth() > 150)
+                {
+                    g.setColour (p.dim);
+                    g.setFont (uiFont (14.0f, false));
+                    g.drawFittedText (changed ? "Not saved yet. SAVE puts it into this groove, SAVE AS COPY makes a new one, REVERT drops it."
+                                              : "Saved. Changes wait here until you press SAVE or SAVE AS COPY.",
+                                      eb, juce::Justification::centredLeft, 2, 0.8f);
+                }
             }
             else if (proc.isGrooveEdited (id))
             {
@@ -1049,7 +1132,7 @@ namespace ggui
                 g.drawFittedText ("Your version is saved with this song. BUILD's preview and the export's Groove MIDI use it.",
                                   eb, juce::Justification::centredLeft, 1, 0.8f);
             }
-            else if (! id.isEmpty())
+            else if (! id.isEmpty() && eb.getWidth() > 200)
             {
                 juce::AttributedString as;
                 as.setLineSpacing (1.0f);

@@ -878,8 +878,16 @@ namespace
             check (back != nullptr && back->name == "Bounce Two" && gg::sameHits (back->hits, old->hits) == false && back->hits.size() == start.hits.size() + 1
                    && std::abs (back->bpm - start.bpm) < 0.01 && mg::list().size() == before + 1,
                    "my groove reads back from disk (junk files and non-'my.' ids left out)");
+            const auto backupsBefore = mg::backups().size();
             const auto gone = mg::remove (id);
-            check (gone != nullptr && mg::find (id) == nullptr && ! mg::folder().getChildFile ("Bounce Two.gggroove").exists(), "deleting my groove deletes its file");
+            check (gone != nullptr && mg::find (id) == nullptr && ! mg::folder().getChildFile ("Bounce Two.gggroove").exists()
+                   && mg::backups().size() == backupsBefore + 1 && mg::backups().front().name == "Bounce Two" && mg::backups().front().why == "deleted",
+                   "deleting my groove keeps a copy in Backups");
+            check (mg::backups().size() >= 3, "saving over and renaming keep copies in Backups too");
+            const auto restoredId = mg::restore (mg::backups().front().file);
+            check (mg::isMine (restoredId) && restoredId != id && mg::find (restoredId) != nullptr && mg::find (restoredId)->name == "Bounce Two"
+                   && mg::find (restoredId)->hits.size() == start.hits.size() + 1, "a backup comes back as a groove of its own");
+            mg::remove (restoredId);
             check (mg::find ("boombap1") == nullptr && ! mg::isMine ("boombap1"), "built-in grooves aren't mine");
             mg::folder().getChildFile ("junk.gggroove").deleteFile();
             mg::folder().getChildFile ("not mine.gggroove").deleteFile();

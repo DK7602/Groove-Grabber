@@ -348,8 +348,12 @@ namespace ggui
             const int i = sel - 1;
             if (juce::isPositiveAndBelow (i, (int) gg::allGrooves().size())) proc.setGrooveId (gg::allGrooves()[(size_t) i].id);
         };
-        groove.setTooltip ("Preview groove (plays at the song's BPM). Edit it on SAUCE.");
+        groove.setTooltip ("Preview groove (plays at the song's BPM). EDIT IN SAUCE changes it.");
         addAndMakeVisible (groove);
+        editGroove.getProperties().set ("style", "ghost");
+        editGroove.setTooltip ("Open this groove on SAUCE to change it, save it as your own or drag it into your DAW");
+        editGroove.onClick = [this] { if (onEditGroove) onEditGroove(); };
+        addAndMakeVisible (editGroove);
 
         swing.setSliderStyle (juce::Slider::LinearHorizontal);
         swing.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
@@ -436,7 +440,9 @@ namespace ggui
         r.removeFromLeft (12);
         const bool narrow = getWidth() < 1000;
         groove.setBounds (r.removeFromLeft (narrow ? 170 : 200).withSizeKeepingCentre (narrow ? 170 : 200, 30));
-        r.removeFromLeft (16);
+        r.removeFromLeft (6);
+        editGroove.setBounds (r.removeFromLeft (narrow ? 104 : 118).withSizeKeepingCentre (narrow ? 104 : 118, 30));
+        r.removeFromLeft (14);
         auto sw = r.removeFromLeft (narrow ? 140 : 170);
         sw.removeFromLeft (52);
         swing.setBounds (sw);
@@ -519,6 +525,7 @@ namespace ggui
             }
         };
         exportKit.onClick = [this] { if (onExport) onExport(); };
+        transport.onEditGroove = [this] { if (onEditGroove) onEditGroove(); };
     }
 
     void BuildPage::refresh()

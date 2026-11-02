@@ -41,6 +41,7 @@ The Windows and Mac installers let you choose the parts. Pick "Plug-in + standal
 | Exported kits | Documents\Groove Grabber\Exports\<genre>\<kit name> |
 | Patterns dragged from SAUCE | Documents\Groove Grabber\Sauce MIDI |
 | My grooves | Documents\Groove Grabber\My Grooves |
+| Backups of your grooves (before each save, rename or delete) | Documents\Groove Grabber\My Grooves\Backups |
 | Saved kits | Documents\Groove Grabber\Kits\<genre> |
 | Harvested hits | Documents\Groove Grabber\Harvested |
 | Your own recordings | Documents\Groove Grabber\My Recordings |
@@ -235,7 +236,8 @@ The buttons above the pads act on the whole kit: **REGENERATE** (new sounds for 
 **The groove bar** (very bottom)
 
 - **Play / stop** the preview groove with the selected kit. The **Space bar** does the same.
-- **Groove** picks the preview pattern. Each style has its own, and it plays at the song's BPM.
+- **Groove** picks the preview pattern. Each style has its own, and it plays at the song's BPM. Your own grooves are listed under MY GROOVES.
+- **EDIT IN SAUCE** opens the groove you picked on the SAUCE page, to change it, save it as your own or drag it into your DAW.
 - **SWING** and **VOL** for the preview.
 - **Follow DAW:** while your DAW plays, the groove locks to its timeline, so you hear the kit inside your song.
 
@@ -249,7 +251,7 @@ The MY KITS page has three views:
 
 - **SAVED:** every kit you kept, filed in a folder for its genre (Documents\Groove Grabber\Kits\Hip-Hop, \Rock, \Country...). Kits saved by older versions are moved into their genre folders automatically.
 - **RECENT:** the last 48 kits you generated, saved or not, so a good one is never lost.
-- **MY GROOVES:** the patterns you saved as your own on SAUCE (see SAUCE: how the drums go). Each shows a small picture of the pattern, its genre and style, tempo, swing and the pattern it started from, with **OPEN** (show it on SAUCE to play, change or drag it), **USE ON BUILD** (BUILD's preview and the export's Groove MIDI use it) and **DELETE** (click twice). The genre tabs and search work here too.
+- **MY GROOVES:** the patterns you saved as your own on SAUCE (see SAUCE: how the drums go). Each shows a small picture of the pattern, its genre and style, tempo, swing and the pattern it started from, with **OPEN** (show it on SAUCE to play, change or drag it), **USE ON BUILD** (BUILD's preview and the export's Groove MIDI use it) and **DELETE** (click twice). The genre tabs and search work here too. **BACKUPS...** (top right) lists the copies kept before a groove was saved over, renamed or deleted; pick one to bring it back as a groove of its own.
 
 **Finding a kit**
 
@@ -345,7 +347,13 @@ An edit belongs to one song. To keep a pattern for all your songs, save it as yo
 3. It's saved on your computer in Documents\Groove Grabber\My Grooves, with its tempo and swing, and listed under MY GROOVES here and on the MY KITS page.
 
 - **MY GROOVES** (next to the pattern buttons) lists your grooves, this genre's first and the rest under Other genres. Pick one to see it, play it, change it or drag it into your DAW.
-- While one of your grooves is showing, it's marked **MY GROOVE**. Changes save to it as you go (UNDO still works), **RENAME** gives it a new name, and **DELETE** removes it (click it twice: the first click asks SURE?).
+- While one of your grooves is showing, it's marked **MY GROOVE**. **Nothing changes it until you say so**: as soon as you change a step it's marked **CHANGED**, and then:
+    - **SAVE** puts your changes into this groove.
+    - **SAVE AS COPY** saves your changes as a new groove (the name counts up: "Trap 1" becomes "Trap 2"), and this one stays exactly as it was saved. SAVE AS COPY works without changes too, for a copy to experiment on.
+    - **REVERT** drops the changes (UNDO brings them back).
+    - Changes you haven't saved stay with the song, so they're still there when you reopen the project.
+- **RENAME** gives it a new name and changes nothing else. **DELETE** removes it (click it twice: the first click asks SURE?).
+- **A copy is always kept.** Before a groove is saved over, renamed or deleted, a copy goes to Documents\Groove Grabber\My Grooves\Backups. MY KITS > MY GROOVES > **BACKUPS...** brings any of them back.
 - BUILD's groove list has a **MY GROOVES** section in every song: pick one to hear new kits in your groove, and it's what goes into the export's Groove MIDI file. If you delete it, BUILD goes back to the style's own groove.
 
 **THE SAUCE** (bottom)
@@ -494,6 +502,8 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | A pattern you dragged in from SAUCE doesn't play | It was dropped on empty space, so your DAW made a new track with no instrument. Drag the part onto your drum track (Groove Agent, Groove Grabber...), or set that track's output to your drum instrument. Next time, drop it straight on the drum track's lane. |
 | You changed a pattern on SAUCE and want the original back | Press RESET under the pattern. UNDO brings your version back. |
 | You want a pattern in every song, not just this one | SAUCE: SAVE AS MY GROOVE. It's then under MY GROOVES on SAUCE, in BUILD's groove list and on the MY KITS page. |
+| One of your grooves changed or is gone, and you want it back | MY KITS > MY GROOVES > BACKUPS...: every version from before a save, rename or delete is there. Pick one to bring it back as a groove of its own. |
+| You want to change a groove BUILD is playing | Press EDIT IN SAUCE next to BUILD's groove list. |
 | You saved your version and want BUILD to use it instead of the original | Pick it in BUILD's groove list (MY GROOVES section), or press USE ON BUILD on the MY KITS page. Next time, save with SAVE & REPLACE ON BUILD. |
 | You moved or renamed your drum folders | Remove the old folder on the LIBRARY page and add it again. Saved kits point at the old file locations. |
 | The first scan takes a while | Every sound is analysed once. Later scans only look at new files, and you can keep working meanwhile. |

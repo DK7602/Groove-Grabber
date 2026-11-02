@@ -21,6 +21,7 @@ GrooveGrabberEditor::GrooveGrabberEditor (GrooveGrabberProcessor& p)
     header.onThemeChanged = [this] { themeChanged(); };
     header.onHelp = [this] (int page) { help.show (page); };
     build.onExport = [this] { if (auto* k = proc.getActiveKit()) exporter.show (*k); };
+    build.onEditGroove = [this] { showTab (3); sauce.openGroove (proc.grooveId); };
     kitsPage.onExport = [this] (const gg::Kit& k) { exporter.show (k); };
     kitsPage.onLoaded = [this] { showTab (0); };
     sauce.onUseOnBuild = [this] { showTab (0); };

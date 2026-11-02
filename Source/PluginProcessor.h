@@ -76,12 +76,16 @@ public:
     // ---- grooves: the built-in ones, or your edit of one (from SAUCE, kept with the song) ----
     std::shared_ptr<const gg::Groove> getGroove (const juce::String& id) const;
     bool isGrooveEdited (const juce::String& id) const;
-    void editGroove (const juce::String& id, std::vector<gg::GrooveHit> hits);   // the original's hits reset it
+    // changes wait (with the song) until saved: a built-in groove keeps them as your edit for this song; one of
+    // your grooves keeps them until SAVE (saveGrooveChanges) or SAVE AS COPY. The saved hits again clear them.
+    void editGroove (const juce::String& id, std::vector<gg::GrooveHit> hits);
     void resetGroove (const juce::String& id);
 
     // ---- my grooves: patterns you saved as your own, for every song (core/MyGrooves) ----
     juce::String saveMyGroove (const juce::String& fromId, const juce::String& name, gg::Genre, const juce::String& styleId);
     void renameMyGroove (const juce::String& id, const juce::String& name);
+    bool saveGrooveChanges (const juce::String& id);   // your changes go into one of your grooves (SAVE)
+    juce::String restoreMyGroove (const juce::File& backup);   // a groove back from My Grooves/Backups
     void deleteMyGroove (const juce::String& id);
     void auditionSlot (gg::Slot);
     void previewFile (const juce::String& path, gg::Cat);

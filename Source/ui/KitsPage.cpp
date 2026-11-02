@@ -124,10 +124,7 @@ namespace ggui
                     {
                         armed = true;
                         del.setButtonText ("SURE?");
-                        juce::Timer::callAfterDelay (4000, [safe = juce::Component::SafePointer<GrooveRow> (this)]
-                        {
-                            if (safe != nullptr) { safe->armed = false; safe->del.setButtonText ("DELETE"); }
-                        });
+                        disarm.start (4000, [this] { armed = false; del.setButtonText ("DELETE"); });
                         return;
                     }
                     const auto id = entry.groove->id;
@@ -199,6 +196,7 @@ namespace ggui
             std::function<void()> onUsed;
             juce::TextButton open { "OPEN" }, use { "USE ON BUILD" }, del { "DELETE" };
             bool armed = false;
+            OneShotTimer disarm;
         };
     }
 
@@ -242,7 +240,32 @@ namespace ggui
             });
         };
         addAndMakeVisible (openFile);
+        backupsBtn.getProperties().set ("style", "ghost");
+        backupsBtn.setTooltip ("Copies kept before a groove was saved over, renamed or deleted: bring one back");
+        backupsBtn.onClick = [this] { showBackupsMenu(); };
+        addChildComponent (backupsBtn);
         rebuild();
+    }
+
+    void KitsPage::showBackupsMenu()
+    {
+        const auto backs = gg::mygrooves::backups();
+        juce::PopupMenu m;
+        m.addSectionHeader ("BRING BACK A GROOVE (A NEW COPY)");
+        for (int i = 0; i < (int) backs.size() && i < 40; ++i)
+        {
+            const auto& b = backs[(size_t) i];
+            m.addItem (i + 1, b.name + "   -   " + (b.why.isNotEmpty() ? b.why : juce::String ("saved")) + ", " + b.when.toString (true, true, false));
+        }
+        if (backs.empty()) m.addItem (-1, "No backups yet: they're kept when a groove is saved over, renamed or deleted", false);
+        m.addSeparator();
+        m.addItem (1000, "Show the Backups folder");
+        m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&backupsBtn), [this, backs, safe = juce::Component::SafePointer<KitsPage> (this)] (int r)
+        {
+            if (safe == nullptr || r <= 0) return;
+            if (r == 1000) { gg::mygrooves::backupFolder().revealToUser(); return; }
+            if (r <= (int) backs.size()) { proc.restoreMyGroove (backs[(size_t) r - 1].file); rebuild(); }
+        });
     }
 
     bool KitsPage::matchesSearch (const gg::Kit& k) const
@@ -301,12 +324,14 @@ namespace ggui
                 if (match) content.addAndMakeVisible (rows.add (new GrooveRow (proc, e, onOpenGroove, onUseGroove)));
             }
             openFile.setVisible (false);
+            backupsBtn.setVisible (true);
             resized();
             viewport.setViewPosition (0, scrollY);
             repaint();
             return;
         }
         openFile.setVisible (true);
+        backupsBtn.setVisible (false);
 
         std::vector<std::pair<juce::File, gg::Kit>> list;
         if (view.getSelected() == 0) list = gg::kitstore::listSaved();
@@ -349,7 +374,8 @@ namespace ggui
         r.removeFromTop (26);
         auto top = r.removeFromTop (32);
         view.setBounds (top.removeFromLeft (360));
-        openFile.setBounds (top.removeFromRight (160));
+        openFile.setBounds (top.withLeft (top.getRight() - 160));
+        backupsBtn.setBounds (top.removeFromRight (160));
         top.removeFromRight (12);
         top.removeFromLeft (12);
         search.setBounds (top.removeFromRight (juce::jmin (380, top.getWidth())));

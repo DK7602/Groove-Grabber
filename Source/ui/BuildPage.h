@@ -45,12 +45,14 @@ namespace ggui
         void paint (juce::Graphics&) override;
         void resized() override;
         Toast toast;
+        std::function<void()> onEditGroove;     // EDIT IN SAUCE: the groove playing here, open on SAUCE
 
     private:
         void timerCallback() override;
         GrooveGrabberProcessor& proc;
         IconButton play { "play", Icon::play, Icon::stop, true };
         juce::ComboBox groove;
+        juce::TextButton editGroove { "EDIT IN SAUCE" };
         juce::Slider swing, volume;
         juce::ToggleButton follow { "Follow DAW" };
         double lastBeat = -1;
@@ -67,6 +69,7 @@ namespace ggui
         void paint (juce::Graphics&) override;
         void resized() override;
         std::function<void()> onExport;
+        std::function<void()> onEditGroove;     // open BUILD's groove on SAUCE
 
     private:
         GrooveGrabberProcessor& proc;

@@ -69,7 +69,8 @@ namespace ggui
         PatternGrid& getGrid() noexcept               { return grid; }
         juce::String getGrooveId() const              { return currentId(); }
         void pickMine (const juce::String& id);       // show one of my grooves
-        void startNaming();                           // SAVE AS MY GROOVE / RENAME: the name box
+        void openGroove (const juce::String& id);     // show this groove (BUILD's EDIT IN SAUCE): mine, the style's, or any other
+        void startNaming (bool rename = false);       // SAVE AS MY GROOVE / SAVE AS COPY (or RENAME): the name box
         // save (a new groove: the original pattern goes back to how it was), and with replaceOnBuild BUILD plays
         // yours in its place
         void finishNaming (bool save, const juce::String& name = {}, bool replaceOnBuild = false);
@@ -117,6 +118,8 @@ namespace ggui
         juce::TextButton addDrum { "+ ADD DRUM" }, undo { "UNDO" }, reset { "RESET" }, saveMine { "SAVE AS MY GROOVE" },
                          myChip { "MY GROOVES" }, nameOk { "SAVE" }, nameReplace { "SAVE & REPLACE ON BUILD" },
                          nameCancel { "CANCEL" };
+        juce::TextButton saveChanges { "SAVE" }, renameMine { "RENAME" };
+        OneShotTimer disarmDelete;
         juce::TextEditor nameEdit;
         bool naming = false, renaming = false, deleteArmed = false;
         PatternGrid grid;

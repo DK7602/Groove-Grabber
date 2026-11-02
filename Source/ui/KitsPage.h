@@ -33,7 +33,8 @@ namespace ggui
         juce::Viewport viewport;
         juce::Component content;
         juce::OwnedArray<juce::Component> rows;
-        juce::TextButton openFile { "OPEN KIT FILE..." };
+        juce::TextButton openFile { "OPEN KIT FILE..." }, backupsBtn { "BACKUPS..." };
+        void showBackupsMenu();
         std::unique_ptr<juce::FileChooser> chooser;
     };
 }
