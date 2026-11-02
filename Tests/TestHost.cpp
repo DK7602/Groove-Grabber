@@ -6,6 +6,11 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "core/Analyzer.h"
 #include <iostream>
+#include <atomic>
+#include <thread>
+#if JUCE_WINDOWS
+ #include <windows.h>
+#endif
 
 namespace
 {
@@ -90,6 +95,44 @@ int runHostScan (const juce::File& plugin)
         pumpMessages (200);
     }
     std::cout << (failures == 0 ? "  loads, plays, saves and closes cleanly" : "  PROBLEMS loading it") << std::endl;
+
+   #if JUCE_WINDOWS
+    // What a DAW does when it quits: unload the plug-in while everything else is still running. Anything the plug-in
+    // keeps in a static (fonts, images, threads, timers) is let go right here, and some of that can freeze Windows:
+    // Cubase hung on quit with Groove Grabber 1.0.12 (its fonts were statics). A watchdog ends the test if it hangs.
+    {
+        const auto dll = plugin.isDirectory() ? plugin.getChildFile ("Contents").getChildFile ("x86_64-win").getChildFile (plugin.getFileName())
+                                              : plugin;
+        auto* module = GetModuleHandleW (dll.getFileName().toWideCharPointer());
+        if (module == nullptr)
+            fail ("couldn't find the loaded plug-in to unload it");
+        else
+        {
+            std::atomic<bool> unloaded { false };
+            std::thread watchdog ([&unloaded]
+            {
+                for (int i = 0; i < 300 && ! unloaded.load(); ++i) juce::Thread::sleep (100);
+                if (! unloaded.load())
+                {
+                    std::cout << "  FAIL: froze while being unloaded, the way Cubase unloads it when it quits" << std::endl;
+                    std::cout.flush();
+                    TerminateProcess (GetCurrentProcess(), 3);
+                }
+            });
+            const auto t0 = juce::Time::getMillisecondCounterHiRes();
+            using ExitDll = bool (*)();
+            if (auto exitDll = reinterpret_cast<ExitDll> (reinterpret_cast<void*> (GetProcAddress (module, "ExitDll")))) exitDll();
+            while (FreeLibrary (module))
+                if (GetModuleHandleW (dll.getFileName().toWideCharPointer()) == nullptr) break;
+            unloaded = true;
+            watchdog.join();
+            std::cout << "  unloaded like a DAW quitting, in " << (int) (juce::Time::getMillisecondCounterHiRes() - t0) << " ms" << std::endl;
+            // the host side still thinks the plug-in is loaded: leave now, without the usual shutdown
+            std::cout.flush();
+            TerminateProcess (GetCurrentProcess(), failures == 0 ? 0 : 1);
+        }
+    }
+   #endif
     return failures;
 }
 
