@@ -12,13 +12,16 @@ namespace ggui
     //==============================================================================
     // A groove as a step grid you can edit: one lane per drum, 16 steps a bar, rolls split their step.
     // Click a step to add or take away a hit (drag along the lane to do several), right-click for hard /
-    // medium / soft, Ctrl-click (Alt on a Mac) for a roll.
-    class PatternGrid : public juce::Component, public juce::SettableTooltipClient
+    // medium / soft, Ctrl-click (Alt on a Mac) for a roll. Click the count above the steps (the timeline) to move
+    // the playhead there and play from there; drag along it to scrub.
+    class PatternGrid : public juce::Component, public juce::TooltipClient
     {
     public:
         PatternGrid();
         void setGroove (std::shared_ptr<const gg::Groove>, std::vector<gg::Slot> lanes);
-        void setPlayhead (double beat);          // -1 = none
+        void setPlayhead (double beat);          // while playing; -1 = stopped (the playhead rests at the cue)
+        void setCue (double beat);               // where play starts: the last place you clicked on the timeline
+        double getCue() const noexcept           { return cue; }
         void setNoteNamer (std::function<juce::String (int)> f)   { noteNamer = std::move (f); repaint(); }
         int numLanes() const noexcept            { return (int) lanes.size(); }
         void paint (juce::Graphics&) override;
@@ -32,6 +35,9 @@ namespace ggui
         std::function<void (std::vector<gg::GrooveHit>)> onEdit;       // the groove's new hits
         std::function<void (gg::Slot, float velocity)> onAudition;     // play one sound (a drum's name tapped, a hit added)
         void auditionLane (int lane);                                  // tap a drum's name: hear it
+        std::function<void (double beat)> onSeek;                      // the timeline clicked: play from there
+        void clickTimeline (int step);                                 // (the mouse, and the tests)
+        juce::String getTooltip() override;
 
         // what a click on a lane's step does (the mouse, and the tests)
         void clickStep (int lane, int step, const juce::ModifierKeys&);
@@ -42,10 +48,12 @@ namespace ggui
         bool cellAt (juce::Point<float>, int& lane, int& step) const;
         std::shared_ptr<const gg::Groove> groove;
         std::vector<gg::Slot> lanes;
-        double playhead = -1;
+        double playhead = -1, cue = 0;
+        bool timelineAt (juce::Point<float>, int& step) const;
         std::function<juce::String (int)> noteNamer;
         bool painting = false, paintAdd = true;
         int paintLane = -1, lastStep = -1, hoverLane = -1, hoverStep = -1, hoverLabel = -1, pressedLabel = -1;
+        int seekStep = -1, hoverTimeline = -1;            // dragging along the timeline / the step under the mouse there
     };
 
     //==============================================================================
@@ -72,6 +80,8 @@ namespace ggui
         juce::String getGrooveId() const              { return currentId(); }
         void pickMine (const juce::String& id);       // show one of my grooves
         void setSwingPercent (int percent);           // SWING (50 = straight .. 66 = a full triplet)
+        void playFrom (double beat);                  // the timeline: the playhead goes there and plays from there
+        bool isPlaying() const noexcept               { return playingHere; }
         void openGroove (const juce::String& id);     // show this groove (BUILD's EDIT IN SAUCE): mine, the style's, or any other
         void startNaming (bool rename = false);       // SAVE AS MY GROOVE / SAVE AS COPY (or RENAME): the name box
         // save (a new groove: the original pattern goes back to how it was), and with replaceOnBuild BUILD plays

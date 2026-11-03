@@ -6,16 +6,43 @@
 namespace ggui
 {
     //==============================================================================
-    PatternGrid::PatternGrid()
+    PatternGrid::PatternGrid() {}
+
+    juce::String PatternGrid::getTooltip()
     {
-        setTooltip ("Click a drum's name to hear it. Click a step to add or take away a hit (drag along a row for several). "
-                    "Right-click: hard, medium, soft. Ctrl-click (Alt-click on a Mac): 2 quick hits in the step, again for 3 (a triplet roll), again for 1.");
+        int step = 0;
+        if (timelineAt (getMouseXYRelative().toFloat(), step))
+            return "Click the count to move the playhead there and play from there. Drag along it to scrub. Play and Space start from here too.";
+        return "Click a drum's name to hear it. Click a step to add or take away a hit (drag along a row for several). "
+               "Right-click: hard, medium, soft. Ctrl-click (Alt-click on a Mac): 2 quick hits in the step, again for 3 (a triplet roll), again for 1.";
+    }
+
+    void PatternGrid::setCue (double beat)
+    {
+        if (std::abs (beat - cue) < 1.0e-6) return;
+        cue = beat;
+        repaint();
+    }
+
+    bool PatternGrid::timelineAt (juce::Point<float> pos, int& step) const
+    {
+        const auto geo = geometry();
+        if (geo.steps == 0 || pos.x < geo.gridX || pos.x >= geo.area.getRight() || pos.y < geo.header.getY() || pos.y >= geo.area.getY()) return false;
+        step = juce::jlimit (0, geo.steps - 1, (int) ((pos.x - geo.gridX) / geo.stepW));
+        return true;
+    }
+
+    void PatternGrid::clickTimeline (int step)
+    {
+        if (groove == nullptr || ! juce::isPositiveAndBelow (step, groove->bars * 16)) return;
+        if (onSeek) onSeek (step * 0.25);
     }
 
     void PatternGrid::setGroove (std::shared_ptr<const gg::Groove> g, std::vector<gg::Slot> l)
     {
         groove = std::move (g);
         lanes = std::move (l);
+        if (groove != nullptr && cue >= groove->lengthBeats()) cue = 0;     // (a shorter pattern)
         repaint();
     }
 
@@ -96,6 +123,14 @@ namespace ggui
     void PatternGrid::mouseDown (const juce::MouseEvent& e)
     {
         painting = false;
+        seekStep = -1;
+        // the timeline (the count over the steps): the playhead goes there and plays from there
+        if (int step = 0; timelineAt (e.position, step))
+        {
+            seekStep = step;
+            clickTimeline (step);
+            return;
+        }
         // a drum's name: hear it
         if (const auto geo = geometry(); geo.steps > 0 && e.position.x < geo.gridX && e.position.y >= geo.area.getY() && e.position.y < geo.area.getBottom())
         {
@@ -112,6 +147,15 @@ namespace ggui
 
     void PatternGrid::mouseDrag (const juce::MouseEvent& e)
     {
+        if (seekStep >= 0)
+        {
+            // scrubbing along the timeline: on from each step the mouse reaches
+            const auto geo = geometry();
+            if (geo.steps == 0) return;
+            const int step = juce::jlimit (0, geo.steps - 1, (int) ((e.position.x - geo.gridX) / geo.stepW));
+            if (step != seekStep) { seekStep = step; clickTimeline (step); }
+            return;
+        }
         if (! painting || groove == nullptr) return;
         // along the row you started on, wherever the mouse wanders up or down
         const auto geo = geometry();
@@ -128,6 +172,7 @@ namespace ggui
     void PatternGrid::mouseUp (const juce::MouseEvent&)
     {
         painting = false;
+        seekStep = -1;
         if (pressedLabel >= 0) { pressedLabel = -1; repaint(); }
     }
 
@@ -138,13 +183,19 @@ namespace ggui
         int label = -1;
         if (const auto geo = geometry(); geo.steps > 0 && e.position.x < geo.gridX && e.position.y >= geo.area.getY() && e.position.y < geo.area.getBottom())
             label = juce::jlimit (0, (int) lanes.size() - 1, (int) ((e.position.y - geo.area.getY()) / geo.laneH));
-        setMouseCursor (over || label >= 0 ? juce::MouseCursor::PointingHandCursor : juce::MouseCursor::NormalCursor);
-        if (lane != hoverLane || step != hoverStep || label != hoverLabel) { hoverLane = lane; hoverStep = step; hoverLabel = label; repaint(); }
+        int tl = -1;
+        if (! timelineAt (e.position, tl)) tl = -1;
+        setMouseCursor (over || label >= 0 || tl >= 0 ? juce::MouseCursor::PointingHandCursor : juce::MouseCursor::NormalCursor);
+        if (lane != hoverLane || step != hoverStep || label != hoverLabel || tl != hoverTimeline)
+        {
+            hoverLane = lane; hoverStep = step; hoverLabel = label; hoverTimeline = tl;
+            repaint();
+        }
     }
 
     void PatternGrid::mouseExit (const juce::MouseEvent&)
     {
-        hoverLane = hoverStep = hoverLabel = -1;
+        hoverLane = hoverStep = hoverLabel = hoverTimeline = -1;
         repaint();
     }
 
@@ -157,6 +208,13 @@ namespace ggui
         const float labelX = (float) getLocalBounds().getX(), labelW = geo.labelW, gridX = geo.gridX, stepW = geo.stepW, laneH = geo.laneH;
         const float top = geo.area.getY(), gridH = geo.area.getHeight();
         const int steps = geo.steps;
+
+        // the timeline: the step under the mouse lit up (click it to play from there)
+        if (hoverTimeline >= 0)
+        {
+            g.setColour (p.orange.withAlpha (0.16f));
+            g.fillRoundedRectangle (juce::Rectangle<float> (gridX + (float) hoverTimeline * stepW, header.getY(), stepW, header.getHeight()).reduced (1.0f, 1.0f), 4.0f);
+        }
 
         // beats shaded in turn, bars split by a stronger line
         for (int beat = 0; beat < groove->bars * 4; ++beat)
@@ -252,11 +310,18 @@ namespace ggui
             }
         }
 
-        if (playhead >= 0)
+        // the playhead: where it plays, or (stopped) where play starts, with a handle on the timeline
         {
-            const float x = gridX + (float) (std::fmod (playhead, groove->lengthBeats()) * 4.0) * stepW;
-            g.setColour (p.orange);
+            const bool playing = playhead >= 0;
+            const double at = playing ? std::fmod (playhead, groove->lengthBeats()) : juce::jlimit (0.0, groove->lengthBeats(), cue);
+            const float x = gridX + (float) (at * 4.0) * stepW;
+            g.setColour (p.orange.withAlpha (playing ? 1.0f : 0.45f));
             g.fillRect (juce::Rectangle<float> (x - 1.0f, top, 2.0f, gridH));
+            juce::Path head;
+            const float hy = header.getBottom() - 1.0f, hw = juce::jmin (6.0f, stepW * 0.45f);
+            head.addTriangle (x - hw, hy - 8.0f, x + hw, hy - 8.0f, x, hy);
+            g.setColour (p.orange.withAlpha (playing ? 1.0f : 0.8f));
+            g.fillPath (head);
         }
     }
 
@@ -330,6 +395,7 @@ namespace ggui
         {
             if (const int note = gg::mainNoteForSlot (slot); note >= 0) proc.player.trigger (note, velocity);
         };
+        grid.onSeek = [this] (double beat) { playFrom (beat); };
 
         // which of BUILD's four kits plays the pattern
         for (int i = 0; i < 4; ++i)
@@ -903,9 +969,24 @@ namespace ggui
         proc.player.setSwing (g->swing);
         proc.player.setTempo (previewTempo());
         proc.player.setGroovePlaying (true);
+        // from where the playhead rests (the last place you clicked on the timeline)
+        const double from = juce::jlimit (0.0, g->lengthBeats() - 0.25, grid.getCue());
+        proc.player.seekGroove (from);
+        grid.setPlayhead (from);
         play.setToggleState (true, juce::dontSendNotification);
         startTimerHz (30);
         repaint();
+    }
+
+    void SaucePage::playFrom (double beat)
+    {
+        const auto g = currentGroove();
+        if (g == nullptr) return;
+        beat = juce::jlimit (0.0, g->lengthBeats() - 0.25, beat);
+        grid.setCue (beat);
+        if (! playingHere) { togglePlay(); return; }
+        proc.player.seekGroove (beat);
+        grid.setPlayhead (beat);
     }
 
     void SaucePage::stopPreview()

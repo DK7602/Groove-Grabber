@@ -326,6 +326,7 @@ The SAUCE page explains how drums are played and programmed in a genre, style an
 - **BLANK** (the first button) is an empty two-bar pattern, to build your own from scratch. Its rows are the sounds of the kit you picked (KIT 01 to 04), so you hear that kit as you click steps in. It's kept with your song like any other change, SAVE AS MY GROOVE keeps it for every song, and BUILD's groove list has it as "Blank".
 - **KIT 01 to 04** picks which of BUILD's four kits plays the pattern (the same as clicking that kit on BUILD). Point at one to see its name.
 - **Play** (or the Space bar) plays it with the kit you picked. It plays at your song's tempo while you're on your song's style, and at the groove's own tempo when you're reading up on another.
+- **The playhead moves where you click.** Click the count over the steps (1 e & a 2...) and the playhead jumps to that step and plays from there, even when it's stopped. Drag along the count to scrub. When you stop, the playhead stays where you last clicked, and Play and the Space bar start from there. Click "1" of bar 1 to start from the top again. (With Follow DAW on and your DAW playing, the DAW's position leads.)
 - **DRAG MIDI** shows the tempo and swing it plays at, and drags four bars of it into your DAW, on the same notes as every Groove Grabber kit (MIDI channel 1). **Drop it on the lane of your drum track** (in Cubase, your Groove Agent SE or Groove Grabber track), at the bar where it should start. Dropped below the last track, most DAWs make a new track with no instrument on it, so it stays silent. The files are kept in Documents\Groove Grabber\Sauce MIDI.
 
 **Editing the pattern**
@@ -506,6 +507,7 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | Open hats ring over closed hats | Put the Closed Hat, Pedal Hat and Open Hat pads (notes 42, 44 and 46) in the same choke / exclusive group. |
 | A pattern you dragged in from SAUCE doesn't play | It was dropped on empty space, so your DAW made a new track with no instrument. Drag the part onto your drum track (Groove Agent, Groove Grabber...), or set that track's output to your drum instrument. Next time, drop it straight on the drum track's lane. |
 | You changed a pattern on SAUCE and want the original back | Press RESET under the pattern. UNDO brings your version back. |
+| You want to hear one part of a pattern again and again | Click the count over the steps where it starts: it plays from there. Play and Space start from that spot until you click somewhere else. |
 | You want to build a pattern from scratch | SAUCE: press **BLANK**, pick the kit with KIT 01 to 04, click the steps in and set SWING. SAVE AS MY GROOVE keeps it for every song. |
 | You want a pattern in every song, not just this one | SAUCE: SAVE AS MY GROOVE. It's then under MY GROOVES on SAUCE, in BUILD's groove list and on the MY KITS page. |
 | One of your grooves changed or is gone, and you want it back | MY KITS > MY GROOVES > BACKUPS...: every version from before a save, rename or delete is there. Pick one to bring it back as a groove of its own. |

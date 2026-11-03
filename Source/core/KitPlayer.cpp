@@ -138,7 +138,15 @@ namespace gg
     void KitPlayer::setGroovePlaying (bool b)
     {
         if (b && ! groovePlaying) resetGroove = true;
+        if (! b) seekTo = -1.0;
         groovePlaying = b;
+    }
+
+    void KitPlayer::seekGroove (double beat)
+    {
+        beat = std::isfinite (beat) ? juce::jlimit (0.0, 1000.0, beat) : 0.0;
+        seekTo = beat;
+        displayBeat = beat;          // (the playhead moves right away)
     }
 
     void KitPlayer::timerCallback()
@@ -322,6 +330,7 @@ namespace gg
             else
             {
                 if (resetGroove.exchange (false) || (wasHostPlaying && ! hostPlay)) internalBeat = 0;
+                if (const double s = seekTo.exchange (-1.0); s >= 0) internalBeat = s;
                 const double spb = sr * 60.0 / tempo.load();
                 const double end = internalBeat + n / spb;
                 scheduleGroove (internalBeat, end, n, spb);

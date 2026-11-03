@@ -212,6 +212,29 @@ int runScreenshots (const juce::File& outDir)
             proc.setGrooveId (buildGroove);
             std::cout << (swingHeard && resetHeard ? "  ok: " : "  FAIL: ") << "SWING and RESET are heard on the groove playing" << std::endl;
             if (! (swingHeard && resetHeard)) ++failures;
+            // the timeline: click the count and the playhead goes there and plays from there
+            {
+                auto& sg = sauce.getGrid();
+                sauce.openGroove ("boombap1");
+                sg.clickTimeline (20);                                      // bar 2, beat 2
+                const bool started = sauce.isPlaying() && proc.player.isGroovePlaying() && std::abs (proc.player.getGrooveBeat() - 5.0) < 1.0e-9;
+                pump (150);
+                save (*ed, outDir.getChildFile ("sauce-playhead.png"));
+                sg.clickTimeline (8);                                       // while it plays: on from beat 3
+                const bool moved = sauce.isPlaying() && std::abs (proc.player.getGrooveBeat() - 2.0) < 1.0e-9 && sg.getCue() == 2.0;
+                sauce.togglePlay();                                         // stop: the playhead rests where you clicked
+                const bool rests = ! sauce.isPlaying() && ! proc.player.isGroovePlaying() && sg.getCue() == 2.0;
+                sauce.togglePlay();                                         // Play (or Space) starts there
+                const bool fromCue = sauce.isPlaying() && std::abs (proc.player.getGrooveBeat() - 2.0) < 1.0e-9;
+                sauce.togglePlay();
+                sg.clickTimeline (99);                                      // (off the end: nothing)
+                const bool offEnd = ! sauce.isPlaying() && sg.getCue() == 2.0;
+                sg.clickTimeline (0);                                       // back to the top
+                sauce.togglePlay();
+                const bool ok = started && moved && rests && fromCue && offEnd && sg.getCue() == 0.0 && ! sauce.isPlaying();
+                std::cout << (ok ? "  ok: " : "  FAIL: ") << "the timeline: the playhead goes where you click and plays from there" << std::endl;
+                if (! ok) ++failures;
+            }
             // EDIT IN SAUCE from BUILD: whatever BUILD plays, even a groove from another style
             sauce.openGroove ("disco1");
             const bool opened = sauce.getGrooveId() == "disco1";

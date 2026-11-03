@@ -960,6 +960,22 @@ namespace
         check (player.isHostDriving(), "host drives the groove while playing");
         check (out.getMagnitude (0, 0, 512) > 0.01f, "the downbeat (bar 2) plays on time");
 
+        // SAUCE's timeline: the playhead jumps to the beat you click, and the groove plays on from there
+        player.allNotesOff();
+        player.seekGroove (4.0);
+        check (std::abs (player.getGrooveBeat() - 4.0) < 1.0e-9, "the playhead moves as soon as you click the timeline");
+        player.process (out, midi, {});
+        check (std::abs (player.getGrooveBeat() - (4.0 + 512.0 * 140.0 / (48000.0 * 60.0))) < 1.0e-6 && out.getMagnitude (0, 0, 512) > 0.01f,
+               "the groove plays on from the beat you clicked, starting with the hit on it");
+        player.seekGroove (std::numeric_limits<double>::quiet_NaN());
+        player.process (out, midi, {});
+        check (std::isfinite (player.getGrooveBeat()) && player.getGrooveBeat() < 0.1, "a damaged position plays from the top");
+        player.seekGroove (6.0);
+        player.setGroovePlaying (false);
+        player.setGroovePlaying (true);
+        player.process (out, midi, {});
+        check (player.getGrooveBeat() < 0.1, "stopping drops a position that was waiting");
+
         // level matching: two different kicks render at about the same loudness
         auto a = gg::render::sound (testRoot().getChildFile ("Library/Trap Essentials/Kicks/Kick Hard 01.wav").getFullPathName(), gg::Cat::kick, {}, 44100);
         auto b = gg::render::sound (testRoot().getChildFile ("Library/Dusty Boom Bap/BD Dusty 2.wav").getFullPathName(), gg::Cat::kick, {}, 44100);
