@@ -239,6 +239,50 @@ int runScreenshots (const juce::File& outDir)
             sauce.openGroove ("disco1");
             const bool opened = sauce.getGrooveId() == "disco1";
             std::cout << (opened ? "  ok: " : "  FAIL: ") << "EDIT IN SAUCE opens BUILD's groove, even from another style" << std::endl;
+            // a drum pattern dragged from Song Savant (on Groove Grabber's pads) and dropped on SAUCE: one of MY GROOVES
+            {
+                juce::MidiMessageSequence seq;
+                seq.addEvent (juce::MidiMessage::textMetaEvent (1, "drums: Groove Grabber's pads"), 0);
+                auto hit = [&seq] (double beat, int note, int vel)
+                {
+                    seq.addEvent (juce::MidiMessage::noteOn (1, note, (juce::uint8) vel), beat * 480.0);
+                    seq.addEvent (juce::MidiMessage::noteOff (1, note), beat * 480.0 + 60.0);
+                };
+                for (int b = 0; b < 8; ++b) { hit (b, 42, 96); hit (b + 0.5, 42, 64); }
+                hit (0, 36, 124); hit (0, 52, 110); hit (1, 38, 118); hit (3, 38, 118); hit (2.5, 36, 100); hit (5, 39, 100); hit (7.75, 53, 80);
+                seq.updateMatchedPairs();
+                juce::MidiFile mf;
+                mf.setTicksPerQuarterNote (480);
+                mf.addTrack (seq);
+                const auto dir = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("gg-drop-test");
+                dir.createDirectory();
+                const auto f = dir.getChildFile ("Drums (Chorus).mid");
+                f.deleteFile();
+                {
+                    juce::FileOutputStream out (f);
+                    mf.writeTo (out);
+                }
+                const bool dropped = sauce.dropMidi (f);
+                pump (150);
+                save (*ed, outDir.getChildFile ("sauce-dropped.png"));
+                const auto droppedId = sauce.getGrooveId();
+                const auto dg = gg::mygrooves::find (droppedId);
+                bool has808 = false;
+                if (dg != nullptr) for (const auto& h : dg->hits) if (h.slot == gg::Slot::bass808 && std::abs (h.beat) < 1.0e-9) has808 = true;
+                const bool droppedOk = dropped && dg != nullptr && dg->name.startsWith ("Drums (Chorus)") && dg->bars == 2 && has808 && dg->hits.size() == 23
+                                       && sauce.getGrid().numLanes() == 6;      // hat, kick, 808, snare, clap, perc 1
+                if (dg != nullptr) proc.deleteMyGroove (droppedId);
+                const auto junk = dir.getChildFile ("not a pattern.mid");
+                junk.replaceWithText ("hello");
+                sauce.openGroove ("boombap1");
+                const bool refused = ! sauce.dropMidi (junk) && sauce.getGrooveId() == "boombap1";
+                dir.deleteRecursively();
+                std::cout << (droppedOk && refused ? "  ok: " : "  FAIL: ") << "a pattern dropped on SAUCE becomes one of MY GROOVES (the 808 on its pad); a bad file is refused"
+                          << (droppedOk ? juce::String() : " (dropped " + juce::String ((int) dropped) + ", " + (dg != nullptr ? dg->name + ", " + juce::String (dg->bars) + " bars, "
+                                                           + juce::String ((int) dg->hits.size()) + " hits" : juce::String ("no groove")) + ", 808 " + juce::String ((int) has808)
+                                                           + ", " + juce::String (sauce.getGrid().numLanes()) + " rows)") << std::endl;
+                if (! (droppedOk && refused)) ++failures;
+            }
             const bool ok = savesAsYouGo && plays && fellBack && missing && restoredOk && opened;
             std::cout << (ok ? "  ok: " : "  FAIL: ") << "my groove plays on BUILD, and deleting it falls back" << std::endl;
             if (! ok) ++failures;

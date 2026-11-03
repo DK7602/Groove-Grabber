@@ -824,6 +824,53 @@ namespace ggui
         showGroove();
     }
 
+    //==============================================================================
+    // A pattern dropped in: from Song Savant (its drum piano roll, an ARRANGE box, the drum card), a DAW, or SAUCE
+    static bool isMidiFile (const juce::File& f)    { return f.hasFileExtension ("mid;midi;smf"); }
+
+    bool SaucePage::isInterestedInFileDrag (const juce::StringArray& files)
+    {
+        for (const auto& f : files) if (isMidiFile (juce::File (f))) return true;
+        return false;
+    }
+
+    void SaucePage::filesDropped (const juce::StringArray& files, int, int)
+    {
+        dropHover = false;
+        for (const auto& f : files)
+            if (isMidiFile (juce::File (f))) { dropMidi (juce::File (f)); break; }
+        repaint();
+    }
+
+    bool SaucePage::dropMidi (const juce::File& file)
+    {
+        const auto id = proc.importMyGroove (file, genre, gg::styleFor (genre, subStyle).id, previewTempo());
+        if (id.isEmpty()) return false;
+        pickMine (id);
+        return true;
+    }
+
+    void SaucePage::paintOverChildren (juce::Graphics& g)
+    {
+        if (! dropHover) return;
+        const auto& p = pal();
+        auto r = getLocalBounds().toFloat().reduced (10.0f);
+        g.setColour (p.bg.withAlpha (0.6f));
+        g.fillRoundedRectangle (r, 14.0f);
+        juce::Path box, dashed;
+        box.addRoundedRectangle (r, 14.0f);
+        const float dashes[] = { 10.0f, 7.0f };
+        juce::PathStrokeType (2.0f).createDashedStroke (dashed, box, dashes, 2);
+        g.setColour (p.orange);
+        g.fillPath (dashed);
+        g.setColour (p.text);
+        g.setFont (headFont (22.0f));
+        g.drawText ("DROP A MIDI PATTERN", r.withTrimmedBottom (40.0f), juce::Justification::centred);
+        g.setColour (p.dim);
+        g.setFont (uiFont (15.0f, false));
+        g.drawText ("It becomes one of MY GROOVES (up to 4 bars)", r.withTrimmedTop (40.0f), juce::Justification::centred);
+    }
+
     std::shared_ptr<const gg::Groove> SaucePage::currentGroove() const
     {
         const auto id = currentId();
@@ -1304,7 +1351,7 @@ namespace ggui
             g.setColour (p.dim);
             g.setFont (uiFont (12.5f, false));
             const auto cg = currentGroove();
-            g.drawText ("4 bars, " + juce::String (previewTempo(), 0) + " BPM" + (cg != nullptr ? ", swing " + juce::String (gg::swingPercent (*cg)) + "%" : juce::String()),
+            g.drawText (juce::String (cg != nullptr ? cg->bars * 2 : 4) + " bars, " + juce::String (previewTempo(), 0) + " BPM" + (cg != nullptr ? ", swing " + juce::String (gg::swingPercent (*cg)) + "%" : juce::String()),
                         in, juce::Justification::topLeft);
         }
         if (naming)

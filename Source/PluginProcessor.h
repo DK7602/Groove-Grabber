@@ -88,6 +88,9 @@ public:
     void renameMyGroove (const juce::String& id, const juce::String& name);
     bool saveGrooveChanges (const juce::String& id);   // your changes go into one of your grooves (SAVE)
     juce::String restoreMyGroove (const juce::File& backup);   // a groove back from My Grooves/Backups
+    // A MIDI pattern dropped on SAUCE, saved as one of your grooves (with this genre and style; `bpm` when the file
+    // has no tempo). Returns its id, or empty (with a message saying why).
+    juce::String importMyGroove (const juce::File& midi, gg::Genre, const juce::String& styleId, double bpm);
     void deleteMyGroove (const juce::String& id);
     void auditionSlot (gg::Slot);
     void previewFile (const juce::String& path, gg::Cat);

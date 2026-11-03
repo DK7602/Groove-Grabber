@@ -32,7 +32,24 @@ namespace gg
 
     // A Standard MIDI File of the groove on GM drum notes, repeated 'times'. Channel 1, which every sampler
     // listens to (the old GM drum channel 10 left Groove Agent silent on a plain MIDI track).
+    // The file says which drum layout it uses, in a text event "drums: Groove Grabber's pads" (Song Savant writes
+    // "drums: <its kit's drum map>" too), so a pattern dragged between the two apps lands on the right drums.
     juce::MemoryBlock grooveToMidi (const Groove&, double bpm, float swing, int times = 2);
+    inline constexpr const char* midiDrumsTag = "drums: Groove Grabber's pads";
+
+    // A MIDI pattern dropped on SAUCE (from Song Savant, a DAW, or Groove Grabber itself), as a groove: each note
+    // goes to its drum (Groove Grabber's pads when the file says so or came from here, General MIDI otherwise),
+    // starts from the first bar with a note, is lined up to the grid's 16ths (two or three hits in one step stay a
+    // quick double or a triplet burst), and its swing is found (16ths, or 8ths for a shuffle). Up to 4 bars; a
+    // pattern that plays the same two bars twice (what SAUCE's own drag gives) comes back as those two bars.
+    struct MidiGroove
+    {
+        Groove groove;                    // id empty; name from the file; bpm 0 when the file has no tempo
+        int barsLeftOut = 0;              // bars past the 4th
+        int notesLeftOut = 0;             // notes that aren't drums Groove Grabber has
+        juce::String why;                 // when it can't be read: what's wrong, in plain words
+    };
+    MidiGroove grooveFromMidi (const juce::MemoryBlock&, const juce::String& fileName);
 
     //==============================================================================
     // Editing a groove a step at a time (the SAUCE grid). A step of one lane holds 0 hits, 1, 2 (a quick

@@ -857,6 +857,121 @@ namespace
             check (junk.size() == 2 && junk[0].slot == gg::Slot::snare && std::abs (junk[0].velocity - 1.0f) < 1.0e-6f, "saved hits are checked: junk left out");
         }
 
+        // a MIDI pattern dropped on SAUCE (from Song Savant, a DAW, or SAUCE's own drag) becomes a groove
+        {
+            // SAUCE's own drag, dropped back: every groove comes back the same (hits, swing, length, name)
+            juce::StringArray differ;
+            for (const auto& g : gg::allGrooves())
+            {
+                if (g.hits.empty()) continue;
+                const auto back = gg::grooveFromMidi (gg::grooveToMidi (g, g.bpm, g.swing, 2), "whatever.mid");
+                const auto& b = back.groove;
+                // (a swing with no hit on a late place can't be heard, or found)
+                bool swingShows = false;
+                for (const auto& h : g.hits) if (gg::swungBeat (h.beat, g.swing, g.swingEighths) - h.beat > 1.0e-6) swingShows = true;
+                const float wantSwing = swingShows ? g.swing : 0.0f;
+                bool same = back.why.isEmpty() && b.bars == g.bars && b.name == g.name && b.hits.size() == g.hits.size()
+                            && std::abs (b.swing - wantSwing) < 0.008f && (wantSwing < 0.01f || b.swingEighths == g.swingEighths)
+                            && std::abs (b.bpm - g.bpm) < 0.5 && back.notesLeftOut == 0;
+                if (same)
+                {
+                    auto x = g.hits, y = b.hits;
+                    gg::sortHits (x);
+                    gg::sortHits (y);
+                    for (size_t i = 0; i < x.size() && same; ++i)
+                        same = std::abs (x[i].beat - y[i].beat) < 1.0e-6 && x[i].slot == y[i].slot && std::abs (x[i].velocity - y[i].velocity) < 0.006f;
+                }
+                if (! same) differ.add (g.id + " (swing " + juce::String (g.swing, 2) + " -> " + juce::String (b.swing, 2) + ", hits "
+                                        + juce::String ((int) g.hits.size()) + " -> " + juce::String ((int) b.hits.size()) + ")");
+            }
+            check (differ.isEmpty(), "SAUCE's drag dropped back on SAUCE: every groove the same: " + differ.joinIntoString (", "));
+            {
+                const auto mb = gg::grooveToMidi (gg::grooveFor ("trap1"), 140, 0, 1);
+                const std::string want = "drums: Groove Grabber's pads";
+                const auto* bytes = static_cast<const char*> (mb.getData());
+                check (std::search (bytes, bytes + mb.getSize(), want.begin(), want.end()) != bytes + mb.getSize(),
+                       "SAUCE's drag says it's on Groove Grabber's pads (for Song Savant)");
+            }
+
+            // a file made by hand: notes at these beats
+            struct N { double beat; int note; int vel; };
+            auto midi = [] (const std::vector<N>& notes, const juce::String& text, double bpm)
+            {
+                juce::MidiMessageSequence seq;
+                if (text.isNotEmpty()) seq.addEvent (juce::MidiMessage::textMetaEvent (1, text), 0);
+                if (bpm > 0) seq.addEvent (juce::MidiMessage::tempoMetaEvent ((int) std::round (60000000.0 / bpm)), 0);
+                for (const auto& n : notes)
+                {
+                    seq.addEvent (juce::MidiMessage::noteOn (1, n.note, (juce::uint8) n.vel), n.beat * 480.0);
+                    seq.addEvent (juce::MidiMessage::noteOff (1, n.note), n.beat * 480.0 + 60.0);
+                }
+                seq.updateMatchedPairs();
+                juce::MidiFile mf;
+                mf.setTicksPerQuarterNote (480);
+                mf.addTrack (seq);
+                juce::MemoryOutputStream out;
+                mf.writeTo (out);
+                return out.getMemoryBlock();
+            };
+            auto slotAt = [] (const gg::Groove& g, double beat, gg::Slot slot)
+            {
+                for (const auto& h : g.hits) if (h.slot == slot && std::abs (h.beat - beat) < 1.0e-6) return true;
+                return false;
+            };
+
+            // General MIDI (a DAW, or Song Savant with a Groove Agent kit): 52 is a cymbal, 54 a tambourine, 70 maracas
+            const auto gm = gg::grooveFromMidi (midi ({ { 0, 36, 120 }, { 1, 38, 110 }, { 0, 42, 90 }, { 1.5, 46, 80 }, { 0, 49, 100 }, { 2, 51, 90 },
+                                                         { 3, 45, 90 }, { 2.5, 54, 80 }, { 3.5, 70, 70 }, { 3.75, 56, 70 }, { 4, 52, 90 }, { 2, 44, 60 },
+                                                         { 6, 100, 90 }, { 7, 37, 80 } }, "drums: General MIDI", 92), "Verse Beat 92 BPM.mid").groove;
+            check (slotAt (gm, 0, gg::Slot::kick) && slotAt (gm, 1, gg::Slot::snare) && slotAt (gm, 0, gg::Slot::closedHat) && slotAt (gm, 1.5, gg::Slot::openHat)
+                   && slotAt (gm, 0, gg::Slot::crash) && slotAt (gm, 2, gg::Slot::ride) && slotAt (gm, 3, gg::Slot::tomMid) && slotAt (gm, 2.5, gg::Slot::perc1)
+                   && slotAt (gm, 3.5, gg::Slot::perc2) && slotAt (gm, 3.75, gg::Slot::perc3) && slotAt (gm, 4, gg::Slot::crash)
+                   && slotAt (gm, 2, gg::Slot::closedHat) && slotAt (gm, 7, gg::Slot::rim) && gm.hits.size() == 13,
+                   "a General MIDI pattern: each note on its drum (the pedal hat on the closed hat)");
+            const auto gmIn = gg::grooveFromMidi (midi ({ { 0, 36, 120 }, { 6, 100, 90 } }, "drums: General MIDI", 92), "Verse Beat 92 BPM.mid");
+            check (gmIn.notesLeftOut == 1 && gm.bars == 2 && std::abs (gm.bpm - 92.0) < 0.01 && gm.name == "Verse Beat" && gm.swing == 0.0f,
+                   "a General MIDI pattern: a note that isn't a drum left out; its tempo, bars and name (without the BPM)");
+
+            // Groove Grabber's pads (Song Savant with a Groove Grabber kit): the 808 on 52, perc on 53..55, FX on 56
+            const auto ours = gg::grooveFromMidi (midi ({ { 0, 36, 124 }, { 0, 52, 110 }, { 1, 53, 90 }, { 2, 54, 90 }, { 3, 56, 90 }, { 3.5, 43, 90 } },
+                                                        "drums: Groove Grabber's pads", 0), "Drums (Chorus).mid").groove;
+            check (slotAt (ours, 0, gg::Slot::bass808) && slotAt (ours, 1, gg::Slot::perc1) && slotAt (ours, 2, gg::Slot::perc2) && slotAt (ours, 3, gg::Slot::fx1)
+                   && slotAt (ours, 3.5, gg::Slot::tomLow) && ours.bpm == 0.0 && ours.name == "Drums (Chorus)" && ours.bars == 1
+                   && std::abs (ours.hits.front().velocity - 1.0f) < 0.01f,
+                   "Groove Grabber's pads: the 808, the percussion and the FX on their own pads; no tempo in the file: none");
+
+            // from bar 3 of a DAW's clip, 8 bars long: from its first bar, the first 4 bars kept; a 32nd roll, an early hit
+            std::vector<N> long8;
+            for (int b = 0; b < 8; ++b) long8.push_back ({ 8.0 + b * 4.0, 36, 110 });
+            long8.push_back ({ 9.0, 42, 100 });
+            long8.push_back ({ 9.125, 42, 70 });
+            long8.push_back ({ 9.97, 38, 100 });                   // a hair early for beat 3
+            const auto clip = gg::grooveFromMidi (midi (long8, {}, 0), "clip.mid");
+            check (clip.groove.bars == 4 && clip.barsLeftOut == 4 && slotAt (clip.groove, 0, gg::Slot::kick) && slotAt (clip.groove, 12, gg::Slot::kick)
+                   && slotAt (clip.groove, 1, gg::Slot::closedHat) && slotAt (clip.groove, 1.125, gg::Slot::closedHat) && slotAt (clip.groove, 2, gg::Slot::snare)
+                   && gg::stepHits (clip.groove, gg::Slot::closedHat, 4).count == 2 && clip.groove.hits.size() == 7,
+                   "a long clip: from its first bar, 4 bars kept; a 32nd roll stays a quick double; a slightly early hit on its beat");
+
+            // a DAW's swung hats (16ths at 62%) and a shuffle (8ths at 62%) come in with their swing
+            std::vector<N> swung, shuffle;
+            for (int i = 0; i < 32; ++i) swung.push_back ({ i * 0.25 + (i % 2 == 1 ? 0.36 / 6.0 : 0.0), 42, 90 });
+            for (int i = 0; i < 16; ++i) shuffle.push_back ({ i * 0.5 + (i % 2 == 1 ? 0.36 / 3.0 : 0.0), 51, 90 });
+            const auto sw = gg::grooveFromMidi (midi (swung, {}, 0), "swung.mid").groove;
+            const auto sh = gg::grooveFromMidi (midi (shuffle, {}, 0), "shuffle.mid").groove;
+            check (std::abs (sw.swing - 0.36f) < 0.011f && ! sw.swingEighths && sw.hits.size() == 32 && slotAt (sw, 0.25, gg::Slot::closedHat)
+                   && std::abs (sh.swing - 0.36f) < 0.011f && sh.swingEighths && sh.hits.size() == 16 && slotAt (sh, 0.5, gg::Slot::ride),
+                   "swung 16ths and a shuffle come in with their swing, on the grid");
+            // a loose straight beat (a few hits a little late) stays straight
+            const auto loose = gg::grooveFromMidi (midi ({ { 0, 36, 100 }, { 0.27, 42, 90 }, { 1, 38, 100 }, { 2.52, 42, 90 } }, {}, 0), "loose.mid").groove;
+            check (loose.swing == 0.0f && slotAt (loose, 0.25, gg::Slot::closedHat) && slotAt (loose, 2.5, gg::Slot::closedHat),
+                   "a loose straight beat stays straight");
+            // what can't be read says why
+            check (gg::grooveFromMidi (juce::MemoryBlock ("not midi", 8), "x.mid").why.isNotEmpty()
+                   && gg::grooveFromMidi (midi ({}, "drums: General MIDI", 120), "x.mid").why.isNotEmpty()
+                   && gg::grooveFromMidi (midi ({ { 0, 100, 90 } }, {}, 0), "x.mid").why.isNotEmpty(),
+                   "not MIDI, no notes, no drums: a reason, no groove");
+        }
+
         // my grooves: saved on this computer, for every song
         {
             namespace mg = gg::mygrooves;

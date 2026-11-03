@@ -316,6 +316,43 @@ juce::String GrooveGrabberProcessor::saveMyGroove (const juce::String& fromId, c
     return id;
 }
 
+juce::String GrooveGrabberProcessor::importMyGroove (const juce::File& file, gg::Genre genre, const juce::String& styleId, double bpm)
+{
+    juce::MemoryBlock data;
+    if (! file.loadFileAsData (data))
+    {
+        notify ("Couldn't open \"" + file.getFileName() + "\"");
+        return {};
+    }
+    auto in = gg::grooveFromMidi (data, file.getFileName());
+    if (in.why.isNotEmpty())
+    {
+        notify ("\"" + file.getFileName() + "\": " + in.why);
+        return {};
+    }
+    auto& g = in.groove;
+    if (g.bpm <= 0.0) g.bpm = bpm;
+    // a name of its own among your grooves
+    juce::StringArray names;
+    for (const auto& e : gg::mygrooves::list()) names.add (e.groove->name);
+    const auto base = g.name.substring (0, 54);
+    auto name = base;
+    for (int n = 2; names.contains (name, true); ++n) name = base + " " + juce::String (n);
+    const auto id = gg::mygrooves::save (g, name, genre, styleId);
+    if (id.isEmpty())
+    {
+        notify ("Couldn't save the groove in " + gg::mygrooves::folder().getFullPathName());
+        return {};
+    }
+    juce::String note = "Dropped \"" + name + "\" into MY GROOVES (" + juce::String (g.bars) + (g.bars == 1 ? " bar" : " bars");
+    if (g.swing > 0.0f) note << ", swing " << gg::swingPercent (g) << "%";
+    note << ")";
+    if (in.barsLeftOut > 0) note << ". Kept the first 4 bars";
+    if (in.notesLeftOut > 0) note << ". Left out " << in.notesLeftOut << (in.notesLeftOut == 1 ? " note" : " notes") << " that aren't drums";
+    notify (note);
+    return id;
+}
+
 bool GrooveGrabberProcessor::saveGrooveChanges (const juce::String& id)
 {
     // one of your grooves: what you changed goes into it (the version before is kept in Backups)

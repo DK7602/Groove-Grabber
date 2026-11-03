@@ -1,6 +1,8 @@
 #include "Grooves.h"
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <cmath>
+#include <map>
+#include <optional>
 
 namespace gg
 {
@@ -377,6 +379,7 @@ namespace gg
         seq.addEvent (juce::MidiMessage::tempoMetaEvent ((int) std::round (60000000.0 / juce::jmax (20.0, bpm))), 0);
         seq.addEvent (juce::MidiMessage::timeSignatureMetaEvent (4, 4), 0);
         seq.addEvent (juce::MidiMessage::textMetaEvent (3, "Groove Grabber - " + g.name), 0);
+        seq.addEvent (juce::MidiMessage::textMetaEvent (1, midiDrumsTag), 0);
         for (int rep = 0; rep < times; ++rep)
             for (auto& h : g.hits)
             {
@@ -397,6 +400,260 @@ namespace gg
         juce::MemoryOutputStream out;
         mf.writeTo (out, 0);
         return out.getMemoryBlock();
+    }
+
+    //==============================================================================
+    namespace
+    {
+        // General MIDI's drums (what a DAW, a drum map or Song Savant's other kits use)
+        std::optional<Slot> gmSlot (int note)
+        {
+            switch (note)
+            {
+                case 35: case 36:          return Slot::kick;
+                case 37:                   return Slot::rim;
+                case 38: case 40:          return Slot::snare;
+                case 39:                   return Slot::clap;
+                case 42: case 44:          return Slot::closedHat;
+                case 46:                   return Slot::openHat;
+                case 41: case 43:          return Slot::tomLow;
+                case 45: case 47:          return Slot::tomMid;
+                case 48: case 50:          return Slot::tomHigh;
+                case 49: case 52: case 55: case 57: return Slot::crash;
+                case 51: case 53: case 59: return Slot::ride;
+                case 54:                   return Slot::perc1;      // tambourine
+                case 69: case 70: case 82: return Slot::perc2;      // cabasa, maracas, shaker
+                default: break;
+            }
+            if (note == 56 || (note >= 60 && note <= 81)) return Slot::perc3;   // cowbell, congas, bongos, claves...
+            return std::nullopt;
+        }
+
+        struct RawHit { double beat; Slot slot; float velocity; };
+
+        // how far the hits sit from the grid with this swing (each capped, so a quick double doesn't decide)
+        double gridError (const std::vector<RawHit>& hits, float swing, bool eighths)
+        {
+            double err = 0.0;
+            for (const auto& h : hits)
+            {
+                const double beatStart = std::floor (h.beat);
+                double best = 1.0;
+                for (int k = 0; k <= 4; ++k)
+                    best = std::min (best, std::abs (h.beat - swungBeat (beatStart + k * 0.25, swing, eighths)));
+                best = std::min (best, 0.06);
+                err += best * best;
+            }
+            return err;
+        }
+
+        // how many hits sit on a late (swung) place, at least `minShift` beats late, within `tol` of it
+        int swungHits (const std::vector<RawHit>& hits, float swing, bool eighths, double minShift, double tol)
+        {
+            int n = 0;
+            for (const auto& h : hits)
+            {
+                const double beatStart = std::floor (h.beat + 0.03);
+                for (int k = 0; k < 4; ++k)
+                {
+                    const double straight = beatStart + k * 0.25, late = swungBeat (straight, swing, eighths);
+                    if (late - straight > minShift && std::abs (h.beat - late) < tol) { ++n; break; }
+                }
+            }
+            return n;
+        }
+
+        // how far the hits that sit near a grid place are from it (made by a computer: almost nothing)
+        double gridNoise (const std::vector<RawHit>& hits, float swing, bool eighths)
+        {
+            double sum = 0.0;
+            int n = 0;
+            for (const auto& h : hits)
+            {
+                const double beatStart = std::floor (h.beat);
+                double best = 1.0;
+                for (int k = 0; k <= 4; ++k)
+                    best = std::min (best, std::abs (h.beat - swungBeat (beatStart + k * 0.25, swing, eighths)));
+                if (best < 0.03) { sum += best * best; ++n; }
+            }
+            return n > 0 ? std::sqrt (sum / n) : 0.0;
+        }
+
+        // the step a hit belongs to: the last grid place at or just before it (a hit a little early still counts)
+        int stepOf (double beat, float swing, bool eighths)
+        {
+            constexpr double early = 0.06;
+            int step = 0;
+            for (int k = (int) std::floor (beat * 4.0) - 1; k <= (int) std::floor (beat * 4.0) + 1; ++k)
+                if (k >= 0 && swungBeat (k * 0.25, swing, eighths) <= beat + early) step = std::max (step, k);
+            return step;
+        }
+    }
+
+    MidiGroove grooveFromMidi (const juce::MemoryBlock& data, const juce::String& fileName)
+    {
+        MidiGroove r;
+        juce::MemoryInputStream in (data, false);
+        juce::MidiFile mf;
+        if (! mf.readFrom (in) || mf.getTimeFormat() <= 0)
+        {
+            r.why = "It isn't a MIDI pattern Groove Grabber can read.";
+            return r;
+        }
+        const double tpq = mf.getTimeFormat();
+
+        // what the file says about itself, and its notes
+        juce::String tag, ourName;
+        double bpm = 0.0, end = 0.0;
+        struct Note { double beat; int note; int velocity; };
+        std::vector<Note> notes;
+        for (int t = 0; t < mf.getNumTracks(); ++t)
+        {
+            const auto* seq = mf.getTrack (t);
+            for (int i = 0; i < seq->getNumEvents(); ++i)
+            {
+                const auto& m = seq->getEventPointer (i)->message;
+                const double beat = m.getTimeStamp() / tpq;
+                if (m.isTextMetaEvent())
+                {
+                    const auto text = m.getTextFromTextMetaEvent().trim();
+                    if (text.startsWithIgnoreCase ("drums:")) tag = text.fromFirstOccurrenceOf (":", false, false).trim();
+                    if (text.startsWith ("Groove Grabber - ")) ourName = text.fromFirstOccurrenceOf (" - ", false, false).trim();
+                }
+                else if (m.isTempoMetaEvent() && bpm <= 0.0 && m.getTempoSecondsPerQuarterNote() > 0.0)
+                    bpm = 60.0 / m.getTempoSecondsPerQuarterNote();
+                else if (m.isEndOfTrackMetaEvent())
+                    end = std::max (end, beat);
+                else if (m.isNoteOn())
+                    notes.push_back ({ beat, m.getNoteNumber(), (int) m.getVelocity() });
+            }
+        }
+        if (notes.empty())
+        {
+            r.why = "It has no notes.";
+            return r;
+        }
+
+        // each note's drum
+        const bool ourPads = tag.containsIgnoreCase ("Groove Grabber") || (tag.isEmpty() && ourName.isNotEmpty());
+        std::vector<RawHit> hits;
+        for (const auto& n : notes)
+        {
+            std::optional<Slot> slot;
+            if (ourPads)
+                if (const auto* pad = padForNote (n.note)) slot = pad->slot;
+            if (! slot) slot = gmSlot (n.note);
+            if (! slot) { ++r.notesLeftOut; continue; }
+            // the velocity SAUCE's drag writes (118 * v + 6), back again
+            const float v = juce::jlimit (0.05f, 1.0f, (float) (n.velocity - 6) / 118.0f);
+            hits.push_back ({ n.beat, *slot, v });
+        }
+        if (hits.empty())
+        {
+            r.why = "None of its notes are drums Groove Grabber knows (it reads Groove Grabber's pads and General MIDI drums).";
+            return r;
+        }
+
+        // from the first bar with a hit
+        double first = hits.front().beat;
+        for (const auto& h : hits) first = std::min (first, h.beat);
+        const double shift = std::floor ((first + 0.06) / 4.0) * 4.0;
+        for (auto& h : hits) h.beat = std::max (0.0, h.beat - shift);
+        end -= shift;
+
+        // the swing that fits best (to 1%), if a few hits show it: by a hair in a file made by a computer (Groove
+        // Grabber's own, a DAW's swing setting), clearly in one played in (where a loose hit isn't swing)
+        float swing = 0.0f;
+        bool eighths = false;
+        double bestErr = gridError (hits, 0.0f, false);
+        for (int e = 0; e < 2; ++e)
+            for (int k = 1; k <= 50; ++k)
+            {
+                const float sw = k * 0.01f;
+                const double err = gridError (hits, sw, e == 1);
+                if (err < bestErr - 1.0e-12) { bestErr = err; swing = sw; eighths = e == 1; }
+            }
+        if (swing > 0.0f)
+        {
+            const bool exact = gridNoise (hits, swing, eighths) < 0.003;
+            const double minShift = exact ? 0.004 : 0.02, tol = exact ? 0.003 : 0.03;
+            if (swungHits (hits, swing, eighths, minShift, tol) < (exact ? 2 : 3)) { swing = 0.0f; eighths = false; }
+            else
+            {
+                // exactly: how late the late hits are, on average
+                const double per = eighths ? 1.0 / 3.0 : 1.0 / 6.0;
+                double sum = 0.0;
+                int n = 0;
+                for (const auto& h : hits)
+                {
+                    const double beatStart = std::floor (h.beat + 0.03);
+                    for (int k = 0; k < 4; ++k)
+                    {
+                        const double straight = beatStart + k * 0.25, late = swungBeat (straight, swing, eighths);
+                        if (late - straight > minShift && std::abs (h.beat - late) < tol) { sum += (h.beat - straight) / per; ++n; break; }
+                    }
+                }
+                if (n > 0) swing = juce::jlimit (0.01f, 0.5f, (float) std::round (sum / n * 100.0) / 100.0f);
+            }
+        }
+
+        // on the grid: each step's hits, evenly spread in the step (one, a quick double, or a triplet burst)
+        double last = 0.0;
+        std::map<std::pair<int, int>, std::vector<RawHit>> steps;   // (step, slot)
+        for (const auto& h : hits)
+            steps[{ stepOf (h.beat, swing, eighths), (int) h.slot }].push_back (h);
+        std::vector<GrooveHit> out;
+        for (auto& [key, inStep] : steps)
+        {
+            std::sort (inStep.begin(), inStep.end(), [] (const RawHit& a, const RawHit& b) { return a.beat < b.beat; });
+            // two notes for one drum at once (a pedal hat and a closed hat, say) are one hit
+            std::vector<RawHit> distinct;
+            for (const auto& h : inStep)
+                if (distinct.empty() || h.beat - distinct.back().beat > 0.03) distinct.push_back (h);
+                else distinct.back().velocity = std::max (distinct.back().velocity, h.velocity);
+            const int count = std::min (3, (int) distinct.size());
+            for (int k = 0; k < count; ++k)
+                out.push_back ({ key.first * 0.25 + k * 0.25 / count, (Slot) key.second, distinct[(size_t) k].velocity });
+            last = std::max (last, key.first * 0.25);
+        }
+        sortHits (out);
+
+        // how many bars: the last hit's, or the file's own length when that's a little longer (an empty last bar)
+        int bars = (int) std::floor (last / 4.0) + 1;
+        if (const int fileBars = (int) std::round (end / 4.0); fileBars > bars && fileBars <= 4) bars = fileBars;
+        if (bars > 4)
+        {
+            r.barsLeftOut = bars - 4;
+            bars = 4;
+            out.erase (std::remove_if (out.begin(), out.end(), [] (const GrooveHit& h) { return h.beat >= 16.0 - 1.0e-6; }), out.end());
+        }
+        // the same two bars twice: those two bars (SAUCE's drag plays a groove twice)
+        if (bars == 4)
+        {
+            std::vector<GrooveHit> a, b;
+            for (const auto& h : out) (h.beat < 8.0 - 1.0e-6 ? a : b).push_back (h);
+            for (auto& h : b) h.beat -= 8.0;
+            if (sameHits (a, b)) { out = a; bars = 2; }
+        }
+
+        auto& g = r.groove;
+        g.name = ourName;
+        if (g.name.isEmpty())
+        {
+            // the file's name, without the tempo and "(my edit)" SAUCE's drag adds
+            auto name = fileName.upToLastOccurrenceOf (".", false, false).trim();
+            name = name.replace ("(my edit)", "").trim();
+            const auto words = juce::StringArray::fromTokens (name, " ", "");
+            if (words.size() > 2 && words[words.size() - 1].equalsIgnoreCase ("BPM") && words[words.size() - 2].containsOnly ("0123456789."))
+                name = name.upToLastOccurrenceOf (words[words.size() - 2], false, false).trim();
+            g.name = name.isNotEmpty() ? name : juce::String ("Dropped groove");
+        }
+        g.bpm = bpm > 0.0 ? juce::jlimit (40.0, 240.0, bpm) : 0.0;
+        g.bars = bars;
+        g.swing = swing;
+        g.swingEighths = eighths;
+        g.hits = std::move (out);
+        return r;
     }
 
     //==============================================================================

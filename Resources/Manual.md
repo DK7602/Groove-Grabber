@@ -327,7 +327,7 @@ The SAUCE page explains how drums are played and programmed in a genre, style an
 - **KIT 01 to 04** picks which of BUILD's four kits plays the pattern (the same as clicking that kit on BUILD). Point at one to see its name.
 - **Play** (or the Space bar) plays it with the kit you picked. It plays at your song's tempo while you're on your song's style, and at the groove's own tempo when you're reading up on another.
 - **The playhead moves where you click.** Click the count over the steps (1 e & a 2...) and the playhead jumps to that step and plays from there, even when it's stopped. Drag along the count to scrub. When you stop, the playhead stays where you last clicked, and Play and the Space bar start from there. Click "1" of bar 1 to start from the top again. (With Follow DAW on and your DAW playing, the DAW's position leads.)
-- **DRAG MIDI** shows the tempo and swing it plays at, and drags four bars of it into your DAW, on the same notes as every Groove Grabber kit (MIDI channel 1). **Drop it on the lane of your drum track** (in Cubase, your Groove Agent SE or Groove Grabber track), at the bar where it should start. Dropped below the last track, most DAWs make a new track with no instrument on it, so it stays silent. The files are kept in Documents\Groove Grabber\Sauce MIDI.
+- **DRAG MIDI** shows the tempo and swing it plays at, and drags the pattern into your DAW twice over (four bars for a two-bar groove), on the same notes as every Groove Grabber kit (MIDI channel 1). **Drop it on the lane of your drum track** (in Cubase, your Groove Agent SE or Groove Grabber track), at the bar where it should start. Dropped below the last track, most DAWs make a new track with no instrument on it, so it stays silent. The files are kept in Documents\Groove Grabber\Sauce MIDI.
 
 **Editing the pattern**
 
@@ -361,6 +361,16 @@ An edit belongs to one song. To keep a pattern for all your songs, save it as yo
 - **A copy is always kept.** Before a groove is saved over, renamed or deleted, a copy goes to Documents\Groove Grabber\My Grooves\Backups. MY KITS > MY GROOVES > **BACKUPS...** brings any of them back.
 - BUILD's groove list has a **MY GROOVES** section in every song: pick one to hear new kits in your groove, and it's what goes into the export's Groove MIDI file. If you delete it, BUILD goes back to the style's own groove.
 
+**Drop a MIDI pattern on SAUCE**
+
+Drag a MIDI file (.mid) onto the SAUCE page: a drum part from Song Savant, a clip from your DAW, or a file from a folder. It becomes one of **MY GROOVES**, named after the file, saved with the genre and style you're on, and shows on the grid to play, change and save.
+
+- Each note goes to its drum. Files from Song Savant and Groove Grabber say which drum layout they use, so the 808 and the percussion land on their own rows. Other files are read as the usual General MIDI drums (what most DAWs and drum maps use).
+- It starts from the first bar with a note, and keeps up to **4 bars**. A pattern that plays the same two bars twice (what DRAG MIDI gives) comes back as those two bars.
+- The hits are lined up to the grid's 16ths. Two or three quick hits in one step stay a roll. If the pattern swings, Groove Grabber finds its swing and sets SWING to match.
+- The tempo comes from the file (or your song's tempo when the file has none).
+- Notes that aren't drums (a bass line, say) are left out. The message at the bottom says what came in.
+
 **THE SAUCE** (bottom)
 
 - **The pocket:** what makes this style feel like itself, with its tempo, swing, time feel and low end.
@@ -391,6 +401,8 @@ Song Savant suggests the sounds for a whole song from the instruments you own. O
 - Every song Song Savant sent is also in the **KEY COMPASS** menu, under SONG SAVANT SONGS. Picking one does the same.
 - Click **SAVE KIT** on the kit you like. If Song Savant is open, that kit lands on its drum card by itself within a few seconds, locked, and Song Savant's starter drum parts and arrangement use it (Song Savant 0.10.1 or newer). Every other kit you save shows up among Song Savant's drum choices.
 - In your DAW, put Groove Grabber on an instrument track, open **MY KITS** and **LOAD** the kit, then drag Song Savant's drum part onto that track: it plays Groove Grabber's pads, and in 808 styles the 808 plays with the kick.
+
+- **Drum patterns go both ways** (Song Savant 1.3.0 or newer). Drag DRAG MIDI from SAUCE onto Song Savant (its drum card, a drums box on its ARRANGE page, or its drum piano roll), and each drum lands on its own row, the 808 too. Drag Song Savant's drum part (its piano roll's drag tag, or a drums box on ARRANGE) onto SAUCE, and it becomes one of MY GROOVES (see Drop a MIDI pattern on SAUCE). If one of them is the plug-in in your DAW, drag the pattern into the DAW first, then from the DAW onto the other.
 
 The songs are small files in Documents\Song Savant\Songs.
 
@@ -535,6 +547,7 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | Right-click a sound (LIBRARY) | Fix its type, favourite it, ban it, put it on a pad |
 | Drag a pad to your DAW | Use that one sound |
 | Drop a file on a pad | Replace that pad's sound |
+| Drop a .mid on SAUCE | Make it one of MY GROOVES (from Song Savant, your DAW...) |
 
 **Pad map** (export file numbers and MIDI notes; shown as C1 = MIDI note 36, the Cubase, Live and Logic naming)
 

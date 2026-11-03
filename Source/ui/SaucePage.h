@@ -57,7 +57,7 @@ namespace ggui
     };
 
     //==============================================================================
-    class SaucePage : public juce::Component, public juce::TooltipClient, private juce::Timer
+    class SaucePage : public juce::Component, public juce::TooltipClient, public juce::FileDragAndDropTarget, private juce::Timer
     {
     public:
         explicit SaucePage (GrooveGrabberProcessor&);
@@ -71,7 +71,16 @@ namespace ggui
         void visibilityChanged() override;
         void lookAndFeelChanged() override;
         juce::String getTooltip() override;
+        void paintOverChildren (juce::Graphics&) override;
         std::function<void()> onUseOnBuild;           // after BUILD was set to this style
+
+        // A MIDI pattern dropped on the page (from Song Savant, the DAW, or a SAUCE drag): it becomes one of MY GROOVES,
+        // saved with this genre and style, and shows on the grid. False (with a message) when it can't be read.
+        bool dropMidi (const juce::File&);
+        bool isInterestedInFileDrag (const juce::StringArray&) override;
+        void fileDragEnter (const juce::StringArray&, int, int) override   { dropHover = true; repaint(); }
+        void fileDragExit (const juce::StringArray&) override              { dropHover = false; repaint(); }
+        void filesDropped (const juce::StringArray&, int, int) override;
 
         // (for the tests)
         void choose (gg::Genre, int subStyle, int era);
@@ -146,6 +155,6 @@ namespace ggui
         DocView doc;
         juce::Viewport docView;
         juce::Rectangle<int> leftArea, factsArea, legendArea, buildItArea, followArea, patternArea, patternHeader, editBar, dragArea, sauceArea, sauceTitle;
-        bool updating = false, dragging = false;
+        bool updating = false, dragging = false, dropHover = false;
     };
 }
