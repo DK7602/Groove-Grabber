@@ -9,13 +9,14 @@ GrooveGrabberEditor::GrooveGrabberEditor (GrooveGrabberProcessor& p)
     setLookAndFeel (&lnf.get());
     juce::LookAndFeel::setDefaultLookAndFeel (&lnf.get());
 
-    addAndMakeVisible (header);
-    addChildComponent (build);
-    addChildComponent (library);
-    addChildComponent (kitsPage);
-    addChildComponent (sauce);
-    addChildComponent (exporter);
-    addChildComponent (help);
+    addAndMakeVisible (content);
+    content.addAndMakeVisible (header);
+    content.addChildComponent (build);
+    content.addChildComponent (library);
+    content.addChildComponent (kitsPage);
+    content.addChildComponent (sauce);
+    content.addChildComponent (exporter);
+    content.addChildComponent (help);
 
     header.onTab = [this] (int t) { showTab (t); };
     header.onThemeChanged = [this] { themeChanged(); };
@@ -150,10 +151,16 @@ void GrooveGrabberEditor::paint (juce::Graphics& g)
 
 void GrooveGrabberEditor::resized()
 {
-    auto r = getLocalBounds();
+    // a window bigger than the one it opens at draws everything bigger, the words too
+    const float zoom = ggui::zoomFor (getWidth(), getHeight());
+    content.setTransform (zoom > 1.0f ? juce::AffineTransform::scale (zoom) : juce::AffineTransform());
+    content.setBounds (0, 0, (int) std::ceil ((float) getWidth() / zoom), (int) std::ceil ((float) getHeight() / zoom));
+
+    const auto all = content.getLocalBounds();
+    auto r = all;
     header.setBounds (r.removeFromTop (88));
     for (auto* page : std::initializer_list<juce::Component*> { &build, &library, &kitsPage, &sauce })
         page->setBounds (r);
-    exporter.setBounds (getLocalBounds());
-    help.setBounds (getLocalBounds());
+    exporter.setBounds (all);
+    help.setBounds (all);
 }

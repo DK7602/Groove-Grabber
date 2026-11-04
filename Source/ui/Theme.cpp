@@ -117,6 +117,11 @@ namespace ggui
     juce::Font uiFont (float h, bool bold)   { return withTypeface (bold ? fonts().rbold : fonts().semi, h); }
     juce::Font bodyFont (float h)            { return withTypeface (fonts().med, h); }
 
+    float zoomFor (int width, int height)
+    {
+        return juce::jlimit (1.0f, 6.0f, juce::jmin ((float) width / (float) zoomBaseWidth, (float) height / (float) zoomBaseHeight));
+    }
+
     juce::ColourGradient brandGradient (juce::Rectangle<float> r, float alpha)
     {
         const auto& p = pal();
@@ -345,6 +350,8 @@ namespace ggui
         if (style == "primary") return headFont (juce::jmin (16.0f, h * 0.36f)).withExtraKerningFactor (0.08f);
         if (style == "tab")   // the header sets its tabs' text height to fit the bar
             return headFont (juce::jmin ((float) b.getProperties().getWithDefault ("textH", 12.5f), h * 0.45f)).withExtraKerningFactor (0.1f);
+        if (style == "segment")   // (BUILD's FEEL, LOW END and PERC switches: small boxes, so the words fill more of them)
+            return uiFont (juce::jmin (15.5f, h * 0.64f));
         return uiFont (juce::jmin (15.5f, h * 0.52f));
     }
 

@@ -27,6 +27,12 @@ namespace ggui
     juce::Font uiFont (float height, bool bold = true);   // Rajdhani SemiBold / Bold
     juce::Font bodyFont (float height);         // Rajdhani Medium
 
+    // How much bigger to draw everything in a window of this size: 1 up to the size it opens at (1440 x 920), then
+    // growing with the window (a maximised window has bigger words, buttons and pads). The pages are laid out at the
+    // window's size divided by this, never smaller than zoomBase (they fit down to 1180 x 780).
+    constexpr int zoomBaseWidth = 1440, zoomBaseHeight = 820;
+    float zoomFor (int width, int height);
+
     juce::ColourGradient brandGradient (juce::Rectangle<float>, float alpha = 1.0f);
 
     void drawPanel (juce::Graphics&, juce::Rectangle<float>, float radius = 12.0f, bool highlight = false);

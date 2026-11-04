@@ -336,7 +336,7 @@ namespace ggui
         m.addItem (3, s.rating < 0 ? "Allow it again" : "Never use this sound");
         m.addItem (5, "Put it on the selected pad (" + gg::slotName (proc.selectedSlot) + ")", ! proc.kits.empty() && gg::slotCat (proc.selectedSlot) == s.cat);
         m.addItem (4, "Show the file");
-        m.showMenuAsync ({}, [this, s, safe = juce::Component::SafePointer<LibraryPage> (this)] (int r)
+        m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (this).withMousePosition(), [this, s, safe = juce::Component::SafePointer<LibraryPage> (this)] (int r)
         {
             if (safe == nullptr) return;
             if (r == 1) proc.previewFile (s.path, s.cat);

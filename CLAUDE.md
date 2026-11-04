@@ -52,6 +52,7 @@ xvfb-run -a ./build/GGTests_artefacts/Release/GGTests --host "build/GrooveGrabbe
 - Edited grooves live in the processor (`editGroove` / `resetGroove` / `getGroove`, saved in the state as "grooveEdits"). The player holds a raw pointer, so a replaced edit is kept in `retiredGrooves` for a while; always fetch grooves through `getGroove`, never keep a `const Groove*` to an edit.
 - `Source/core/Harvester.*`: cutting hits out of a drum bounce (audio-only classification).
 - `Source/ui/*`: pages (Build, Library, My Kits, Sauce), ExportPanel (the FOR picker and the DAW's steps), HelpPanel (in-app manual and About; its `DocView` also renders SAUCE), Theme.
+- The window zooms (1.0.25): everything sits in the editor's `content`, laid out at the window's size divided by `ggui::zoomFor` (1 up to 1440 x 920, then the smaller of width / 1440 and height / 820) and scaled up by a transform, so a big window has bigger words. Lay pages out in their own bounds, never the editor's. Give a popup menu its component (`withTargetComponent`) so it opens at the same zoom, and draw any cached picture at `g.getInternalContext().getPhysicalPixelScaleFactor()` so it stays sharp. Song Savant 1.8.0 does the same.
 - `Tests/`:
   - `TestMain.cpp`: engine tests, plus a synthetic library from `TestSounds.cpp`, which must stay at 45/45 classified.
   - `TestScreens.cpp`: screenshots.

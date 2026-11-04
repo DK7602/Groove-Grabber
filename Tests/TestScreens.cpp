@@ -109,6 +109,21 @@ int runScreenshots (const juce::File& outDir)
                 pump (200);
                 std::cout << (huge ? "  ok: " : "  FAIL: ") << "the window can fill a 4K screen" << std::endl;
                 if (! huge) ++failures;
+                // maximised on the owner's screen (1920 x 1080): everything is drawn bigger, the words too
+                ed->setSize (1920, 1010);
+                pump (300);
+                save (*ed, outDir.getChildFile ("build-full.png"));
+                const float fullZoom = ed->getZoom();
+                const auto laidOut = ed->getContent().getLocalBounds();
+                ed->setSize (1440, 900);
+                pump (200);
+                const bool zoomed = fullZoom > 1.2f && laidOut.getWidth() >= ggui::zoomBaseWidth && laidOut.getHeight() >= ggui::zoomBaseHeight
+                                    && laidOut.getHeight() <= ggui::zoomBaseHeight + 1 && std::abs (ed->getZoom() - 1.0f) < 0.001f
+                                    && ed->getContent().getWidth() == 1440;
+                std::cout << (zoomed ? "  ok: " : "  FAIL: ") << "a maximised window (1920 x 1010) draws everything bigger (zoom "
+                          << juce::String (fullZoom, 2) << ", laid out at " << laidOut.getWidth() << " x " << laidOut.getHeight()
+                          << "); the opening size isn't zoomed" << std::endl;
+                if (! zoomed) ++failures;
             }
             // the app's window: minimise, maximise, close, in that order on the right
             {

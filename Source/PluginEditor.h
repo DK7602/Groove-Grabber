@@ -32,6 +32,8 @@ public:
     ggui::HeaderBar& getHeader()  { return header; }
     ggui::ExportPanel& getExporter()   { return exporter; }
     ggui::KitsPage& getKitsPage()      { return kitsPage; }
+    float getZoom() const              { return content.getTransform().getScaleFactor(); }
+    juce::Component& getContent()      { return content; }
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
@@ -40,7 +42,10 @@ private:
 
     GrooveGrabberProcessor& proc;
     juce::SharedResourcePointer<ggui::LookAndFeel> lnf;
-    juce::TooltipWindow tooltips { this, 600 };
+    // Everything on screen sits in here. A window bigger than the one it opens at zooms it (ggui::zoomFor), so the
+    // words, buttons and pads grow with the window; the pages are laid out at the window's size divided by the zoom.
+    juce::Component content;
+    juce::TooltipWindow tooltips { &content, 600 };
     ggui::HeaderBar header;
     ggui::BuildPage build;
     ggui::LibraryPage library;
