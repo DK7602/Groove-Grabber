@@ -71,7 +71,7 @@ Everything sits on four pages under one header bar. Hover over almost anything t
 - **MY KITS:** kits you saved, plus recent ones, filed by genre and searchable.
 - **SAUCE:** how the drums go in a genre, style and decade: the patterns (which you can edit), and how to play and program them.
 
-The app opens on LIBRARY the very first time (nothing to build with yet) and on BUILD after that. The window can be resized from the bottom-right corner.
+The app opens on LIBRARY the very first time (nothing to build with yet) and on BUILD after that. The window can be resized from the bottom-right corner. The standalone app's window also has a maximise button between minimise and close (or double-click its title bar).
 
 ## LIBRARY: your sounds
 

@@ -26,6 +26,28 @@ namespace gg::standalone
        #endif
     }
 
+    void addMaximiseButton (juce::DocumentWindow& w)
+    {
+        if (w.getMaximiseButton() != nullptr) return;
+        w.setTitleBarButtonsRequired (juce::DocumentWindow::minimiseButton | juce::DocumentWindow::maximiseButton
+                                        | juce::DocumentWindow::closeButton, false);
+        // and tell the system, which made the window without a maximise box: on Windows that's what Win+Up,
+        // dragging the window to the top of the screen and the snap layouts over the button go by. (Not on
+        // Linux, where the button needs nothing more, and X refuses the hint with no window manager running.)
+       #if JUCE_WINDOWS || JUCE_MAC
+        if (auto* peer = w.getPeer(); peer != nullptr && (peer->getStyleFlags() & juce::ComponentPeer::windowHasMaximiseButton) == 0)
+            w.addToDesktop (w.getDesktopWindowStyleFlags());
+       #endif
+    }
+
+    void tidyTitleBar (juce::Component& editor)
+    {
+        if (! isStandalone()) return;
+        if (auto* w = dynamic_cast<juce::DocumentWindow*> (editor.getTopLevelComponent()); w != nullptr && w != &editor)
+            addMaximiseButton (*w);
+        hideTitleBarOptionsButton (editor);
+    }
+
     void hideTitleBarOptionsButton (juce::Component& editor)
     {
         if (! isStandalone()) return;

@@ -37,7 +37,7 @@ GrooveGrabberEditor::GrooveGrabberEditor (GrooveGrabberProcessor& p)
     showTab (empty && proc.kits.empty() ? 1 : 0);
 
     setResizable (true, true);
-    setResizeLimits (1180, 780, 2600, 1700);
+    setResizeLimits (1180, 780, 7680, 4320);      // (big enough for a maximised window on any screen)
     setSize (1440, 920);
     refreshAll();
 }
@@ -51,10 +51,10 @@ GrooveGrabberEditor::~GrooveGrabberEditor()
 
 void GrooveGrabberEditor::parentHierarchyChanged()
 {
-    // the app's tiny "Options" button: our settings gear does the same job
+    // the app's window: a maximise button, and no tiny "Options" button (our settings gear does that job)
     juce::MessageManager::callAsync ([safe = juce::Component::SafePointer<GrooveGrabberEditor> (this)]
     {
-        if (safe != nullptr) gg::standalone::hideTitleBarOptionsButton (*safe);
+        if (safe != nullptr) gg::standalone::tidyTitleBar (*safe);
     });
 }
 

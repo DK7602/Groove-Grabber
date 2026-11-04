@@ -1,6 +1,7 @@
 // Draws the whole window (dark and light, every page) to PNGs, so the look can be checked without a DAW.
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "StandaloneBridge.h"
 #include "core/Settings.h"
 #include "core/MyGrooves.h"
 #include <iostream>
@@ -88,7 +89,7 @@ int runScreenshots (const juce::File& outDir)
                 if (! order) ++failures;
                 // the bigger logo and tab names still fit the bar, from the smallest window up
                 bool fits = true;
-                for (const int w : { 1440, 1180, 1399, 2000 })
+                for (const int w : { 1440, 1180, 1399, 2000, 3840 })
                 {
                     ed->setSize (w, 900);
                     const auto logo = hb.getLogoArea();
@@ -99,6 +100,44 @@ int runScreenshots (const juce::File& outDir)
                 pump (100);
                 std::cout << (fits ? "  ok: " : "  FAIL: ") << "the logo and tabs fit the header at every window width" << std::endl;
                 if (! fits) ++failures;
+                // maximised on a big screen (3840 x 2160 at 100%)
+                ed->setSize (3840, 2120);
+                pump (300);
+                save (*ed, outDir.getChildFile ("build-huge.png"));
+                const bool huge = ed->getWidth() == 3840 && ed->getHeight() == 2120;
+                ed->setSize (1440, 900);
+                pump (200);
+                std::cout << (huge ? "  ok: " : "  FAIL: ") << "the window can fill a 4K screen" << std::endl;
+                if (! huge) ++failures;
+            }
+            // the app's window: minimise, maximise, close, in that order on the right
+            {
+                juce::DocumentWindow w ("Groove Grabber", juce::Colours::black, juce::DocumentWindow::minimiseButton | juce::DocumentWindow::closeButton, false);
+                w.setSize (1440, 960);
+                gg::standalone::addMaximiseButton (w);
+                gg::standalone::addMaximiseButton (w);      // (twice is harmless)
+                auto* mn = w.getMinimiseButton();
+                auto* mx = w.getMaximiseButton();
+                auto* cl = w.getCloseButton();
+                const bool buttons = mn != nullptr && mx != nullptr && cl != nullptr && mn->getX() < mx->getX() && mx->getX() < cl->getX();
+                // on screen, the system's window is told it can be maximised too (Windows and Mac: Linux needs
+                // nothing more, and the test's X server has no window manager to take the hint)
+                bool system = true;
+               #if JUCE_WINDOWS || JUCE_MAC
+                {
+                    juce::DocumentWindow onScreen ("Groove Grabber", juce::Colours::black, juce::DocumentWindow::minimiseButton | juce::DocumentWindow::closeButton, true);
+                    onScreen.setSize (900, 600);
+                    onScreen.setVisible (true);
+                    pump (100);
+                    gg::standalone::addMaximiseButton (onScreen);
+                    pump (100);
+                    system = onScreen.getPeer() != nullptr && onScreen.isVisible() && onScreen.getMaximiseButton() != nullptr
+                             && (onScreen.getPeer()->getStyleFlags() & juce::ComponentPeer::windowHasMaximiseButton) != 0;
+                    onScreen.setVisible (false);
+                }
+               #endif
+                std::cout << (buttons && system ? "  ok: " : "  FAIL: ") << "the app's window has minimise, maximise and close" << std::endl;
+                if (! (buttons && system)) ++failures;
             }
             // BUILD's swing: the same 50% to 66% (a full triplet) as SAUCE's
             auto& sw = ed->getBuild().getTransport().getSwingSlider();
