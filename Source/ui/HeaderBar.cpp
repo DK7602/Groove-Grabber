@@ -152,14 +152,26 @@ namespace ggui
     {
         auto r = getLocalBounds().reduced (14, 9);
         const bool narrow = getWidth() < 1400;
-        logoArea = r.removeFromLeft (narrow ? 280 : 340);
-        r.removeFromLeft (narrow ? 4 : 10);
+
+        // the logo: the badge nearly as tall as the bar (above the brand line), and only as wide as GROOVE needs
+        const int badge = narrow ? 76 : 80;
+        titleH = narrow ? 44.0f : 46.0f;
+        grabberH = narrow ? 19.0f : 20.0f;
+        const float grooveW = juce::GlyphArrangement::getStringWidth (titleFont (titleH).withExtraKerningFactor (0.04f), "GROOVE");
+        logoArea = { 14, (getHeight() - 2 - badge) / 2, badge + 14 + (int) std::ceil (grooveW) + 8, badge };
+        r.setLeft (logoArea.getRight() + (narrow ? 6 : 14));
+
+        // the tabs, each as wide as its name: shown BUILD, SAUCE, MY KITS, LIBRARY; each keeps its page's
+        // number (0 BUILD, 1 LIBRARY, 2 MY KITS, 3 SAUCE)
+        const float textH = narrow ? 16.0f : 17.0f;
+        const auto tabFont = headFont (textH).withExtraKerningFactor (0.1f);
         auto tabRow = r.withSizeKeepingCentre (r.getWidth(), 44);
-        // shown BUILD, SAUCE, MY KITS, LIBRARY; each tab keeps its page's number (0 BUILD, 1 LIBRARY, 2 MY KITS, 3 SAUCE)
         for (const int page : tabOrder)
         {
             auto* t = tabs[page];
-            t->setBounds (tabRow.removeFromLeft (page == 2 ? (narrow ? 96 : 108) : (narrow ? 84 : 98)).reduced (2, 2));
+            t->getProperties().set ("textH", textH);
+            const int w = (int) std::ceil (juce::GlyphArrangement::getStringWidth (tabFont, t->getButtonText())) + (narrow ? 26 : 32);
+            t->setBounds (tabRow.removeFromLeft (w).reduced (2, 2));
         }
         r = r.withLeft (tabRow.getX());
 
@@ -204,12 +216,14 @@ namespace ggui
             g.drawImage (badgeImage(), badge, juce::RectanglePlacement::centred);
         }
         la.removeFromLeft (14);
-        auto groove = la.removeFromTop (la.getHeight() * 64 / 100).toFloat();
-        auto grabber = la.toFloat();
+        // GROOVE over GRABBER, the pair centred on the badge (Orbitron's capitals are 0.574 of its font height)
+        const float grooveCap = titleH * 0.574f, grabberCap = grabberH * 0.574f, gap = titleH * 0.24f;
+        const float grooveBase = (float) la.getY() + ((float) la.getHeight() - (grooveCap + gap + grabberCap)) * 0.5f + grooveCap;
+        const float grabberBase = grooveBase + gap + grabberCap;
         {
-            const auto font = titleFont (38.0f).withExtraKerningFactor (0.04f);
+            const auto font = titleFont (titleH).withExtraKerningFactor (0.04f);
             juce::GlyphArrangement ga;
-            ga.addLineOfText (font, "GROOVE", groove.getX(), groove.getBottom() - 4);
+            ga.addLineOfText (font, "GROOVE", (float) la.getX(), grooveBase);
             juce::Path text;
             ga.createPath (text);
             const auto tb = text.getBounds();
@@ -226,8 +240,8 @@ namespace ggui
             g.fillPath (text);
         }
         g.setColour (p.orange);
-        g.setFont (headFont (17.0f).withExtraKerningFactor (0.66f));
-        g.drawText ("GRABBER", grabber.withTrimmedLeft (3), juce::Justification::topLeft, false);
+        g.setFont (headFont (grabberH).withExtraKerningFactor (0.7f));
+        g.drawSingleLineText ("GRABBER", la.getX() + 3, juce::roundToInt (grabberBase));
 
         g.setColour (p.dim);
         g.setFont (headFont (10.0f).withExtraKerningFactor (0.12f));

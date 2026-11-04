@@ -343,7 +343,8 @@ namespace ggui
     {
         const auto style = b.getProperties()["style"].toString();
         if (style == "primary") return headFont (juce::jmin (16.0f, h * 0.36f)).withExtraKerningFactor (0.08f);
-        if (style == "tab") return headFont (juce::jmin (12.5f, h * 0.36f)).withExtraKerningFactor (0.1f);
+        if (style == "tab")   // the header sets its tabs' text height to fit the bar
+            return headFont (juce::jmin ((float) b.getProperties().getWithDefault ("textH", 12.5f), h * 0.45f)).withExtraKerningFactor (0.1f);
         return uiFont (juce::jmin (15.5f, h * 0.52f));
     }
 

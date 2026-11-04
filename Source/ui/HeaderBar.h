@@ -36,6 +36,8 @@ namespace ggui
         std::function<void()> onThemeChanged;
         std::function<void (int)> onHelp;              // 0 = the manual, 1 = About
         const juce::TextButton& getTabButton (int page) const   { return *tabs[page]; }   // (for the tests)
+        juce::Rectangle<int> getLogoArea() const noexcept        { return logoArea; }
+        int getControlsLeft() const noexcept                     { return keyLabel.getX(); }   // where KEY starts
         void paint (juce::Graphics&) override;
         void resized() override;
         void mouseUp (const juce::MouseEvent&) override;
@@ -54,6 +56,7 @@ namespace ggui
                    help { "manual", Icon::help };
         std::unique_ptr<juce::FileChooser> chooser;
         juce::Rectangle<int> logoArea, keyLabel, bpmLabel;
+        float titleH = 46.0f, grabberH = 20.0f;                       // GROOVE and GRABBER (font heights)
         int tab = 0;
     };
 }

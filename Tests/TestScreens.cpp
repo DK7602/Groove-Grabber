@@ -86,6 +86,19 @@ int runScreenshots (const juce::File& outDir)
                                    && hb.getTabButton (3).getButtonText() == "SAUCE" && hb.getTabButton (1).getButtonText() == "LIBRARY";
                 std::cout << (order ? "  ok: " : "  FAIL: ") << "the tabs read BUILD, SAUCE, MY KITS, LIBRARY" << std::endl;
                 if (! order) ++failures;
+                // the bigger logo and tab names still fit the bar, from the smallest window up
+                bool fits = true;
+                for (const int w : { 1440, 1180, 1399, 2000 })
+                {
+                    ed->setSize (w, 900);
+                    const auto logo = hb.getLogoArea();
+                    fits = fits && logo.getHeight() >= 76 && logo.getBottom() <= hb.getHeight() - 2 && logo.getRight() < hb.getTabButton (0).getX()
+                                && hb.getTabButton (1).getRight() + 8 <= hb.getControlsLeft();
+                }
+                ed->setSize (1440, 900);
+                pump (100);
+                std::cout << (fits ? "  ok: " : "  FAIL: ") << "the logo and tabs fit the header at every window width" << std::endl;
+                if (! fits) ++failures;
             }
             // BUILD's swing: the same 50% to 66% (a full triplet) as SAUCE's
             auto& sw = ed->getBuild().getTransport().getSwingSlider();
