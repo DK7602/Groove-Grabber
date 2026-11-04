@@ -357,12 +357,14 @@ namespace ggui
 
         swing.setSliderStyle (juce::Slider::LinearHorizontal);
         swing.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
-        swing.setRange (0.0, 70.0, 1.0);
+        // the same as SAUCE's: 50% (straight) to 66% (a full triplet)
+        swing.setRange (50.0, 66.0, 1.0);
+        swing.setDoubleClickReturnValue (true, 50.0);
         swing.setTooltip ("Swing");
         swing.onValueChange = [this]
         {
-            proc.player.setSwing ((float) swing.getValue() / 100.0f);
-            swing.setTooltip ("Swing: " + juce::String (juce::roundToInt (50.0 + swing.getValue() / 3.0)) + "% (50% = straight, 66% = a full triplet feel)");
+            proc.player.setSwing (gg::swingFromPercent ((int) swing.getValue()));
+            swing.setTooltip (swingTip());
         };
         swing.getProperties().set ("accent", pal().purple.toString());
         addAndMakeVisible (swing);
@@ -404,6 +406,11 @@ namespace ggui
         }
     }
 
+    juce::String TransportBar::swingTip() const
+    {
+        return "Swing: " + juce::String (gg::swingToPercent (proc.player.getSwing())) + "% (50% = straight, 66% = a full triplet). Double-click for straight.";
+    }
+
     void TransportBar::refresh()
     {
         fillGrooves();
@@ -417,8 +424,8 @@ namespace ggui
             if (groove.getItemText ((int) i) != text) groove.changeItemText ((int) i + 1, text);
             if (gr.id == proc.grooveId) groove.setSelectedId ((int) i + 1, juce::dontSendNotification);
         }
-        swing.setValue (proc.player.getSwing() * 100.0, juce::dontSendNotification);
-        swing.setTooltip ("Swing: " + juce::String (juce::roundToInt (50.0 + proc.player.getSwing() * 100.0 / 3.0)) + "% (50% = straight, 66% = a full triplet feel)");
+        swing.setValue (gg::swingToPercent (proc.player.getSwing()), juce::dontSendNotification);
+        swing.setTooltip (swingTip());
         volume.setValue (proc.player.getVolume() * 100.0, juce::dontSendNotification);
         follow.setToggleState (proc.player.isFollowingHost(), juce::dontSendNotification);
         swing.getProperties().set ("accent", pal().purple.toString());

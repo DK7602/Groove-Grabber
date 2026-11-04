@@ -57,7 +57,7 @@ namespace gg
         bool isFollowingHost() const noexcept      { return followHost.load(); }
         void setTempo (double bpm)                 { tempo = juce::jlimit (40.0, 250.0, bpm); }
         double getTempo() const noexcept           { return tempo.load(); }
-        void setSwing (float s)                    { swing = juce::jlimit (0.0f, 0.7f, s); }
+        void setSwing (float s)                    { swing = std::isfinite (s) ? juce::jlimit (0.0f, maxSwing, s) : 0.0f; }   // up to a full triplet
         float getSwing() const noexcept            { return swing.load(); }
         void setVolume (float v)                   { volume = juce::jlimit (0.0f, 2.0f, v); }
         float getVolume() const noexcept           { return volume.load(); }

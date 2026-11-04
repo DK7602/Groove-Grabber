@@ -564,7 +564,7 @@ namespace ggui
     {
         const auto id = currentId();
         if (id.isEmpty()) return;
-        proc.setGrooveSwing (id, (float) (juce::jlimit (50, 66, percent) - 50) * 3.0f / 100.0f);
+        proc.setGrooveSwing (id, gg::swingFromPercent (percent));
         if (playingHere) if (const auto g = currentGroove()) proc.player.setSwing (g->swing);
         showGroove();
         repaint (dragArea);

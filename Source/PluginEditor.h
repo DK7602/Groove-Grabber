@@ -28,6 +28,8 @@ public:
     void showHelp (int page)      { help.show (page); }
     ggui::HelpPanel& getHelp()    { return help; }
     ggui::SaucePage& getSauce()   { return sauce; }
+    ggui::BuildPage& getBuild()   { return build; }
+    ggui::HeaderBar& getHeader()  { return header; }
     ggui::ExportPanel& getExporter()   { return exporter; }
     ggui::KitsPage& getKitsPage()      { return kitsPage; }
 

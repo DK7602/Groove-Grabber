@@ -49,7 +49,7 @@ namespace gg::mygrooves
             g->bpm = std::isfinite (bpm) ? juce::jlimit (40.0, 250.0, bpm) : 100.0;
             g->bars = juce::jlimit (1, 4, (int) v.getProperty ("bars", 2));
             const double swing = v.getProperty ("swing", 0.0);
-            g->swing = std::isfinite (swing) ? (float) juce::jlimit (0.0, 0.7, swing) : 0.0f;
+            g->swing = std::isfinite (swing) ? (float) juce::jlimit (0.0, (double) maxSwing, swing) : 0.0f;
             g->swingEighths = (bool) v.getProperty ("swingEighths", false);
             g->hits = hitsFromVar (v["hits"], *g);
             e.groove = std::move (g);

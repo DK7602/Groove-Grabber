@@ -366,11 +366,22 @@ namespace gg
         return beat;
     }
 
-    int swingPercent (const Groove& g) noexcept
+    int swingToPercent (float swing) noexcept
     {
-        // the late note's place between its two neighbours: (0.5 + swing / 3) of the way, for 16ths and 8ths alike
-        return juce::roundToInt (50.0 + g.swing * 100.0 / 3.0);
+        // the late note's place between its two neighbours: (0.5 + swing / 3) of the way, for 16ths and 8ths
+        // alike. A full triplet (66.7%) is called 66%, as on an MPC.
+        if (! std::isfinite (swing)) return 50;
+        if (swing >= maxSwing - 1.0e-4f) return 66;
+        return juce::jlimit (50, 66, juce::roundToInt (50.0 + juce::jmax (0.0f, swing) * 100.0 / 3.0));
     }
+
+    float swingFromPercent (int percent) noexcept
+    {
+        percent = juce::jlimit (50, 66, percent);
+        return percent == 66 ? maxSwing : (float) (percent - 50) * 3.0f / 100.0f;
+    }
+
+    int swingPercent (const Groove& g) noexcept   { return swingToPercent (g.swing); }
 
     juce::MemoryBlock grooveToMidi (const Groove& g, double bpm, float swing, int times)
     {

@@ -155,7 +155,12 @@ namespace ggui
         logoArea = r.removeFromLeft (narrow ? 280 : 340);
         r.removeFromLeft (narrow ? 4 : 10);
         auto tabRow = r.withSizeKeepingCentre (r.getWidth(), 44);
-        for (auto* t : tabs) { t->setBounds (tabRow.removeFromLeft (t == tabs[2] ? (narrow ? 96 : 108) : (narrow ? 84 : 98)).reduced (2, 2)); }
+        // shown BUILD, SAUCE, MY KITS, LIBRARY; each tab keeps its page's number (0 BUILD, 1 LIBRARY, 2 MY KITS, 3 SAUCE)
+        for (const int page : tabOrder)
+        {
+            auto* t = tabs[page];
+            t->setBounds (tabRow.removeFromLeft (page == 2 ? (narrow ? 96 : 108) : (narrow ? 84 : 98)).reduced (2, 2));
+        }
         r = r.withLeft (tabRow.getX());
 
         // right to left: light / dark, settings, Key Compass, BPM, key

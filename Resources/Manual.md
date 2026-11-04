@@ -56,7 +56,7 @@ Everything sits on four pages under one header bar. Hover over almost anything t
 | Control | What it does |
 | --- | --- |
 | Logo | Click to switch between the dark and light look |
-| BUILD / LIBRARY / MY KITS / SAUCE | The four pages |
+| BUILD / SAUCE / MY KITS / LIBRARY | The four pages |
 | KEY | The song's key. The kick, 808 and toms are tuned to it. Minor keys are listed first. |
 | BPM | The song's tempo. Drag up or down, scroll, or double-click to type. |
 | KEY COMPASS | Takes the key and tempo from a Key Compass song or a song file, or uses a song sent from Song Savant |
@@ -238,7 +238,7 @@ The buttons above the pads act on the whole kit: **REGENERATE** (new sounds for 
 - **Play / stop** the preview groove with the selected kit. The **Space bar** does the same.
 - **Groove** picks the preview pattern. Each style has its own, and it plays at the song's BPM. Your own grooves are listed under MY GROOVES.
 - **EDIT IN SAUCE** opens the groove you picked on the SAUCE page, to change it, save it as your own or drag it into your DAW.
-- **SWING** and **VOL** for the preview.
+- **SWING** for the preview, from 50% (straight) to 66% (a full triplet), the same as SAUCE's. Point at it to see the value; double-click it for straight. **VOL** sets the preview's volume.
 - **Follow DAW:** while your DAW plays, the groove locks to its timeline, so you hear the kit inside your song.
 
 **Playing from MIDI:** the pads answer MIDI notes 36 to 57 (C1 to A2), the same layout as the export (see the Quick reference card). Closed, pedal and open hats cut each other off like a real hi-hat.
@@ -379,7 +379,7 @@ Drag a MIDI file (.mid) onto the SAUCE page: a drum part from Song Savant, a cli
 - **Sauce tips:** velocity, ghost notes, timing, layering and mix moves.
 - With a decade picked, **In the 90s** (or whichever) adds how that genre's drums sounded then, the gear of the time and how to get that sound in your DAW.
 
-Swing is given MPC-style: 50% is straight, about 54 to 58% light, 60 to 62% heavy and 66% a full triplet. The DRAG MIDI handle shows the swing the pattern plays at (for example "4 bars, 92 BPM, swing 60%"), and BUILD's swing slider shows its value the same way when you point at it. DAWs name their swing controls differently, so match the feel rather than the number.
+Swing is given MPC-style: 50% is straight, about 54 to 58% light, 60 to 62% heavy and 66% a full triplet. The DRAG MIDI handle shows the swing the pattern plays at (for example "4 bars, 92 BPM, swing 60%"), and BUILD's swing slider covers the same range and shows its value the same way when you point at it. Swing stops at a full triplet: past that the late note lands nearer the next one than its own beat, and it sounds lopsided rather than swung. DAWs name their swing controls differently, so match the feel rather than the number.
 
 ## Working with Key Compass, Song Savant and Sample Snagger
 

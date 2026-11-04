@@ -46,9 +46,11 @@ namespace ggui
         void resized() override;
         Toast toast;
         std::function<void()> onEditGroove;     // EDIT IN SAUCE: the groove playing here, open on SAUCE
+        juce::Slider& getSwingSlider() noexcept { return swing; }     // (for the tests)
 
     private:
         void timerCallback() override;
+        juce::String swingTip() const;
         GrooveGrabberProcessor& proc;
         IconButton play { "play", Icon::play, Icon::stop, true };
         juce::ComboBox groove;
@@ -70,6 +72,7 @@ namespace ggui
         void resized() override;
         std::function<void()> onExport;
         std::function<void()> onEditGroove;     // open BUILD's groove on SAUCE
+        TransportBar& getTransport() noexcept   { return transport; }     // (for the tests)
 
     private:
         GrooveGrabberProcessor& proc;

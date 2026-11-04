@@ -805,6 +805,15 @@ namespace
                && std::abs (gg::swungBeat (0.25, 0.5f, false) - (0.25 + 0.5 / 6.0)) < 1.0e-9 && std::abs (gg::swungBeat (1.0, 0.5f, true) - 1.0) < 1.0e-9,
                "swing: 8ths for a shuffle, 16ths otherwise");
         check (gg::grooveFor ("country2").swingEighths && ! gg::grooveFor ("boombap1").swingEighths, "the Shuffle groove swings its 8ths");
+        {
+            bool roundTrip = true, inRange = true;
+            for (int p = 50; p <= 66; ++p) roundTrip = roundTrip && gg::swingToPercent (gg::swingFromPercent (p)) == p;
+            for (const auto& gr : gg::allGrooves()) inRange = inRange && gr.swing >= 0.0f && gr.swing <= gg::maxSwing;
+            check (roundTrip && gg::swingFromPercent (50) == 0.0f && gg::swingFromPercent (66) == gg::maxSwing && gg::swingToPercent (gg::maxSwing) == 66
+                   && gg::swingToPercent (0.7f) == 66 && gg::swingFromPercent (90) == gg::maxSwing && gg::swingToPercent (-1.0f) == 50,
+                   "swing: 50% (straight) to 66% (a full triplet), both ways");
+            check (inRange, "every groove swings between straight and a full triplet");
+        }
         check (gg::grooveFor ("blank").id == "blank" && gg::grooveFor ("blank").hits.empty() && gg::grooveFor ("blank").bars == 2
                && gg::grooveFor ("blank").swing == 0.0f, "BLANK: two empty bars, straight");
         check (gg::swingPercent (gg::grooveFor ("boombap1")) == 60 && gg::swingPercent (gg::grooveFor ("boombap2")) == 62
@@ -1090,6 +1099,10 @@ namespace
         player.setGroovePlaying (true);
         player.process (out, midi, {});
         check (player.getGrooveBeat() < 0.1, "stopping drops a position that was waiting");
+        player.setSwing (0.7f);
+        check (player.getSwing() == gg::maxSwing, "the player swings no further than a full triplet");
+        player.setSwing (std::numeric_limits<float>::quiet_NaN());
+        check (player.getSwing() == 0.0f, "a damaged swing plays straight");
 
         // level matching: two different kicks render at about the same loudness
         auto a = gg::render::sound (testRoot().getChildFile ("Library/Trap Essentials/Kicks/Kick Hard 01.wav").getFullPathName(), gg::Cat::kick, {}, 44100);

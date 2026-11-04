@@ -78,6 +78,28 @@ int runScreenshots (const juce::File& outDir)
         save (*ed, outDir.getChildFile ("build" + suffix + ".png"));
         if (! light)
         {
+            // the tabs, left to right: BUILD, SAUCE, MY KITS, LIBRARY (each still opens its own page)
+            {
+                auto& hb = ed->getHeader();
+                const auto x = [&hb] (int page) { return hb.getTabButton (page).getX(); };
+                const bool order = x (0) < x (3) && x (3) < x (2) && x (2) < x (1)
+                                   && hb.getTabButton (3).getButtonText() == "SAUCE" && hb.getTabButton (1).getButtonText() == "LIBRARY";
+                std::cout << (order ? "  ok: " : "  FAIL: ") << "the tabs read BUILD, SAUCE, MY KITS, LIBRARY" << std::endl;
+                if (! order) ++failures;
+            }
+            // BUILD's swing: the same 50% to 66% (a full triplet) as SAUCE's
+            auto& sw = ed->getBuild().getTransport().getSwingSlider();
+            const double before = sw.getValue();
+            sw.setValue (66.0, juce::sendNotificationSync);
+            const bool top = sw.getMinimum() == 50.0 && sw.getMaximum() == 66.0 && proc.player.getSwing() == gg::maxSwing;
+            sw.setValue (60.0, juce::sendNotificationSync);
+            const bool sixty = std::abs (proc.player.getSwing() - 0.3f) < 1.0e-6f;
+            sw.setValue (before, juce::sendNotificationSync);
+            std::cout << (top && sixty ? "  ok: " : "  FAIL: ") << "BUILD's swing runs 50% to 66% (a full triplet), like SAUCE's" << std::endl;
+            if (! (top && sixty)) ++failures;
+        }
+        if (! light)
+        {
             // a song Song Savant just sent: BUILD offers it under the description
             auto f = gg::paths::songSavantSongs().getChildFile ("Back Roads.sssong");
             f.getParentDirectory().createDirectory();
