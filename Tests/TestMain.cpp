@@ -16,6 +16,7 @@
 #include "core/SongAnalysis.h"
 #include "core/MpcTemplate.h"
 #include "core/Sauce.h"
+#include "core/Coach.h"
 #include "core/Daws.h"
 #include "core/MyGrooves.h"
 #include <juce_events/juce_events.h>
@@ -901,6 +902,211 @@ namespace
         }
     }
 
+    void testCoach()
+    {
+        section ("Coach my beat");
+        namespace co = gg::coach;
+        // a style's own grooves: next to nothing to fix
+        juce::StringArray noisy;
+        int styles = 0, refFixes = 0;
+        for (int gi = 0; gi < gg::numGenres; ++gi)
+            for (int si = 0; si < (int) gg::stylesOf ((gg::Genre) gi).size(); ++si)
+            {
+                const auto& st = gg::stylesOf ((gg::Genre) gi)[(size_t) si];
+                for (const auto* ref : gg::sauceGrooves (st))
+                {
+                    ++styles;
+                    const auto rep = co::coachBeat (*ref, { (gg::Genre) gi, si, -1, st.bpm });
+                    for (const auto& t : rep.fixes)
+                    {
+                        ++refFixes;
+                        if (std::getenv ("GG_COACH_DEBUG") != nullptr) std::cout << "    " << st.id << " / " << ref->id << ": " << t.id << "  " << t.title << std::endl;
+                        if (t.weight >= 20) noisy.add (st.id + "/" + ref->id + ":" + t.id);
+                    }
+                }
+            }
+        std::cout << "  " << refFixes << " tips over " << styles << " of the styles' own grooves" << std::endl;
+        check (noisy.isEmpty(), "the styles' own grooves get no big fixes: " + noisy.joinIntoString (", "));
+
+        const auto east = gg::styleIndex (gg::Genre::boomBap, "hiphop.east");
+        const co::Context bbCtx { gg::Genre::boomBap, east, 3, 92 };
+        const auto has = [] (const co::Report& r, const juce::String& id) -> const co::Tip*
+        {
+            for (auto& t : r.fixes) if (t.id == id) return &t;
+            return nullptr;
+        };
+        const auto applied = [] (const gg::Groove& g, const co::Tip& t)
+        {
+            auto out = g;
+            out.hits = t.fixHits;
+            if (t.fixSwing >= 0) out.swing = t.fixSwing;
+            return out;
+        };
+        const auto without = [] (gg::Groove g, std::initializer_list<gg::Slot> slots)
+        {
+            g.hits.erase (std::remove_if (g.hits.begin(), g.hits.end(), [&] (const gg::GrooveHit& h)
+                          { return std::find (slots.begin(), slots.end(), h.slot) != slots.end(); }), g.hits.end());
+            return g;
+        };
+
+        // a blank pad: lay down the style's skeleton
+        {
+            const auto blank = gg::grooveFor ("blank");
+            const auto r = co::coachBeat (blank, bbCtx);
+            const auto* t = has (r, "skeleton");
+            check (t != nullptr && t->hasFix && r.ratings.size() == 4 && r.ratings[0].word == "Empty", "BLANK: start with the kick and the snare, with a TRY IT");
+            if (t != nullptr)
+            {
+                const auto r2 = co::coachBeat (applied (blank, *t), bbCtx);
+                check (has (r2, "skeleton") == nullptr && has (r2, "backbeat") == nullptr && has (r2, "kick.one") == nullptr,
+                       "BLANK + TRY IT: a beat to build on (" + juce::String ((int) r2.fixes.size()) + " tips left)");
+            }
+        }
+        // the snare off 2 and 4
+        {
+            auto g = without (gg::grooveFor ("boombap1"), { gg::Slot::snare, gg::Slot::clap });
+            g.hits.push_back ({ 1.5, gg::Slot::snare, 1.0f });
+            g.hits.push_back ({ 3.5, gg::Slot::snare, 1.0f });
+            const auto r = co::coachBeat (g, bbCtx);
+            const auto* t = has (r, "backbeat");
+            check (t != nullptr && t->title == "Put the snare on 2 and 4." && t->why.contains ("steps 5 and 13") && t->hasFix,
+                   "boom bap, snare off the backbeat: put it on 2 and 4 (and why)");
+            if (t != nullptr) check (has (co::coachBeat (applied (g, *t), bbCtx), "backbeat") == nullptr, "TRY IT puts the snare on 2 and 4");
+        }
+        // trap: the clap on 2 and 4 instead of 3
+        {
+            const auto atl = gg::styleIndex (gg::Genre::trap, "trap.atlanta");
+            const co::Context trapCtx { gg::Genre::trap, atl, 6, 140 };
+            auto g = without (gg::grooveFor ("trap1"), { gg::Slot::snare, gg::Slot::clap });
+            for (double b : { 1.0, 3.0, 5.0, 7.0 }) g.hits.push_back ({ b, gg::Slot::clap, 1.0f });
+            const auto r = co::coachBeat (g, trapCtx);
+            const auto* t = has (r, "halftime");
+            check (t != nullptr && t->title.startsWith ("Move the clap to beat 3") && t->why.containsIgnoreCase ("half-time"), "trap, clap on 2 and 4: move it to beat 3");
+            if (t != nullptr) check (has (co::coachBeat (applied (g, *t), trapCtx), "halftime") == nullptr, "TRY IT moves the clap to beat 3");
+            auto swung = gg::grooveFor ("trap1");
+            swung.swing = gg::maxSwing;
+            const auto sr = co::coachBeat (swung, trapCtx);
+            const auto* s = has (sr, "swing.less");
+            check (s != nullptr && s->fixSwing >= 0 && gg::swingToPercent (s->fixSwing) <= 52, "trap at 66% swing: straighten it");
+        }
+        // boom bap played straight: swing it, into the SAUCE table's range
+        {
+            auto g = gg::grooveFor ("boombap1");
+            g.swing = 0.0f;
+            const auto sr = co::coachBeat (g, bbCtx);
+            const auto* t = has (sr, "swing.more");
+            const auto table = gg::sauceTable (gg::styleFor (gg::Genre::boomBap, east));
+            check (t != nullptr && t->fixSwing > 0 && gg::swingToPercent (t->fixSwing) >= table.swingLo && gg::swingToPercent (t->fixSwing) <= table.swingHi
+                   && t->why.contains (juce::String (table.swingLo) + " to " + juce::String (table.swingHi) + "%"),
+                   "boom bap played straight: swing it into " + juce::String (table.swingLo) + "-" + juce::String (table.swingHi) + "% (from SAUCE's table)");
+        }
+        // bar 2 a copy of bar 1
+        {
+            auto g = gg::grooveFor ("boombap1");
+            std::vector<gg::GrooveHit> hits;
+            for (auto& h : g.hits) if (h.beat < 4.0) { hits.push_back (h); hits.push_back ({ h.beat + 4.0, h.slot, h.velocity }); }
+            g.hits = hits;
+            const auto br = co::coachBeat (g, bbCtx);
+            const auto* t = has (br, "bar2");
+            check (t != nullptr && t->hasFix, "the same two bars: change something in bar 2");
+            if (t != nullptr) check (has (co::coachBeat (applied (g, *t), bbCtx), "bar2") == nullptr, "TRY IT changes bar 2");
+        }
+        // house: the kick on every beat
+        {
+            const auto house = gg::styleIndex (gg::Genre::edm, "edm.house");
+            const co::Context hCtx { gg::Genre::edm, house, -1, 124 };
+            const auto* ref = gg::sauceGrooves (gg::styleFor (gg::Genre::edm, house)).front();
+            auto g = *ref;
+            g.hits = gg::withStep (g, gg::Slot::kick, 4, 0, 0);
+            const auto hr = co::coachBeat (g, hCtx);
+            const auto* t = has (hr, "kick.floor");
+            check (house > 0 && t != nullptr && t->steps.size() >= 1 && t->steps[0].step == 4, "house, a kick missing: keep the kick on every beat (step 5 lit)");
+        }
+        // ON PURPOSE: the tip stays away, and doesn't count against the rating
+        {
+            auto g = gg::grooveFor ("boombap1");
+            g.swing = 0.0f;
+            const auto before = co::coachBeat (g, bbCtx);
+            const auto after = co::coachBeat (g, bbCtx, { "swing.more" });
+            check (has (after, "swing.more") == nullptr && after.onPurpose == 1 && after.ratings[1].score > before.ratings[1].score,
+                   "ON PURPOSE: the swing tip is gone, and Feel goes up (" + juce::String (before.ratings[1].score) + " -> " + juce::String (after.ratings[1].score) + ")");
+        }
+
+        if (std::getenv ("GG_COACH_DEBUG") != nullptr)
+        {
+            const auto show = [] (const co::Report& r)
+            {
+                std::cout << "  -- " << r.coachedAs << std::endl;
+                for (auto& rt : r.ratings) std::cout << "     " << rt.name << ": " << rt.score << " " << rt.word << std::endl;
+                for (auto& t : r.fixes) std::cout << "     * " << t.title << (t.hasFix ? "  [TRY IT]" : "") << "\n       " << t.why << std::endl;
+                for (auto& t : r.working) std::cout << "     + " << t.title << "\n       " << t.why << std::endl;
+            };
+            auto g = without (gg::grooveFor ("boombap1"), { gg::Slot::snare });
+            g.swing = 0;
+            g.hits.push_back ({ 1.25, gg::Slot::snare, 1.0f });
+            show (co::coachBeat (g, bbCtx));
+            const auto atl = gg::styleIndex (gg::Genre::trap, "trap.atlanta");
+            auto t = without (gg::grooveFor ("trap1"), { gg::Slot::bass808 });
+            for (auto& h : t.hits) if (h.slot == gg::Slot::closedHat) h.velocity = 1.0f;
+            show (co::coachBeat (t, { gg::Genre::trap, atl, 6, 100 }));
+            auto c = gg::grooveFor ("country1");
+            for (int st = 0; st < 32; st += 2) c.hits = gg::withStep (c, gg::Slot::kick, st, 1, 1.0f);
+            show (co::coachBeat (c, { gg::Genre::country, gg::styleIndex (gg::Genre::country, "country.modern"), 6, 112 }));
+        }
+
+        // every style's grooves, broken the usual ways: every TRY IT fixes its own tip, and every tip reads right
+        {
+            juce::StringArray notFixed, badText;
+            int tried = 0;
+            const auto hatsFlat = [] (gg::Groove g) { for (auto& h : g.hits) if (h.slot == gg::Slot::closedHat) h.velocity = 1.0f; return g; };
+            const auto busyKick = [] (gg::Groove g) { for (int st = 0; st < g.bars * 16; st += 2) g.hits = gg::withStep (g, gg::Slot::kick, st, 1, 1.0f); return g; };
+            const auto sameBars = [] (gg::Groove g)
+            {
+                std::vector<gg::GrooveHit> hits;
+                for (auto& h : g.hits) if (h.beat < 4.0) for (int b = 0; b < g.bars; ++b) hits.push_back ({ h.beat + 4.0 * b, h.slot, h.velocity });
+                g.hits = hits;
+                return g;
+            };
+            const auto offKick808 = [] (gg::Groove g) { for (int st = 1; st < g.bars * 16; st += 4) g.hits = gg::withStep (g, gg::Slot::bass808, st, 1, 1.0f); return g; };
+            for (int gi = 0; gi < gg::numGenres; ++gi)
+                for (int si = 0; si < (int) gg::stylesOf ((gg::Genre) gi).size(); ++si)
+                {
+                    const auto& st = gg::stylesOf ((gg::Genre) gi)[(size_t) si];
+                    const co::Context ctx { (gg::Genre) gi, si, -1, st.bpm };
+                    for (const auto* ref : gg::sauceGrooves (st))
+                    {
+                        auto straight = *ref; straight.swing = 0.0f;
+                        auto swung = *ref; swung.swing = gg::maxSwing;
+                        std::vector<gg::Groove> broken { without (*ref, { gg::Slot::snare, gg::Slot::clap, gg::Slot::rim }),
+                                                         without (*ref, { gg::Slot::closedHat }), without (*ref, { gg::Slot::kick }),
+                                                         hatsFlat (*ref), busyKick (*ref), sameBars (*ref), offKick808 (*ref), straight, swung,
+                                                         gg::grooveFor ("blank") };
+                        for (const auto& b : broken)
+                        {
+                            const auto r = co::coachBeat (b, ctx);
+                            for (const auto* list : { &r.fixes, &r.working })
+                                for (const auto& t : *list)
+                                {
+                                    bool clean = t.title.isNotEmpty() && t.why.isNotEmpty() && t.title.endsWithChar ('.') && t.why.endsWithChar ('.');
+                                    for (auto c : t.title + t.why) if (c > 126 || c < 32) clean = false;
+                                    for (auto* w : { "damn", "hell ", "shit", "fuck", "gang", "kill" }) if ((t.title + t.why).containsIgnoreCase (w)) clean = false;
+                                    if (! clean) badText.addIfNotAlreadyThere (st.id + ":" + t.id + " \"" + t.title + "\"");
+                                }
+                            for (const auto& t : r.fixes)
+                            {
+                                if (! t.hasFix) continue;
+                                ++tried;
+                                if (has (co::coachBeat (applied (b, t), ctx), t.id) != nullptr) notFixed.addIfNotAlreadyThere (st.id + "/" + ref->id + ":" + t.id);
+                            }
+                        }
+                    }
+                }
+            std::cout << "  " << tried << " TRY ITs tried" << std::endl;
+            check (notFixed.isEmpty(), "every TRY IT fixes its own tip: " + notFixed.joinIntoString (", "));
+            check (badText.isEmpty(), "every tip: a direct line and why, plain and clean: " + badText.joinIntoString (", "));
+        }
+    }
+
     void testSauceAndDaws()
     {
         section ("SAUCE and DAWs");
@@ -1421,6 +1627,7 @@ int main (int argc, char** argv)
     testNames();
     testDescriptions();
     testSauceAndDaws();
+    testCoach();
     auto sounds = scanLibrary (expected);
     testGenerator (sounds);
     testPlayer (sounds);

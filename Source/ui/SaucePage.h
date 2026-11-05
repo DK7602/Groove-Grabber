@@ -4,6 +4,7 @@
 #pragma once
 
 #include "HelpPanel.h"
+#include "CoachPanel.h"
 #include "core/Sauce.h"
 #include <map>
 
@@ -23,6 +24,7 @@ namespace ggui
         void setCue (double beat);               // where play starts: the last place you clicked on the timeline
         double getCue() const noexcept           { return cue; }
         void setNoteNamer (std::function<juce::String (int)> f)   { noteNamer = std::move (f); repaint(); }
+        void setHighlights (std::vector<gg::coach::StepRef> h)   { highlights = std::move (h); repaint(); }   // COACH MY BEAT's steps
         int numLanes() const noexcept            { return (int) lanes.size(); }
         void paint (juce::Graphics&) override;
         void mouseDown (const juce::MouseEvent&) override;
@@ -49,6 +51,7 @@ namespace ggui
         std::shared_ptr<const gg::Groove> groove;
         std::vector<gg::Slot> lanes;
         double playhead = -1, cue = 0;
+        std::vector<gg::coach::StepRef> highlights;
         bool timelineAt (juce::Point<float>, int& step) const;
         std::function<juce::String (int)> noteNamer;
         bool painting = false, paintAdd = true;
@@ -90,6 +93,10 @@ namespace ggui
         void pickMine (const juce::String& id);       // show one of my grooves
         void setSwingPercent (int percent);           // SWING (50 = straight .. 66 = a full triplet)
         void playFrom (double beat);                  // the timeline: the playhead goes there and plays from there
+        void coachMyBeat();                           // COACH MY BEAT: the report in the bottom panel
+        bool canCoach() const;                        // a pattern you changed, BLANK, or one of MY GROOVES
+        bool isCoaching() const noexcept              { return coaching; }
+        CoachPanel& getCoach() noexcept               { return coach; }
         bool isPlaying() const noexcept               { return playingHere; }
         void openGroove (const juce::String& id);     // show this groove (BUILD's EDIT IN SAUCE): mine, the style's, or any other
         void startNaming (bool rename = false);       // SAVE AS MY GROOVE / SAVE AS COPY (or RENAME): the name box
@@ -100,6 +107,9 @@ namespace ggui
 
     private:
         void timerCallback() override;
+        void closeCoach();
+        void updateCoachButtons();
+        void applyCoachTip (const gg::coach::Tip&);
         void showChoice();
         void fillBoxes();
         void layoutDoc();
@@ -143,6 +153,14 @@ namespace ggui
                          myChip { "MY GROOVES" }, nameOk { "SAVE" }, nameReplace { "SAVE & REPLACE ON BUILD" },
                          nameCancel { "CANCEL" };
         juce::TextButton saveChanges { "SAVE" }, renameMine { "RENAME" };
+        CoachPanel coach;
+        juce::TextButton coachBtn { "COACH MY BEAT" }, backToSauce { "THE SAUCE" };
+        bool coaching = false;
+        juce::String coachedId;                           // what the report is about: the groove, as it was, in this style
+        std::vector<gg::GrooveHit> coachedHits;
+        float coachedSwing = 0;
+        int coachedGenre = -1, coachedStyle = -1, coachedEra = -2;
+        std::map<juce::String, juce::StringArray> onPurpose;   // per groove, the tips you marked ON PURPOSE (this session)
         juce::OwnedArray<juce::TextButton> kitButtons;   // 01..04: which of BUILD's kits plays the pattern
         juce::TextButton blankChip { "BLANK" };          // an empty pattern to build from scratch
         juce::Slider swingSlider;                        // the pattern's swing, 50% (straight) .. 66% (triplet)

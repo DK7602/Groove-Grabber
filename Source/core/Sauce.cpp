@@ -81,6 +81,36 @@ namespace gg
         return out;
     }
 
+    SauceTable sauceTable (const Style& style)
+    {
+        SauceTable t;
+        const auto lines = juce::StringArray::fromLines (sauceSection (style.id));
+        const int sep = lines.indexOf ("| --- | --- | --- | --- |");
+        if (sep < 1 || sep + 1 >= lines.size()) return t;
+        auto cells = juce::StringArray::fromTokens (lines[sep + 1], "|", "");
+        cells.removeEmptyStrings (true);
+        if (cells.size() < 4) return t;
+        // the numbers in a cell, within a range ("85 to 98 BPM" -> 85, 98)
+        const auto numbers = [] (const juce::String& cell, int lo, int hi)
+        {
+            std::vector<int> v;
+            juce::String digits;
+            for (auto c : cell + " ")
+            {
+                if (juce::CharacterFunctions::isDigit (c)) { digits << juce::String::charToString (c); continue; }
+                if (digits.isNotEmpty()) { const int n = digits.getIntValue(); if (n >= lo && n <= hi) v.push_back (n); digits.clear(); }
+            }
+            return v;
+        };
+        const auto tempo = numbers (cells[0], 40, 250), swing = numbers (cells[1], 45, 80);
+        if (! tempo.empty()) { t.tempoLo = *std::min_element (tempo.begin(), tempo.end()); t.tempoHi = *std::max_element (tempo.begin(), tempo.end()); }
+        if (! swing.empty()) { t.swingLo = *std::min_element (swing.begin(), swing.end()); t.swingHi = *std::max_element (swing.begin(), swing.end()); }
+        else if (cells[1].containsIgnoreCase ("straight")) { t.swingLo = t.swingHi = 50; }
+        t.timeFeel = cells[2].trim();
+        t.lowEnd = cells[3].trim();
+        return t;
+    }
+
     juce::String sauceLowEnd (const Style& style)
     {
         int with808 = 0;

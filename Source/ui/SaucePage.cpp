@@ -310,6 +310,25 @@ namespace ggui
             }
         }
 
+        // COACH MY BEAT: the steps the tip you're pointing at is about (a drum with no row yet: marked on the timeline)
+        for (const auto& h : highlights)
+        {
+            if (h.step < 0 || h.step >= steps) continue;
+            const auto it = std::find (lanes.begin(), lanes.end(), h.slot);
+            if (it == lanes.end())
+            {
+                g.setColour (p.blue);
+                g.fillRoundedRectangle (juce::Rectangle<float> (gridX + (float) h.step * stepW + 2.0f, header.getBottom() - 4.0f, stepW - 4.0f, 3.0f), 1.5f);
+                continue;
+            }
+            const auto li = (float) (it - lanes.begin());
+            auto cell = juce::Rectangle<float> (gridX + (float) h.step * stepW, top + li * laneH, stepW, laneH).reduced (1.0f);
+            g.setColour (p.blue.withAlpha (0.18f));
+            g.fillRoundedRectangle (cell, 4.0f);
+            g.setColour (p.blue);
+            g.drawRoundedRectangle (cell, 4.0f, 2.0f);
+        }
+
         // the playhead: where it plays, or (stopped) where play starts, with a handle on the timeline
         {
             const bool playing = playhead >= 0;
@@ -530,6 +549,107 @@ namespace ggui
         docView.setScrollBarsShown (true, false);
         docView.setSingleStepSizes (0, 48);
         addAndMakeVisible (docView);
+
+        // COACH MY BEAT: its report takes the write-up's place
+        coachBtn.getProperties().set ("style", "accent");
+        coachBtn.onClick = [this] { coachMyBeat(); };
+        addAndMakeVisible (coachBtn);
+        backToSauce.getProperties().set ("style", "ghost");
+        backToSauce.setTooltip ("Back to the write-up for this style");
+        backToSauce.onClick = [this] { closeCoach(); };
+        addChildComponent (backToSauce);
+        addChildComponent (coach);
+        // (a tip's buttons start a fresh report, which rebuilds them: run after the click is done)
+        coach.onTry = [this] (const gg::coach::Tip& t)
+        {
+            juce::MessageManager::callAsync ([safe = juce::Component::SafePointer<SaucePage> (this), tip = t] { if (safe != nullptr) safe->applyCoachTip (tip); });
+        };
+        coach.onOnPurpose = [this] (const gg::coach::Tip& t)
+        {
+            juce::MessageManager::callAsync ([safe = juce::Component::SafePointer<SaucePage> (this), id = t.id]
+            {
+                if (safe == nullptr) return;
+                safe->onPurpose[safe->currentId()].addIfNotAlreadyThere (id);
+                safe->coachMyBeat();
+            });
+        };
+        coach.onBringBack = [this]
+        {
+            juce::MessageManager::callAsync ([safe = juce::Component::SafePointer<SaucePage> (this)]
+            {
+                if (safe == nullptr) return;
+                safe->onPurpose[safe->currentId()].clear();
+                safe->coachMyBeat();
+            });
+        };
+        coach.onHover = [this] (const gg::coach::Tip* t) { grid.setHighlights (t != nullptr ? t->steps : std::vector<gg::coach::StepRef>()); };
+        updateCoachButtons();
+    }
+
+    bool SaucePage::canCoach() const
+    {
+        const auto id = currentId();
+        return id.isNotEmpty() && (id == "blank" || proc.isGrooveEdited (id) || gg::mygrooves::isMine (id));
+    }
+
+    void SaucePage::coachMyBeat()
+    {
+        if (! canCoach()) return;
+        const auto g = currentGroove();
+        if (g == nullptr) return;
+        const auto id = currentId();
+        const gg::coach::Context ctx { genre, subStyle, era, previewTempo() };
+        coach.setReport (gg::coach::coachBeat (*g, ctx, onPurpose[id]));
+        coaching = true;
+        coachedId = id;
+        coachedHits = g->hits;
+        coachedSwing = g->swing;
+        coachedGenre = (int) genre;
+        coachedStyle = subStyle;
+        coachedEra = era;
+        coach.setVisible (true);
+        docView.setVisible (false);
+        updateCoachButtons();
+        resized();
+        repaint();
+    }
+
+    void SaucePage::closeCoach()
+    {
+        if (! coaching) return;
+        coaching = false;
+        coachedId = {};
+        coach.setVisible (false);
+        docView.setVisible (true);
+        grid.setHighlights ({});
+        updateCoachButtons();
+        resized();
+        repaint();
+    }
+
+    void SaucePage::applyCoachTip (const gg::coach::Tip& tip)
+    {
+        const auto id = currentId();
+        if (id.isEmpty() || id != coachedId || ! tip.hasFix) return;
+        pushUndo();
+        const auto g = currentGroove();
+        proc.editGroove (id, tip.fixHits, tip.fixSwing >= 0 ? tip.fixSwing : (g != nullptr ? g->swing : 0.0f));
+        if (playingHere) if (const auto ng = currentGroove()) proc.player.setSwing (ng->swing);
+        showGroove();
+        repaint (dragArea);
+        coachMyBeat();          // what's left to work on
+    }
+
+    void SaucePage::updateCoachButtons()
+    {
+        const bool can = canCoach();
+        coachBtn.setEnabled (can);
+        coachBtn.setButtonText (coaching ? "COACH AGAIN" : "COACH MY BEAT");
+        coachBtn.getProperties().set ("accent", pal().purple.toString());
+        const auto& style = gg::styleFor (genre, subStyle);
+        coachBtn.setTooltip (can ? "Look at your beat next to " + (subStyle == 0 ? gg::genreName (genre) : style.name) + " and get tips, with TRY IT to make each change"
+                                 : "Change the pattern (or start from BLANK, or open one of MY GROOVES) and the coach looks at your beat");
+        backToSauce.setVisible (coaching);
     }
 
     SaucePage::~SaucePage()
@@ -955,6 +1075,19 @@ namespace ggui
         if (relayout) resized();          // SAVE and RENAME come and go: the edit bar makes room for them
         for (auto* c : std::initializer_list<juce::Component*> { &nameEdit, &nameOk, &nameCancel }) c->setVisible (naming);
         nameReplace.setVisible (naming && ! renaming);
+
+        // the coach's report is about one groove as it was, in one style: another groove closes it, a change dates it
+        if (coaching)
+        {
+            if (currentId() != coachedId) closeCoach();
+            else
+            {
+                const auto g = currentGroove();
+                coach.setStale (g == nullptr || ! gg::sameHits (g->hits, coachedHits) || std::abs (g->swing - coachedSwing) > 1.0e-4f
+                                || coachedGenre != (int) genre || coachedStyle != subStyle || coachedEra != era);
+            }
+        }
+        updateCoachButtons();
         repaint (patternArea);
     }
 
@@ -1239,8 +1372,15 @@ namespace ggui
         // the write-up
         auto sa = sauceArea.reduced (16, 10);
         sauceTitle = sa.removeFromTop (46);
+        {
+            auto row = sauceTitle.withHeight (34);
+            coachBtn.setBounds (row.removeFromRight (170).reduced (0, 2));
+            row.removeFromRight (8);
+            backToSauce.setBounds (row.removeFromRight (124).reduced (0, 2));
+        }
         sa.removeFromTop (6);
         docView.setBounds (sa);
+        coach.setBounds (sa);
         layoutDoc();
     }
 
@@ -1441,8 +1581,20 @@ namespace ggui
         // ---- the write-up ----
         drawPanel (g, sauceArea.toFloat().reduced (2.0f), 14.0f);
         {
-            auto t = sauceTitle;
+            auto t = sauceTitle.withTrimmedRight (coaching ? 316 : 184);
             auto top = t.removeFromTop (26);
+            if (coaching)
+            {
+                drawSectionTitle (g, top.removeFromLeft (164).withSizeKeepingCentre (164, 20), "Coach my beat", p.purple);
+                g.setColour (p.text);
+                g.setFont (headFont (17.0f).withExtraKerningFactor (0.04f));
+                g.drawFittedText (coach.getReport().coachedAs.toUpperCase(), top, juce::Justification::centredLeft, 1, 0.6f);
+                g.setColour (p.dim);
+                g.setFont (uiFont (14.5f, false));
+                g.drawFittedText ("Next to the style's own grooves and its SAUCE table. Point at a tip to see its steps on the grid.",
+                                  t.withTrimmedLeft (164), juce::Justification::centredLeft, 1, 0.8f);
+                return;
+            }
             drawSectionTitle (g, top.removeFromLeft (110).withSizeKeepingCentre (110, 20), "The sauce", p.orange);
             g.setColour (p.text);
             g.setFont (headFont (17.0f).withExtraKerningFactor (0.04f));

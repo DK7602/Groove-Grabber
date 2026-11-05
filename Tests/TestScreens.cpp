@@ -4,6 +4,7 @@
 #include "StandaloneBridge.h"
 #include "core/Settings.h"
 #include "core/MyGrooves.h"
+#include "core/Coach.h"
 #include <iostream>
 
 namespace
@@ -335,6 +336,73 @@ int runScreenshots (const juce::File& outDir)
             proc.setGrooveId (buildGroove);
             std::cout << (swingHeard && resetHeard ? "  ok: " : "  FAIL: ") << "SWING and RESET are heard on the groove playing" << std::endl;
             if (! (swingHeard && resetHeard)) ++failures;
+            // COACH MY BEAT: for patterns you changed, BLANK and MY GROOVES
+            {
+                namespace co = gg::coach;
+                const auto fixIds = [] (const co::Report& r) { juce::StringArray ids; for (auto& t : r.fixes) ids.add (t.id); return ids; };
+                sauce.openGroove ("boombap1");
+                pump (100);
+                const bool offUnchanged = ! sauce.canCoach();
+                // the snare taken off beat 2 and played straight
+                auto hits = proc.getGroove ("boombap1")->hits;
+                hits.erase (std::remove_if (hits.begin(), hits.end(), [] (const gg::GrooveHit& h) { return h.slot == gg::Slot::snare && std::abs (h.beat - 1.0) < 1.0e-6; }), hits.end());
+                proc.editGroove ("boombap1", hits, 0.0f);
+                sauce.openGroove ("boombap1");
+                pump (100);
+                sauce.coachMyBeat();
+                pump (250);
+                const auto first = sauce.getCoach().getReport();
+                const bool coached = offUnchanged && sauce.canCoach() && sauce.isCoaching() && first.ratings.size() == 4
+                                     && fixIds (first).contains ("backbeat") && fixIds (first).contains ("swing.more");
+                save (*ed, outDir.getChildFile ("sauce-coach.png"));
+                if (! first.fixes.empty() && sauce.getCoach().onHover)
+                {
+                    sauce.getCoach().onHover (&first.fixes.front());      // pointing at a tip: its steps on the grid
+                    pump (100);
+                    save (*ed, outDir.getChildFile ("sauce-coach-hover.png"));
+                    sauce.getCoach().onHover (nullptr);
+                }
+                // TRY IT: the change is made (an edit, so UNDO takes it back) and the coaching is fresh
+                const auto tried = first.fixes.empty() ? juce::String() : first.fixes.front().id;
+                sauce.getCoach().tryTip (0);
+                pump (250);
+                const bool fixedIt = tried.isNotEmpty() && ! fixIds (sauce.getCoach().getReport()).contains (tried) && ! sauce.getCoach().isStale();
+                // ON PURPOSE: that tip stays away
+                const auto second = sauce.getCoach().getReport();
+                bool purposed = true;
+                if (! second.fixes.empty())
+                {
+                    const auto id = second.fixes.front().id;
+                    sauce.getCoach().markOnPurpose (0);
+                    pump (200);
+                    purposed = ! fixIds (sauce.getCoach().getReport()).contains (id) && sauce.getCoach().getReport().onPurpose == 1;
+                }
+                save (*ed, outDir.getChildFile ("sauce-coach-after.png"));
+                // a change to the beat dates the report; another groove closes it
+                sauce.getGrid().clickStep (0, 3, {});
+                pump (100);
+                const bool stale = sauce.isCoaching() && sauce.getCoach().isStale();
+                sauce.openGroove ("boombap2");
+                pump (100);
+                const bool closed = ! sauce.isCoaching();
+                proc.resetGroove ("boombap1");
+                // BLANK: the style's skeleton to build on
+                sauce.openGroove ("blank");
+                pump (100);
+                sauce.coachMyBeat();
+                pump (200);
+                const bool skeleton = sauce.canCoach() && fixIds (sauce.getCoach().getReport()).contains ("skeleton");
+                sauce.getCoach().tryTip (0);
+                pump (250);
+                const bool built = proc.getGroove ("blank")->hits.size() > 4 && ! fixIds (sauce.getCoach().getReport()).contains ("skeleton");
+                proc.resetGroove ("blank");
+                sauce.openGroove ("boombap1");
+                pump (100);
+                const bool ok = coached && fixedIt && purposed && stale && closed && skeleton && built;
+                std::cout << (ok ? "  ok: " : "  FAIL: ") << "COACH MY BEAT: tips for the beat, TRY IT, ON PURPOSE, a fresh report when it changes, BLANK's skeleton"
+                          << " (" << (int) coached << fixedIt << purposed << stale << closed << skeleton << built << ")" << std::endl;
+                if (! ok) ++failures;
+            }
             // the timeline: click the count and the playhead goes there and plays from there
             {
                 auto& sg = sauce.getGrid();

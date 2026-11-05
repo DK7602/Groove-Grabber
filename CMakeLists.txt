@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 # Windows: link the C++ runtime into the plug-in itself, so a DAW's plug-in scanner never trips over missing runtime DLLs
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-project(GrooveGrabber VERSION 1.0.26 LANGUAGES C CXX)
+project(GrooveGrabber VERSION 1.0.27 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -89,7 +89,8 @@ set(GG_CORE_SOURCES
     Source/core/Settings.cpp
     Source/core/Sauce.cpp
     Source/core/Daws.cpp
-    Source/core/MyGrooves.cpp)
+    Source/core/MyGrooves.cpp
+    Source/core/Coach.cpp)
 
 set(GG_UI_SOURCES
     Source/PluginProcessor.cpp
@@ -98,6 +99,7 @@ set(GG_UI_SOURCES
     Source/ui/Theme.cpp
     Source/ui/Widgets.cpp
     Source/ui/HeaderBar.cpp
+    Source/ui/CoachPanel.cpp
     Source/ui/BuildPage.cpp
     Source/ui/KitViews.cpp
     Source/ui/LibraryPage.cpp

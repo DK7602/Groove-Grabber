@@ -376,6 +376,18 @@ Drag a MIDI file (.mid) onto the SAUCE page: a drum part from Song Savant, a cli
 - The tempo comes from the file (or your song's tempo when the file has none).
 - Notes that aren't drums (a bass line, say) are left out. The message at the bottom says what came in.
 
+**Coach my beat: feedback on your pattern**
+
+**COACH MY BEAT** (top right of the bottom panel) looks at a pattern you changed, BLANK, or one of MY GROOVES (a beat you dropped in from your DAW too), next to the genre, style and decade picked on the left and your song's tempo.
+
+- **Four ratings:** Groove fit (backbeat, kick, hats, low end), Feel (swing, accents, ghost notes, tempo), Space (crowded steps, a busy kick or hats) and Variation (does the last bar move).
+- **What to work on:** up to six tips, the biggest first. Each is a direct line in bold, then why the style does it. Point at a tip and its steps light up on the grid.
+- **TRY IT** makes the change for you (UNDO takes it back) and the coach looks again.
+- **ON PURPOSE** leaves a tip out for this pattern, when you did it that way on purpose. **BRING THEM BACK** shows them again.
+- **What's working:** what you got right.
+- The coach compares your beat with the style's own grooves and its SAUCE table. It only suggests adding something when every one of the style's grooves has it, and taking something out when none of them do, so its tips are about the style, not one way of playing it. It reads the pattern, not the sounds.
+- Change the beat or the style and the report says so: press **COACH AGAIN**. **THE SAUCE** goes back to the write-up.
+
 **THE SAUCE** (bottom)
 
 - **The pocket:** what makes this style feel like itself, with its tempo, swing, time feel and low end.
@@ -525,6 +537,7 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | A pattern you dragged in from SAUCE doesn't play | It was dropped on empty space, so your DAW made a new track with no instrument. Drag the part onto your drum track (Groove Agent, Groove Grabber...), or set that track's output to your drum instrument. Next time, drop it straight on the drum track's lane. |
 | You changed a pattern on SAUCE and want the original back | Press RESET under the pattern. UNDO brings your version back. |
 | You want to hear one part of a pattern again and again | Click the count over the steps where it starts: it plays from there. Play and Space start from that spot until you click somewhere else. |
+| You want feedback on a beat you made | SAUCE: change a pattern (or build one from BLANK, or drop your MIDI on SAUCE), pick the style it's for, and press COACH MY BEAT. |
 | You want to build a pattern from scratch | SAUCE: press **BLANK**, pick the kit with KIT 01 to 04, click the steps in and set SWING. SAVE AS MY GROOVE keeps it for every song. |
 | You want a pattern in every song, not just this one | SAUCE: SAVE AS MY GROOVE. It's then under MY GROOVES on SAUCE, in BUILD's groove list and on the MY KITS page. |
 | One of your grooves changed or is gone, and you want it back | MY KITS > MY GROOVES > BACKUPS...: every version from before a save, rename or delete is there. Pick one to bring it back as a groove of its own. |
