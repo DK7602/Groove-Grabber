@@ -32,6 +32,9 @@ namespace ggui
         void mouseUp (const juce::MouseEvent&) override;
         void mouseMove (const juce::MouseEvent&) override;
         void mouseExit (const juce::MouseEvent&) override;
+        void mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails&) override;
+        void scrollRows (float by);                                      // (the wheel, and the tests)
+        bool rowsScroll() const   { const auto g = geometry(); return g.area.getHeight() > g.view.getHeight() + 0.5f; }
 
         std::function<void()> onEditStart;                             // before the first change of a click or drag
         std::function<void (std::vector<gg::GrooveHit>)> onEdit;       // the groove's new hits
@@ -45,12 +48,14 @@ namespace ggui
         void clickStep (int lane, int step, const juce::ModifierKeys&);
 
     private:
-        struct Geometry { juce::Rectangle<float> header, area; float labelW = 0, gridX = 0, stepW = 0, laneH = 0; int steps = 0; };
+        // header: the timeline; view: where the rows show; area: all the rows' cells (taller than view when they scroll)
+        struct Geometry { juce::Rectangle<float> header, view, area; float labelW = 0, gridX = 0, stepW = 0, laneH = 0; int steps = 0; };
         Geometry geometry() const;
         bool cellAt (juce::Point<float>, int& lane, int& step) const;
         std::shared_ptr<const gg::Groove> groove;
         std::vector<gg::Slot> lanes;
         double playhead = -1, cue = 0;
+        float scrollY = 0;                       // how far the rows are scrolled (more rows than fit)
         std::vector<gg::coach::StepRef> highlights;
         bool timelineAt (juce::Point<float>, int& step) const;
         std::function<juce::String (int)> noteNamer;
@@ -160,7 +165,7 @@ namespace ggui
         std::vector<gg::GrooveHit> coachedHits;
         float coachedSwing = 0;
         int coachedGenre = -1, coachedStyle = -1, coachedEra = -2;
-        std::map<juce::String, juce::StringArray> onPurpose;   // per groove, the tips you marked ON PURPOSE (this session)
+        bool manyRows = false;                                  // the pattern has a lot of rows: it gets more of the page
         juce::OwnedArray<juce::TextButton> kitButtons;   // 01..04: which of BUILD's kits plays the pattern
         juce::TextButton blankChip { "BLANK" };          // an empty pattern to build from scratch
         juce::Slider swingSlider;                        // the pattern's swing, 50% (straight) .. 66% (triplet)

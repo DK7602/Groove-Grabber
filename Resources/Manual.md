@@ -328,7 +328,7 @@ The SAUCE page explains how drums are played and programmed in a genre, style an
 - The style's grooves as a step grid: one row per drum, 16 steps a bar, two bars. The beats are steps 1, 5, 9 and 13, counted 1 e & a. Brighter cells are harder hits, faded ones are soft ghost notes, and split cells are rolls.
 - Each row shows the note it plays in your DAW, for example "C1 (36)".
 - The buttons across the top pick between the style's grooves.
-- **BLANK** (the first button) is an empty two-bar pattern, to build your own from scratch. Its rows are the sounds of the kit you picked (KIT 01 to 04), so you hear that kit as you click steps in. It's kept with your song like any other change, SAVE AS MY GROOVE keeps it for every song, and BUILD's groove list has it as "Blank".
+- **BLANK** (the first button) is an empty two-bar pattern, to build your own from scratch. Its rows are the sounds of the kit you picked (KIT 01 to 04), all of them in a 23- or 32-sound kit, so you hear that kit as you click steps in. When there are more rows than fit, the pattern gets more of the page and the rows scroll (mouse wheel) under the count. It's kept with your song like any other change, SAVE AS MY GROOVE keeps it for every song, and BUILD's groove list has it as "Blank".
 - **KIT 01 to 04** picks which of BUILD's four kits plays the pattern (the same as clicking that kit on BUILD). Point at one to see its name.
 - **Play** (or the Space bar) plays it with the kit you picked. It plays at your song's tempo while you're on your song's style, and at the groove's own tempo when you're reading up on another.
 - **The playhead moves where you click.** Click the count over the steps (1 e & a 2...) and the playhead jumps to that step and plays from there, even when it's stopped. Drag along the count to scrub. When you stop, the playhead stays where you last clicked, and Play and the Space bar start from there. Click "1" of bar 1 to start from the top again. (With Follow DAW on and your DAW playing, the DAW's position leads.)
@@ -383,7 +383,7 @@ Drag a MIDI file (.mid) onto the SAUCE page: a drum part from Song Savant, a cli
 - **Four ratings:** Groove fit (backbeat, kick, hats, low end), Feel (swing, accents, ghost notes, tempo), Space (crowded steps, a busy kick or hats) and Variation (does the last bar move).
 - **What to work on:** up to six tips, the biggest first. Each is a direct line in bold, then why the style does it. Point at a tip and its steps light up on the grid.
 - **TRY IT** makes the change for you (UNDO takes it back) and the coach looks again.
-- **ON PURPOSE** leaves a tip out for this pattern, when you did it that way on purpose. **BRING THEM BACK** shows them again.
+- **ON PURPOSE** leaves a tip out for this pattern, when you did it that way on purpose, and it stays out after you close Groove Grabber: for one of MY GROOVES in every song, for any other pattern with the song (your DAW project). **BRING THEM BACK** shows them again.
 - **What's working:** what you got right.
 - The coach compares your beat with the style's own grooves and its SAUCE table. It only suggests adding something when every one of the style's grooves has it, and taking something out when none of them do, so its tips are about the style, not one way of playing it. It reads the pattern, not the sounds.
 - Change the beat or the style and the report says so: press **COACH AGAIN**. **THE SAUCE** goes back to the write-up.

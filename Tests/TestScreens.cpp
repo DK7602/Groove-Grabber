@@ -179,6 +179,25 @@ int runScreenshots (const juce::File& outDir)
                     pump (400);
                     save (*ed, outDir.getChildFile ("build-" + juce::String (size) + ".png"));
                     sized = sized && proc.getActiveKit() != nullptr && proc.getActiveKit()->size == size && countTiles (ed->getBuild()) == size;
+                    if (size == 32)
+                    {
+                        // SAUCE's BLANK: a row for every sound of the 32-sound kit, scrolling under the timeline
+                        int sounds = 0;
+                        for (auto sl : proc.getActiveKit()->shownSlots()) if (! (*proc.getActiveKit())[sl].isEmpty()) ++sounds;
+                        ed->showTab (3);
+                        auto& sp = ed->getSauce();
+                        sp.openGroove ("blank");
+                        pump (300);
+                        const bool rows = sp.getGrid().numLanes() == sounds && sounds > 17 && sp.getGrid().rowsScroll();
+                        sp.getGrid().scrollRows (120.0f);
+                        pump (100);
+                        save (*ed, outDir.getChildFile ("sauce-blank-32.png"));
+                        std::cout << (rows ? "  ok: " : "  FAIL: ") << "a 32-sound kit's BLANK: all " << sounds << " sounds as rows, scrolling" << std::endl;
+                        if (! rows) ++failures;
+                        sp.getGrid().scrollRows (-1000.0f);
+                        ed->showTab (0);
+                        pump (100);
+                    }
                 }
                 proc.kits = keptKits;
                 proc.options = keptOptions;
@@ -626,6 +645,7 @@ int runScreenshots (const juce::File& outDir)
     {
         proc.editGroove ("trap1", gg::withStep (*proc.getGroove ("trap1"), gg::Slot::kick, 3, 2, gg::mediumHit));
         proc.setGrooveSwing ("trap1", 0.24f);
+        proc.setCoachOnPurpose ("trap1", { "swing.less", "kick.busy" });
         pump (100);
         juce::MemoryBlock mb;
         proc.getStateInformation (mb);
@@ -637,6 +657,21 @@ int runScreenshots (const juce::File& outDir)
                               && std::abs (other.getGroove ("trap1")->swing - 0.24f) < 1.0e-4f && ! other.isGrooveEdited ("boombap1")
                               && juce::JSON::parse (mb.toString())["grooveEdits"]["trap1"].isArray();   // (what 1.0.9 to 1.0.18 read)
         std::cout << (keptEdit ? "  ok: " : "  FAIL: ") << "an edited pattern is saved with the song" << std::endl;
+        {
+            // COACH MY BEAT's ON PURPOSE tips stay after the app closes: the song's patterns with the song,
+            // MY GROOVES in the settings (every song), gone with the groove
+            const auto kept = other.getCoachOnPurpose ("trap1");
+            const auto mineId = gg::mygrooves::save (gg::grooveFor ("boombap1"), "On Purpose Test", gg::Genre::boomBap, "hiphop.east");
+            proc.setCoachOnPurpose (mineId, { "ghosts" });
+            GrooveGrabberProcessor fresh;
+            const bool mineKept = fresh.getCoachOnPurpose (mineId) == juce::StringArray { "ghosts" } && fresh.getCoachOnPurpose ("trap1").isEmpty();
+            proc.deleteMyGroove (mineId);
+            const bool gone = fresh.getCoachOnPurpose (mineId).isEmpty();
+            const bool purposeOk = kept == juce::StringArray { "swing.less", "kick.busy" } && mineKept && gone;
+            std::cout << (purposeOk ? "  ok: " : "  FAIL: ") << "ON PURPOSE tips stay after closing: the song's patterns with the song, MY GROOVES in the settings" << std::endl;
+            if (! purposeOk) ++failures;
+            proc.setCoachOnPurpose ("trap1", {});
+        }
         if (! keptEdit) ++failures;
         proc.editGroove ("trap1", gg::grooveFor ("trap1").hits, gg::grooveFor ("trap1").swing);
         if (proc.isGrooveEdited ("trap1")) { std::cout << "  FAIL: the original's hits and swing should reset the edit" << std::endl; ++failures; }

@@ -92,6 +92,11 @@ public:
     // has no tempo). Returns its id, or empty (with a message saying why).
     juce::String importMyGroove (const juce::File& midi, gg::Genre, const juce::String& styleId, double bpm);
     void deleteMyGroove (const juce::String& id);
+
+    // COACH MY BEAT's ON PURPOSE tips, kept after the app closes: one of MY GROOVES keeps them in the settings
+    // (so they follow it into every song), any other pattern (an edit, BLANK) with the song
+    juce::StringArray getCoachOnPurpose (const juce::String& grooveId);
+    void setCoachOnPurpose (const juce::String& grooveId, const juce::StringArray& tipIds);
     void auditionSlot (gg::Slot);
     void previewFile (const juce::String& path, gg::Cat);
     gg::PlayableKit::Ptr getPlayable (int kitIndex) const;
@@ -105,6 +110,7 @@ public:
     void runInBackground (std::function<void()> job);
 
 private:
+    std::map<juce::String, juce::StringArray> coachOnPurpose;     // the song's patterns' ON PURPOSE tips
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
     juce::String makeState();
     void applyState (const juce::String&);

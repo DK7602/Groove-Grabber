@@ -27,7 +27,7 @@ namespace ggui
     bool PatternGrid::timelineAt (juce::Point<float> pos, int& step) const
     {
         const auto geo = geometry();
-        if (geo.steps == 0 || pos.x < geo.gridX || pos.x >= geo.area.getRight() || pos.y < geo.header.getY() || pos.y >= geo.area.getY()) return false;
+        if (geo.steps == 0 || pos.x < geo.gridX || pos.x >= geo.area.getRight() || pos.y < geo.header.getY() || pos.y >= geo.view.getY()) return false;
         step = juce::jlimit (0, geo.steps - 1, (int) ((pos.x - geo.gridX) / geo.stepW));
         return true;
     }
@@ -60,18 +60,25 @@ namespace ggui
         auto r = getLocalBounds().toFloat();
         geo.labelW = juce::jlimit (96.0f, 150.0f, r.getWidth() * 0.12f);
         geo.header = r.removeFromTop (22.0f);
+        geo.view = r;
         geo.steps = groove->bars * 16;
+        // rows at least 18 high, so they stay easy to click; more than fit (a 32-sound kit's BLANK) scroll under
+        // the timeline, with a thin scroll bar on the right
+        const float n = (float) lanes.size();
+        geo.laneH = juce::jlimit (18.0f, 34.0f, r.getHeight() / n);
+        const float total = geo.laneH * n;
+        if (total > r.getHeight() + 0.5f) r.removeFromRight (8.0f);
         geo.gridX = r.getX() + geo.labelW;
         geo.stepW = (r.getWidth() - geo.labelW) / (float) geo.steps;
-        geo.laneH = juce::jmin (34.0f, r.getHeight() / (float) lanes.size());
-        geo.area = juce::Rectangle<float> (geo.gridX, r.getY(), geo.stepW * (float) geo.steps, geo.laneH * (float) lanes.size());
+        const float scroll = juce::jlimit (0.0f, juce::jmax (0.0f, total - geo.view.getHeight()), scrollY);
+        geo.area = juce::Rectangle<float> (geo.gridX, geo.view.getY() - scroll, geo.stepW * (float) geo.steps, total);
         return geo;
     }
 
     bool PatternGrid::cellAt (juce::Point<float> pos, int& lane, int& step) const
     {
         const auto geo = geometry();
-        if (geo.steps == 0 || ! geo.area.contains (pos)) return false;
+        if (geo.steps == 0 || ! geo.area.contains (pos) || ! geo.view.contains (pos)) return false;
         lane = juce::jlimit (0, (int) lanes.size() - 1, (int) ((pos.y - geo.area.getY()) / geo.laneH));
         step = juce::jlimit (0, geo.steps - 1, (int) ((pos.x - geo.gridX) / geo.stepW));
         return true;
@@ -132,7 +139,8 @@ namespace ggui
             return;
         }
         // a drum's name: hear it
-        if (const auto geo = geometry(); geo.steps > 0 && e.position.x < geo.gridX && e.position.y >= geo.area.getY() && e.position.y < geo.area.getBottom())
+        if (const auto geo = geometry(); geo.steps > 0 && e.position.x < geo.gridX && e.position.y >= geo.area.getY() && e.position.y < geo.area.getBottom()
+                                         && geo.view.contains (e.position))
         {
             pressedLabel = juce::jlimit (0, (int) lanes.size() - 1, (int) ((e.position.y - geo.area.getY()) / geo.laneH));
             auditionLane (pressedLabel);
@@ -181,7 +189,8 @@ namespace ggui
         int lane = -1, step = -1;
         const bool over = cellAt (e.position, lane, step);
         int label = -1;
-        if (const auto geo = geometry(); geo.steps > 0 && e.position.x < geo.gridX && e.position.y >= geo.area.getY() && e.position.y < geo.area.getBottom())
+        if (const auto geo = geometry(); geo.steps > 0 && e.position.x < geo.gridX && e.position.y >= geo.area.getY() && e.position.y < geo.area.getBottom()
+                                         && geo.view.contains (e.position))
             label = juce::jlimit (0, (int) lanes.size() - 1, (int) ((e.position.y - geo.area.getY()) / geo.laneH));
         int tl = -1;
         if (! timelineAt (e.position, tl)) tl = -1;
@@ -191,6 +200,23 @@ namespace ggui
             hoverLane = lane; hoverStep = step; hoverLabel = label; hoverTimeline = tl;
             repaint();
         }
+    }
+
+    void PatternGrid::mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWheelDetails& w)
+    {
+        // the rows scroll when there are more than fit; otherwise the page gets the wheel
+        const auto geo = geometry();
+        const float most = juce::jmax (0.0f, geo.area.getHeight() - geo.view.getHeight());
+        if (most <= 0.0f) { juce::Component::mouseWheelMove (e, w); return; }
+        scrollY = juce::jlimit (0.0f, most, juce::jmin (scrollY, most) - w.deltaY * 90.0f);
+        repaint();
+    }
+
+    void PatternGrid::scrollRows (float by)
+    {
+        const auto geo = geometry();
+        scrollY = juce::jlimit (0.0f, juce::jmax (0.0f, geo.area.getHeight() - geo.view.getHeight()), scrollY + by);
+        repaint();
     }
 
     void PatternGrid::mouseExit (const juce::MouseEvent&)
@@ -209,23 +235,17 @@ namespace ggui
         const float top = geo.area.getY(), gridH = geo.area.getHeight();
         const int steps = geo.steps;
 
-        // the timeline: the step under the mouse lit up (click it to play from there)
+        // ---- the timeline (it stays put) ----
         if (hoverTimeline >= 0)
         {
+            // the step under the mouse lit up (click it to play from there)
             g.setColour (p.orange.withAlpha (0.16f));
             g.fillRoundedRectangle (juce::Rectangle<float> (gridX + (float) hoverTimeline * stepW, header.getY(), stepW, header.getHeight()).reduced (1.0f, 1.0f), 4.0f);
         }
-
-        // beats shaded in turn, bars split by a stronger line
         for (int beat = 0; beat < groove->bars * 4; ++beat)
         {
-            const float x = gridX + (float) beat * 4.0f * stepW;
-            if (beat % 2 == 1)
-            {
-                g.setColour (p.text.withAlpha (p.light ? 0.035f : 0.03f));
-                g.fillRect (juce::Rectangle<float> (x, top, stepW * 4.0f, gridH));
-            }
             // the count over each beat: 1 e & a
+            const float x = gridX + (float) beat * 4.0f * stepW;
             g.setFont (headFont (11.0f));
             g.setColour (beat % 4 == 0 ? p.orange : p.text);
             g.drawText (juce::String (beat % 4 + 1), juce::Rectangle<float> (x, header.getY(), stepW, header.getHeight()), juce::Justification::centred);
@@ -240,107 +260,138 @@ namespace ggui
         g.drawText (juce::String (groove->bars) + (groove->bars == 1 ? " BAR" : " BARS"),
                     juce::Rectangle<float> (labelX, header.getY(), labelW - 8.0f, header.getHeight()), juce::Justification::centredLeft);
 
-        for (int i = 0; i <= steps; ++i)
+        // ---- the rows (they scroll under the timeline when there are more than fit) ----
         {
-            const float x = gridX + (float) i * stepW;
-            const bool bar = i % 16 == 0, beat = i % 4 == 0;
-            g.setColour (bar ? p.dim.withAlpha (0.8f) : beat ? p.line.brighter (0.2f) : p.line.withAlpha (0.45f));
-            g.fillRect (juce::Rectangle<float> (x - (bar ? 1.0f : 0.5f), top, bar ? 2.0f : 1.0f, gridH));
-        }
+            juce::Graphics::ScopedSaveState clip (g);
+            g.reduceClipRegion (geo.view.toNearestInt());
 
-        for (size_t li = 0; li < lanes.size(); ++li)
-        {
-            const auto slot = lanes[li];
-            const auto colour = slotColour (slot);
-            const juce::Rectangle<float> lane (labelX, top + (float) li * laneH, (float) getWidth() - labelX, laneH);
-            g.setColour (p.line.withAlpha (0.5f));
-            g.fillRect (lane.withHeight (1.0f).withY (lane.getBottom() - 0.5f));
-
-            // the lane's name (click it to hear the drum), and the note it plays on in your DAW
-            if ((int) li == hoverLabel || (int) li == pressedLabel)
+            // beats shaded in turn, bars split by a stronger line
+            for (int beat = 1; beat < groove->bars * 4; beat += 2)
             {
-                g.setColour (colour.withAlpha ((int) li == pressedLabel ? 0.30f : 0.12f));
-                g.fillRoundedRectangle (lane.withWidth (labelW - 6.0f).reduced (0.0f, 2.0f), 5.0f);
+                g.setColour (p.text.withAlpha (p.light ? 0.035f : 0.03f));
+                g.fillRect (juce::Rectangle<float> (gridX + (float) beat * 4.0f * stepW, top, stepW * 4.0f, gridH));
             }
-            auto label = lane.withWidth (labelW - 8.0f);
-            g.setColour (colour);
-            g.fillRoundedRectangle (label.removeFromLeft (4.0f).reduced (0.0f, laneH * 0.22f), 2.0f);
-            label.removeFromLeft (8.0f);
-            g.setFont (uiFont (juce::jmin (15.0f, laneH * 0.58f)));
-            g.setColour (p.text);
-            const int note = gg::mainNoteForSlot (slot);
-            const auto name = slot == gg::Slot::bass808 ? juce::String ("808") : gg::slotName (slot);
-            g.drawFittedText (name, label.toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
-            if (noteNamer && note >= 0 && labelW > 110.0f)
+            for (int i = 0; i <= steps; ++i)
             {
-                g.setFont (uiFont (12.0f, false));
-                g.setColour (p.faint);
-                g.drawText (noteNamer (note), label, juce::Justification::centredRight);
+                const float x = gridX + (float) i * stepW;
+                const bool bar = i % 16 == 0, beat = i % 4 == 0;
+                g.setColour (bar ? p.dim.withAlpha (0.8f) : beat ? p.line.brighter (0.2f) : p.line.withAlpha (0.45f));
+                g.fillRect (juce::Rectangle<float> (x - (bar ? 1.0f : 0.5f), top, bar ? 2.0f : 1.0f, gridH));
             }
 
-            // empty steps (the one under the mouse lit up)
-            for (int i = 0; i < steps; ++i)
+            for (size_t li = 0; li < lanes.size(); ++li)
             {
-                auto cell = juce::Rectangle<float> (gridX + (float) i * stepW, lane.getY(), stepW, laneH).reduced (juce::jmin (3.0f, stepW * 0.12f), juce::jmin (4.0f, laneH * 0.14f));
-                const bool hover = (int) li == hoverLane && i == hoverStep;
-                g.setColour (hover ? colour.withAlpha (0.28f) : p.text.withAlpha (p.light ? 0.05f : 0.035f));
-                g.fillRoundedRectangle (cell, 3.0f);
-            }
+                const auto slot = lanes[li];
+                const auto colour = slotColour (slot);
+                const juce::Rectangle<float> lane (labelX, top + (float) li * laneH, (float) getWidth() - labelX, laneH);
+                if (lane.getBottom() < geo.view.getY() || lane.getY() > geo.view.getBottom()) continue;
+                g.setColour (p.line.withAlpha (0.5f));
+                g.fillRect (lane.withHeight (1.0f).withY (lane.getBottom() - 0.5f));
 
-            // hits: a full step each, or a slice of it for rolls; harder hits brighter
-            std::vector<const gg::GrooveHit*> mine;
-            for (const auto& h : groove->hits)
-                if (h.slot == slot) mine.push_back (&h);
-            for (size_t k = 0; k < mine.size(); ++k)
-            {
-                const auto& h = *mine[k];
-                double len = 0.25 - std::fmod (h.beat, 0.25);                 // to the end of its step...
-                if (k + 1 < mine.size()) len = juce::jmin (len, mine[k + 1]->beat - h.beat);   // ...or the next hit
-                const float x = gridX + (float) (h.beat * 4.0) * stepW;
-                const float w = (float) (len * 4.0) * stepW;
-                auto cell = juce::Rectangle<float> (x, lane.getY(), w, laneH).reduced (juce::jmin (2.5f, w * 0.12f), juce::jmin (4.0f, laneH * 0.14f));
-                const float alpha = juce::jmap (h.velocity, 0.3f, 1.0f, 0.35f, 1.0f);
-                g.setColour (colour.withAlpha (alpha));
-                g.fillRoundedRectangle (cell, 3.0f);
-                if (h.velocity >= 0.95f)
+                // the lane's name (click it to hear the drum), and the note it plays on in your DAW
+                if ((int) li == hoverLabel || (int) li == pressedLabel)
                 {
-                    g.setColour (juce::Colours::white.withAlpha (p.light ? 0.35f : 0.22f));
-                    g.fillRoundedRectangle (cell.withHeight (cell.getHeight() * 0.4f), 3.0f);
+                    g.setColour (colour.withAlpha ((int) li == pressedLabel ? 0.30f : 0.12f));
+                    g.fillRoundedRectangle (lane.withWidth (labelW - 6.0f).reduced (0.0f, 2.0f), 5.0f);
+                }
+                auto label = lane.withWidth (labelW - 8.0f);
+                g.setColour (colour);
+                g.fillRoundedRectangle (label.removeFromLeft (4.0f).reduced (0.0f, laneH * 0.22f), 2.0f);
+                label.removeFromLeft (8.0f);
+                g.setFont (uiFont (juce::jmin (15.0f, laneH * 0.66f)));
+                g.setColour (p.text);
+                const int note = gg::mainNoteForSlot (slot);
+                const auto name = slot == gg::Slot::bass808 ? juce::String ("808") : gg::slotName (slot);
+                g.drawFittedText (name, label.toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
+                if (noteNamer && note >= 0 && labelW > 110.0f)
+                {
+                    g.setFont (uiFont (12.0f, false));
+                    g.setColour (p.faint);
+                    g.drawText (noteNamer (note), label, juce::Justification::centredRight);
+                }
+
+                // empty steps (the one under the mouse lit up)
+                for (int i = 0; i < steps; ++i)
+                {
+                    auto cell = juce::Rectangle<float> (gridX + (float) i * stepW, lane.getY(), stepW, laneH).reduced (juce::jmin (3.0f, stepW * 0.12f), juce::jmin (4.0f, laneH * 0.14f));
+                    const bool hover = (int) li == hoverLane && i == hoverStep;
+                    g.setColour (hover ? colour.withAlpha (0.28f) : p.text.withAlpha (p.light ? 0.05f : 0.035f));
+                    g.fillRoundedRectangle (cell, 3.0f);
+                }
+
+                // hits: a full step each, or a slice of it for rolls; harder hits brighter
+                std::vector<const gg::GrooveHit*> mine;
+                for (const auto& h : groove->hits)
+                    if (h.slot == slot) mine.push_back (&h);
+                for (size_t k = 0; k < mine.size(); ++k)
+                {
+                    const auto& h = *mine[k];
+                    double len = 0.25 - std::fmod (h.beat, 0.25);                 // to the end of its step...
+                    if (k + 1 < mine.size()) len = juce::jmin (len, mine[k + 1]->beat - h.beat);   // ...or the next hit
+                    const float x = gridX + (float) (h.beat * 4.0) * stepW;
+                    const float w = (float) (len * 4.0) * stepW;
+                    auto cell = juce::Rectangle<float> (x, lane.getY(), w, laneH).reduced (juce::jmin (2.5f, w * 0.12f), juce::jmin (4.0f, laneH * 0.14f));
+                    const float alpha = juce::jmap (h.velocity, 0.3f, 1.0f, 0.35f, 1.0f);
+                    g.setColour (colour.withAlpha (alpha));
+                    g.fillRoundedRectangle (cell, 3.0f);
+                    if (h.velocity >= 0.95f)
+                    {
+                        g.setColour (juce::Colours::white.withAlpha (p.light ? 0.35f : 0.22f));
+                        g.fillRoundedRectangle (cell.withHeight (cell.getHeight() * 0.4f), 3.0f);
+                    }
                 }
             }
+
+            // COACH MY BEAT: the steps the tip you're pointing at is about
+            for (const auto& h : highlights)
+            {
+                const auto it = std::find (lanes.begin(), lanes.end(), h.slot);
+                if (h.step < 0 || h.step >= steps || it == lanes.end()) continue;
+                const auto li = (float) (it - lanes.begin());
+                auto cell = juce::Rectangle<float> (gridX + (float) h.step * stepW, top + li * laneH, stepW, laneH).reduced (1.0f);
+                g.setColour (p.blue.withAlpha (0.18f));
+                g.fillRoundedRectangle (cell, 4.0f);
+                g.setColour (p.blue);
+                g.drawRoundedRectangle (cell, 4.0f, 2.0f);
+            }
+
+            // the playhead's line
+            const bool playing = playhead >= 0;
+            const double at = playing ? std::fmod (playhead, groove->lengthBeats()) : juce::jlimit (0.0, groove->lengthBeats(), cue);
+            g.setColour (p.orange.withAlpha (playing ? 1.0f : 0.45f));
+            g.fillRect (juce::Rectangle<float> (gridX + (float) (at * 4.0) * stepW - 1.0f, top, 2.0f, gridH));
         }
 
-        // COACH MY BEAT: the steps the tip you're pointing at is about (a drum with no row yet: marked on the timeline)
+        // ---- on the timeline: the coach's marks for drums with no row yet, the playhead's handle ----
         for (const auto& h : highlights)
-        {
-            if (h.step < 0 || h.step >= steps) continue;
-            const auto it = std::find (lanes.begin(), lanes.end(), h.slot);
-            if (it == lanes.end())
+            if (h.step >= 0 && h.step < steps && std::find (lanes.begin(), lanes.end(), h.slot) == lanes.end())
             {
                 g.setColour (p.blue);
                 g.fillRoundedRectangle (juce::Rectangle<float> (gridX + (float) h.step * stepW + 2.0f, header.getBottom() - 4.0f, stepW - 4.0f, 3.0f), 1.5f);
-                continue;
             }
-            const auto li = (float) (it - lanes.begin());
-            auto cell = juce::Rectangle<float> (gridX + (float) h.step * stepW, top + li * laneH, stepW, laneH).reduced (1.0f);
-            g.setColour (p.blue.withAlpha (0.18f));
-            g.fillRoundedRectangle (cell, 4.0f);
-            g.setColour (p.blue);
-            g.drawRoundedRectangle (cell, 4.0f, 2.0f);
-        }
-
-        // the playhead: where it plays, or (stopped) where play starts, with a handle on the timeline
         {
+            // where it plays, or (stopped) where play starts
             const bool playing = playhead >= 0;
             const double at = playing ? std::fmod (playhead, groove->lengthBeats()) : juce::jlimit (0.0, groove->lengthBeats(), cue);
             const float x = gridX + (float) (at * 4.0) * stepW;
-            g.setColour (p.orange.withAlpha (playing ? 1.0f : 0.45f));
-            g.fillRect (juce::Rectangle<float> (x - 1.0f, top, 2.0f, gridH));
             juce::Path head;
             const float hy = header.getBottom() - 1.0f, hw = juce::jmin (6.0f, stepW * 0.45f);
             head.addTriangle (x - hw, hy - 8.0f, x + hw, hy - 8.0f, x, hy);
             g.setColour (p.orange.withAlpha (playing ? 1.0f : 0.8f));
             g.fillPath (head);
+        }
+
+        // ---- the scroll bar, when the rows scroll ----
+        if (gridH > geo.view.getHeight() + 0.5f)
+        {
+            const float vh = geo.view.getHeight();
+            auto track = juce::Rectangle<float> ((float) getWidth() - 5.0f, geo.view.getY() + 2.0f, 4.0f, vh - 4.0f);
+            const float thumbH = juce::jmax (24.0f, track.getHeight() * vh / gridH);
+            const float pos = (geo.view.getY() - top) / (gridH - vh);
+            g.setColour (p.line.withAlpha (0.6f));
+            g.fillRoundedRectangle (track, 2.0f);
+            g.setColour (p.dim);
+            g.fillRoundedRectangle (track.withHeight (thumbH).withY (track.getY() + pos * (track.getHeight() - thumbH)), 2.0f);
         }
     }
 
@@ -569,7 +620,10 @@ namespace ggui
             juce::MessageManager::callAsync ([safe = juce::Component::SafePointer<SaucePage> (this), id = t.id]
             {
                 if (safe == nullptr) return;
-                safe->onPurpose[safe->currentId()].addIfNotAlreadyThere (id);
+                const auto gid = safe->currentId();
+                auto ids = safe->proc.getCoachOnPurpose (gid);
+                ids.addIfNotAlreadyThere (id);
+                safe->proc.setCoachOnPurpose (gid, ids);        // (kept after the app closes)
                 safe->coachMyBeat();
             });
         };
@@ -578,7 +632,7 @@ namespace ggui
             juce::MessageManager::callAsync ([safe = juce::Component::SafePointer<SaucePage> (this)]
             {
                 if (safe == nullptr) return;
-                safe->onPurpose[safe->currentId()].clear();
+                safe->proc.setCoachOnPurpose (safe->currentId(), {});
                 safe->coachMyBeat();
             });
         };
@@ -599,7 +653,7 @@ namespace ggui
         if (g == nullptr) return;
         const auto id = currentId();
         const gg::coach::Context ctx { genre, subStyle, era, previewTempo() };
-        coach.setReport (gg::coach::coachBeat (*g, ctx, onPurpose[id]));
+        coach.setReport (gg::coach::coachBeat (*g, ctx, proc.getCoachOnPurpose (id)));
         coaching = true;
         coachedId = id;
         coachedHits = g->hits;
@@ -1005,11 +1059,11 @@ namespace ggui
         if (! gg::mygrooves::isMine (id)) for (const auto& h : gg::grooveFor (id).hits) add (h.slot);
         if (id == "blank")
         {
-            // a blank pad: a row for every sound in the kit you picked (or the usual drums, before there are kits);
-            // a bigger kit's second sounds are a + ADD DRUM away, so the rows stay big enough to click
+            // a blank pad: a row for every sound in the kit you picked, all 32 of a 32-sound kit (the rows scroll
+            // when they don't fit), or the usual drums before there are kits
             if (const auto* k = const_cast<GrooveGrabberProcessor&> (proc).getActiveKit())
             {
-                for (auto s : gg::kitSlots (17))
+                for (auto s : k->shownSlots())
                     if (! (*k)[s].isEmpty()) add (s);
             }
             if (lanes.empty())
@@ -1035,6 +1089,7 @@ namespace ggui
         const auto id = currentId();
         const bool mine = showingMine();
         grid.setGroove (currentGroove(), id.isEmpty() ? std::vector<gg::Slot>() : lanesFor (id));
+        if ((grid.numLanes() > 10) != manyRows) resized();
         const auto it = undoSteps.find (id);
         undo.setEnabled (it != undoSteps.end() && ! it->second.empty());
         const bool changed = proc.isGrooveEdited (id);
@@ -1265,7 +1320,9 @@ namespace ggui
         auto r = getLocalBounds().reduced (10, 8);
         leftArea = r.removeFromLeft (juce::jlimit (300, 360, r.getWidth() / 4));
         r.removeFromLeft (10);
-        patternArea = r.removeFromTop (juce::jlimit (290, 380, r.getHeight() * 45 / 100));
+        // a pattern with a lot of rows (a big kit's BLANK) gets more of the page; the write-up below scrolls
+        manyRows = grid.numLanes() > 10;
+        patternArea = r.removeFromTop (manyRows ? juce::jlimit (290, 560, r.getHeight() * 58 / 100) : juce::jlimit (290, 380, r.getHeight() * 45 / 100));
         r.removeFromTop (8);
         sauceArea = r;
 

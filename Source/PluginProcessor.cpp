@@ -394,8 +394,48 @@ juce::String GrooveGrabberProcessor::restoreMyGroove (const juce::File& backup)
     return id;
 }
 
+juce::StringArray GrooveGrabberProcessor::getCoachOnPurpose (const juce::String& id)
+{
+    if (gg::mygrooves::isMine (id))
+    {
+        juce::StringArray ids;
+        const auto all = juce::JSON::parse (getSettings().get ("coachOnPurpose"));     // (kept while its list is read)
+        if (auto* a = all[juce::Identifier (id)].getArray())
+            for (const auto& x : *a) ids.addIfNotAlreadyThere (x.toString());
+        return ids;
+    }
+    const auto it = coachOnPurpose.find (id);
+    return it != coachOnPurpose.end() ? it->second : juce::StringArray();
+}
+
+void GrooveGrabberProcessor::setCoachOnPurpose (const juce::String& id, const juce::StringArray& tipIds)
+{
+    if (id.isEmpty()) return;
+    if (gg::mygrooves::isMine (id))
+    {
+        auto all = juce::JSON::parse (getSettings().get ("coachOnPurpose"));
+        if (! all.isObject()) all = juce::var (new juce::DynamicObject());
+        if (auto* o = all.getDynamicObject())
+        {
+            if (tipIds.isEmpty()) o->removeProperty (id);
+            else
+            {
+                juce::Array<juce::var> a;
+                for (const auto& t : tipIds) a.add (t);
+                o->setProperty (id, a);
+            }
+        }
+        getSettings().set ("coachOnPurpose", juce::JSON::toString (all, true));
+        return;
+    }
+    if (tipIds.isEmpty()) coachOnPurpose.erase (id);
+    else coachOnPurpose[id] = tipIds;
+    notify();      // (saved with the song)
+}
+
 void GrooveGrabberProcessor::deleteMyGroove (const juce::String& id)
 {
+    setCoachOnPurpose (id, {});      // its ON PURPOSE tips go with it
     auto old = gg::mygrooves::remove (id);
     if (old == nullptr) return;
     retireGroove (std::move (old));
@@ -619,6 +659,14 @@ juce::String GrooveGrabberProcessor::makeState()
     }
     o->setProperty ("grooveEdits", juce::var (edits));
     o->setProperty ("grooveSwing", juce::var (swings));
+    auto* purposed = new juce::DynamicObject();
+    for (const auto& [id, tips] : coachOnPurpose)
+    {
+        juce::Array<juce::var> a;
+        for (const auto& t : tips) a.add (t);
+        purposed->setProperty (id, a);
+    }
+    o->setProperty ("coachOnPurpose", juce::var (purposed));
     o->setProperty ("swing", player.getSwing());
     o->setProperty ("volume", player.getVolume());
     o->setProperty ("follow", player.isFollowingHost());
@@ -681,6 +729,19 @@ void GrooveGrabberProcessor::applyState (const juce::String& text)
         const auto now = juce::Time::getMillisecondCounter();
         for (auto& [id, g] : grooveEdits) retiredGrooves.push_back ({ g, now });
         grooveEdits = std::move (restored);
+    }
+    {
+        // COACH MY BEAT's ON PURPOSE tips for the song's patterns (a few short ids each)
+        coachOnPurpose.clear();
+        if (auto* o = v["coachOnPurpose"].getDynamicObject())
+            for (const auto& prop : o->getProperties())
+                if (auto* a = prop.value.getArray(); a != nullptr && coachOnPurpose.size() < 256)
+                {
+                    juce::StringArray ids;
+                    for (const auto& x : *a)
+                        if (x.isString() && x.toString().length() <= 40 && ids.size() < 64) ids.addIfNotAlreadyThere (x.toString());
+                    if (! ids.isEmpty()) coachOnPurpose[prop.name.toString().substring (0, 80)] = ids;
+                }
     }
     setGrooveId (v.getProperty ("groove", "boombap1").toString());
     player.setSwing ((float) (double) v.getProperty ("swing", (double) player.getSwing()));
