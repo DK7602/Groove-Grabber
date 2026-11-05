@@ -53,8 +53,11 @@ namespace ggui
 
         feel.setTooltips ({ "Let the genre decide", "Real, acoustic drums", "A mix of both", "Drum machines and programmed sounds" });
         lowEnd.setTooltips ({ "Let the genre decide", "Just a kick", "A kick and an 808" });
-        perc.setTooltips ({ "Let the genre decide", "No percussion", "One percussion sound", "Two", "Three" });
-        for (auto* s : { &feel, &lowEnd, &perc })
+        perc.setTooltips ({ "Let the genre decide (a 23-sound kit fills its 3 percussion pads, a 32-sound kit its 4)", "No percussion", "One percussion sound", "Two", "Three" });
+        kitSize.setTooltips ({ "17 sounds, one of each (the usual kit)",
+                               "23 sounds: two kicks, 808s, snares, closed and open hats, and three FX",
+                               "32 sounds: two of everything, four percussion and four FX" });
+        for (auto* s : { &kitSize, &feel, &lowEnd, &perc })
         {
             s->onChange = [this] (int) { pushOptions(); };
             addAndMakeVisible (*s);
@@ -64,7 +67,7 @@ namespace ggui
             t->onClick = [this] { pushOptions(); };
             addAndMakeVisible (*t);
         }
-        fx.setTooltip ("Add two FX pads: risers, impacts, sweeps...");
+        fx.setTooltip ("Fill the FX pads (two, three or four, by the kit size): risers, impacts, sweeps...");
         tuneKey.setTooltip ("Tune the kick and 808 to the song's root and the toms to its scale (needs a key)");
 
         for (int i = 0; i < (int) gg::Source::count; ++i)
@@ -152,6 +155,7 @@ namespace ggui
         o.lowEnd = lowEnd.getSelected() - 1;
         o.percCount = perc.getSelected() - 1;
         o.fx = fx.getToggleState();
+        o.kitSize = kitSize.getSelected() == 2 ? 32 : kitSize.getSelected() == 1 ? 23 : 17;   // (GENERATE KITS makes them this size)
         for (int i = 0; i < sources.size(); ++i) o.sources[(size_t) i] = sources[i]->getToggleState();
         if (o.tuneToKey != tuneKey.getToggleState())
         {
@@ -195,6 +199,7 @@ namespace ggui
         lowEnd.setSelected (o.lowEnd + 1);
         perc.setSelected (o.percCount + 1);
         fx.setToggleState (o.fx, juce::dontSendNotification);
+        kitSize.setSelected (o.kitSize == 32 ? 2 : o.kitSize == 23 ? 1 : 0);
         tuneKey.setToggleState (o.tuneToKey, juce::dontSendNotification);
         tuneKey.setEnabled (o.key >= 0);
         const auto counts = [&]
@@ -253,14 +258,19 @@ namespace ggui
         }
         r.removeFromBottom (8);
 
-        optionsArea = r.removeFromBottom (22 + 3 * 30 + 2 * 26);
+        // the options' rows a little tighter when KIT CHARACTER would otherwise get squeezed (a short window)
+        const auto optionsHeight = [this] { return 22 + 4 * (optRowH + optGap) + 2 * (optToggleH + optGap); };
+        optRowH = 26; optGap = 4; optToggleH = 22;
+        if (r.getHeight() - optionsHeight() < 22 + gg::Traits::num * 20 + 6) { optRowH = 22; optGap = 2; optToggleH = 20; }
+        optionsArea = r.removeFromBottom (optionsHeight());
         auto oa = optionsArea.withTrimmedTop (22);
-        auto row = [&oa] (int h) { auto x = oa.removeFromTop (h); oa.removeFromTop (4); return x; };
-        auto feelRow = row (26);   feelRow.removeFromLeft (64);   feel.setBounds (feelRow);
-        auto lowRow = row (26);    lowRow.removeFromLeft (64);    lowEnd.setBounds (lowRow);
-        auto percRow = row (26);   percRow.removeFromLeft (64);   perc.setBounds (percRow);
-        fx.setBounds (row (22));
-        tuneKey.setBounds (oa.removeFromTop (22));
+        auto row = [&oa, this] (int h) { auto x = oa.removeFromTop (h); oa.removeFromTop (optGap); return x; };
+        auto sizeRow = row (optRowH);   sizeRow.removeFromLeft (64);   kitSize.setBounds (sizeRow);
+        auto feelRow = row (optRowH);   feelRow.removeFromLeft (64);   feel.setBounds (feelRow);
+        auto lowRow = row (optRowH);    lowRow.removeFromLeft (64);    lowEnd.setBounds (lowRow);
+        auto percRow = row (optRowH);   percRow.removeFromLeft (64);   perc.setBounds (percRow);
+        fx.setBounds (row (optToggleH));
+        tuneKey.setBounds (oa.removeFromTop (optToggleH));
 
         traitsArea = r.withTrimmedBottom (6);
         auto ta = traitsArea.withTrimmedTop (22);
@@ -313,10 +323,10 @@ namespace ggui
             auto oa = optionsArea.withTrimmedTop (22);
             g.setColour (p.dim);
             g.setFont (uiFont (14.0f));
-            for (auto* label : { "FEEL", "LOW END", "PERC" })
+            for (auto* label : { "KIT SIZE", "FEEL", "LOW END", "PERC" })
             {
-                g.drawText (label, oa.removeFromTop (26).removeFromLeft (64), juce::Justification::centredLeft);
-                oa.removeFromTop (4);
+                g.drawText (label, oa.removeFromTop (optRowH).removeFromLeft (64), juce::Justification::centredLeft);
+                oa.removeFromTop (optGap);
             }
         }
         drawSectionTitle (g, sourcesArea.withHeight (20), "Use sounds from", p.green);

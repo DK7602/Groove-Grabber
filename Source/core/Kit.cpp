@@ -72,6 +72,7 @@ namespace gg
         o->setProperty ("favorite", favorite);
         o->setProperty ("description", description);
         o->setProperty ("created", juce::String (created));
+        o->setProperty ("size", size);
         auto* sl = new juce::DynamicObject();
         for (int i = 0; i < numSlots; ++i)
             if (! slots[(size_t) i].isEmpty() || slots[(size_t) i].locked)
@@ -100,11 +101,12 @@ namespace gg
         k.favorite = (bool) v.getProperty ("favorite", false);
         k.description = v["description"].toString();
         k.created = v["created"].toString().getLargeIntValue();
+        k.size = validKitSize ((int) v.getProperty ("size", defaultKitSize));
         if (auto* sl = v["slots"].getDynamicObject())
             for (auto& p : sl->getProperties())
             {
                 const auto s = slotFromId (p.name.toString());
-                if (s != Slot::count)
+                if (s != Slot::count && slotInKit (s, k.size))
                     k[s] = SlotState::fromVar (p.value);
             }
         return k;

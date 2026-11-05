@@ -112,6 +112,7 @@ namespace ggui
         bool showingMine() const;
         juce::String currentId() const;
         std::vector<gg::Slot> lanesFor (const juce::String& id) const;
+        const std::vector<gg::Slot>& addableSlots() const;   // what + ADD DRUM offers: the picked kit's drums
         juce::String dropHint() const;               // where to drop the MIDI in your DAW
         void stopPreview();
         double previewTempo() const;                 // what the pattern plays and exports at

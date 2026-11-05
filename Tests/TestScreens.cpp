@@ -154,6 +154,40 @@ int runScreenshots (const juce::File& outDir)
                 std::cout << (buttons && system ? "  ok: " : "  FAIL: ") << "the app's window has minimise, maximise and close" << std::endl;
                 if (! (buttons && system)) ++failures;
             }
+            // KIT SIZE 23 and 32: the pads in rows of 8, each second sound beside its first
+            {
+                const auto keptKits = proc.kits;
+                const auto keptOptions = proc.options;
+                const auto countTiles = [] (juce::Component& root)
+                {
+                    int n = 0;
+                    std::function<void (juce::Component&)> walk = [&] (juce::Component& c)
+                    {
+                        if (auto* t = dynamic_cast<ggui::PadTile*> (&c); t != nullptr && t->isVisible() && t->getWidth() > 20) ++n;
+                        for (auto* child : c.getChildren()) walk (*child);
+                    };
+                    walk (root);
+                    return n;
+                };
+                bool sized = true;
+                for (int size : { 23, 32 })
+                {
+                    proc.options.kitSize = size;
+                    proc.generate (false);
+                    ed->refreshAll();
+                    pump (400);
+                    save (*ed, outDir.getChildFile ("build-" + juce::String (size) + ".png"));
+                    sized = sized && proc.getActiveKit() != nullptr && proc.getActiveKit()->size == size && countTiles (ed->getBuild()) == size;
+                }
+                proc.kits = keptKits;
+                proc.options = keptOptions;
+                proc.kitChanged (proc.activeKit);
+                ed->refreshAll();
+                pump (300);
+                sized = sized && countTiles (ed->getBuild()) == 17;
+                std::cout << (sized ? "  ok: " : "  FAIL: ") << "KIT SIZE 23 and 32 show 23 and 32 pads (and 17 again after)" << std::endl;
+                if (! sized) ++failures;
+            }
             // BUILD's swing: the same 50% to 66% (a full triplet) as SAUCE's
             auto& sw = ed->getBuild().getTransport().getSwingSlider();
             const double before = sw.getValue();

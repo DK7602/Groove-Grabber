@@ -1,4 +1,5 @@
 #include "Daws.h"
+#include "SoundTypes.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace gg
@@ -20,13 +21,15 @@ namespace gg
         {
             std::vector<DawGuide> v;
             // Steps checked against each maker's own manual where it covers them (2026). {FIRST} = how the DAW names
-            // note 36, {LAST} = the last file, {PADS} = how many files.
+            // note 36, {LAST} = the last file, {PADS} = how many files (22, 27 or 33, by the kit's size), {LASTNOTE}
+            // and {LASTNUM} = the last file's note, {GA_GROUPS} / {BANK_B} = where Groove Agent / Impact put the
+            // files after the first 12 / 16 (see fillGuideText).
             v.push_back (guide ("cubase", "Cubase / Nuendo", "Groove Agent SE", "DRAG TO GROOVE AGENT - PAD C1",
                 "Drop on Groove Agent's C1 pad, on the lowest of the three drop icons, so the files spread across the pads", 3,
                 { "Add an instrument track with **Groove Agent SE** and open it.",
                   "Show **pad group 3**: the **C1** pad is in it (point at a pad to see its note).",
                   "Drag all {PADS} files (01 Kick to {LAST}) over the C1 pad and hold. Three drop icons appear: drop on the **lowest** one, which spreads the files over the pads in order. (The top icon stacks them all on one pad.)",
-                  "If Groove Agent asks about free pads, go ahead. Files 13 to 22 land in **pad group 4** (C2 to A2)." },
+                  "If Groove Agent asks about free pads, go ahead. {GA_GROUPS}" },
                 "Hats: select the Closed Hat (F#1), Pedal Hat (G#1) and Open Hat (A#1) pads in turn and set **Excl** (Exclusive Group, on the Edit page's Main tab) to the same number, so a closed hat cuts off an open one.",
                 "Keep it: right-click the kit and choose **Export Kit with Samples** (or **Save Kit**). It's then a normal Groove Agent kit for any project.",
                 "on the lane of your Groove Agent SE or Groove Grabber track, at the bar where it should start (dropped below the last track, Cubase makes a new track with no instrument)"));
@@ -35,7 +38,7 @@ namespace gg
                 "Drop on the Drum Rack's C1 pad without holding a key, and the files map upward from it", 3,
                 { "Put an empty **Drum Rack** on a MIDI track.",
                   "Drag all {PADS} files onto the **C1** pad. They map upward, one per pad: 01 Kick on C1, 02 Rim on C#1 and so on. Don't hold Alt / Cmd, which stacks them on one pad.",
-                  "The rack shows 16 pads at a time: scroll the pad overview up for files 17 to 22 (E2 to A2)." },
+                  "The rack shows 16 pads at a time: scroll the pad overview up for files 17 to {PADS} (E2 to {LASTNOTE})." },
                 "Hats: show the chain list, open its I/O section and set the Closed Hat, Pedal Hat and Open Hat chains to the same **Choke** group.",
                 "Keep it: click the Drum Rack's **Save Preset** button. Live copies the samples into your User Library.",
                 "on the Drum Rack's track, in a clip slot or its Arrangement lane (dropped on empty space, Live makes a new MIDI track with no instrument)"));
@@ -51,7 +54,7 @@ namespace gg
             v.push_back (guide ("logic", "Logic Pro", "Drum Machine Designer", "DRAG TO LOGIC - DRUM MACHINE DESIGNER",
                 "Drop below your last track, on the Drum Machine Designer option, and each file gets its own pad", 3,
                 { "Drag all {PADS} files into the empty area below your last track and drop them on **Drum Machine Designer**. Each file gets its own pad, starting from C1 at the lower left.",
-                  "Check the order: 01 Kick on C1, 03 Snare on D1, 07 Closed Hat on F#1. There are 16 pads a page; the last files are on page 2.",
+                  "Check the order: 01 Kick on C1, 03 Snare on D1, 07 Closed Hat on F#1. There are 16 pads a page; the later files are on the next pages.",
                   "To add them to a Drum Machine Designer track you already have, drop them on its main track header instead: they fill the lowest empty pads." },
                 "Hats: on each hat pad, open the **Action** pop-up and choose the same **Exclusive Group**.",
                 "Keep it: open the Library and click **Save** to keep it as your own kit patch.",
@@ -60,7 +63,7 @@ namespace gg
             v.push_back (guide ("garageband", "GarageBand", "Groove Grabber", "DRAG THE KIT FILES",
                 "GarageBand has no drum sampler to drop files into: play the kit with Groove Grabber itself", 3,
                 { "GarageBand has no drum sampler you can load your own files into, so play the kit with **Groove Grabber itself**: add a Software Instrument track with Groove Grabber (Audio Units > Grabber Audio).",
-                  "It plays the kit you're editing on notes C1 to A2, the same layout as the export. Record or draw your part.",
+                  "It plays the kit you're editing on notes C1 to {LASTNOTE}, the same layout as the export. Record or draw your part.",
                   "For a full drum sampler, Logic Pro's Drum Machine Designer loads the same export." },
                 "",
                 "Keep it: SAVE KIT in Groove Grabber. Your GarageBand project remembers the kit too.",
@@ -70,7 +73,7 @@ namespace gg
                 "Hold Shift as you drop on Impact's first pad (C1), so the files go to the pads after it", 3,
                 { "Add **Impact** (Impact XT in older versions) on an instrument track.",
                   "Drag all {PADS} files over pad 1 of bank A (C1), then **hold Shift** and let go. The first file lands on that pad and the rest on the pads after it, in note order. Without Shift they all stack on one pad.",
-                  "Bank A holds 16 pads; files 17 to 22 are in bank B." },
+                  "Bank A holds 16 pads; {BANK_B}." },
                 "Hats: give the Closed Hat, Pedal Hat and Open Hat pads the same **Choke** number.",
                 "Keep it: save a preset from the device header (or Export Sampler File to share it).",
                 "on the Impact track's lane, at the bar where it should start"));
@@ -87,7 +90,7 @@ namespace gg
                 "Drop all the files on the Drum Machine's C1 pad and they fill the pads above it", 3,
                 { "Add a **Drum Machine** to an instrument track.",
                   "Drag all {PADS} files onto the **C1** pad: they fill the pads above it in order. Check a few: 01 Kick on C1, 03 Snare on D1, 07 Closed Hat on F#1.",
-                  "16 pads show at a time: scroll the pad strip for files 17 to 22 (E2 to A2)." },
+                  "16 pads show at a time: scroll the pad strip for files 17 to {PADS} (E2 to {LASTNOTE})." },
                 "Hats: right-click each hat pad and use **Choke targets** so each hat cuts off the other two.",
                 "Keep it: right-click the device and save it as a preset in your library.",
                 "on the Drum Machine track, at the bar where it should start"));
@@ -105,7 +108,7 @@ namespace gg
                 "Kong has 16 pads: drop one file per pad, from pad 1 (C1)", 3,
                 { "Create a **Kong Drum Designer**. Its 16 pads play C1 to D#2, pad 1 to pad 16.",
                   "Drop one file per pad: 01 Kick on pad 1 through 16 Ride on pad 16. Several files dropped on one pad become layers of it.",
-                  "Kong has no room for files 17 to 22 (808, percussion, FX): put those in a second Kong or an NN-XT." },
+                  "Kong has no room for files 17 to {PADS} (808, percussion, FX and any second sounds): put those in a second Kong or an NN-XT." },
                 "Hats: put the Closed Hat, Pedal Hat and Open Hat pads in the same **Mute Group**.",
                 "Keep it: save the Kong patch. It points to the files, so keep the export folder where it is.",
                 "on the Kong track's lane"));
@@ -122,7 +125,7 @@ namespace gg
             v.push_back (guide ("other", "Any other DAW or sampler", "your drum sampler", "DRAG THE KIT - FIRST PAD (NOTE 36)",
                 "Drop all the files on your sampler's first pad (note 36)", 3,
                 { "Open your DAW's drum sampler (any sampler with pads or a key map).",
-                  "Put file 01 on note 36, file 02 on note 37 and so on up to {LAST} on note 57. Many samplers do this for you when you drop all the files on the note 36 pad; check your sampler's manual for how it spreads a multi-file drop.",
+                  "Put file 01 on note 36, file 02 on note 37 and so on up to {LAST} on note {LASTNUM}. Many samplers do this for you when you drop all the files on the note 36 pad; check your sampler's manual for how it spreads a multi-file drop.",
                   "Or play the kit with Groove Grabber itself on an instrument track: it uses the same notes." },
                 "Hats: put the Closed Hat, Pedal Hat and Open Hat (notes 42, 44 and 46) in one choke / mute group.",
                 "Keep it: save the kit as a preset in your sampler.",
@@ -178,17 +181,46 @@ namespace gg
         return juce::String (names[((midiNote % 12) + 12) % 12]) + juce::String (octave);
     }
 
+    juce::String fillGuideText (const juce::String& text, const DawGuide& daw, int numPads, const juce::String& lastFileName)
+    {
+        numPads = juce::jlimit (1, gg::numPads, numPads);
+        const auto note = [&daw] (int n) { return dawNoteName (n, daw); };
+        const int lastNote = firstPadNote + numPads - 1;
+        // Groove Agent: C1 is the 1st pad of group 3, so files 1-12 are there, 13-28 in group 4 (C2 up), 29- in group 5
+        juce::String ga;
+        if (numPads <= 12)      ga = "They all fit in pad group 3.";
+        else if (numPads <= 28) ga = "Files 13 to " + juce::String (numPads) + " land in **pad group 4** (C2 to " + note (lastNote) + ").";
+        else                    ga = "Files 13 to 28 land in **pad group 4** (C2 to " + note (firstPadNote + 27) + ") and files 29 to "
+                                     + juce::String (numPads) + " in **pad group 5** (" + note (firstPadNote + 28) + " to " + note (lastNote) + ").";
+        // Impact: banks of 16 pads
+        juce::String bank = numPads <= 32 ? "files 17 to " + juce::String (numPads) + " are in bank B"
+                                          : "files 17 to 32 are in bank B and " + juce::String (numPads == 33 ? "file 33" : "files 33 to " + juce::String (numPads)) + " in bank C";
+        return text.replace ("{FIRST}", note (firstPadNote)).replace ("{LAST}", lastFileName).replace ("{PADS}", juce::String (numPads))
+                   .replace ("{LASTNOTE}", note (lastNote)).replace ("{LASTNUM}", juce::String (lastNote))
+                   .replace ("{GA_GROUPS}", ga).replace ("{BANK_B}", bank);
+    }
+
+    juce::StringArray guideSteps (const DawGuide& daw, int numPads, const juce::String& lastFileName)
+    {
+        juce::StringArray items;
+        for (const auto& s : daw.steps) items.add (fillGuideText (s, daw, numPads, lastFileName));
+        if (daw.hats.isNotEmpty())
+        {
+            auto hats = daw.hats;
+            // the bigger kits' second hats (notes 60 and 61) go in the same group
+            if (numPads >= padCountFor (23))
+                hats << " Do the same for **Closed Hat 2** (" << dawNoteName (60, daw) << ") and **Open Hat 2** (" << dawNoteName (61, daw) << ").";
+            items.add (hats);
+        }
+        return items;
+    }
+
     juce::String dawGuideText (const DawGuide& daw, int numPads, const juce::String& lastFileName)
     {
         juce::String t;
         int n = 1;
-        for (auto s : daw.steps)
-        {
-            s = s.replace ("{FIRST}", dawNoteName (36, daw)).replace ("{LAST}", lastFileName).replace ("{PADS}", juce::String (numPads))
-                 .replace ("**", "");
-            t << n++ << ". " << s << "\n";
-        }
-        if (daw.hats.isNotEmpty())   t << n++ << ". " << daw.hats.replace ("**", "") << "\n";
+        for (const auto& s : guideSteps (daw, numPads, lastFileName))
+            t << n++ << ". " << s.replace ("**", "") << "\n";
         if (daw.keep.isNotEmpty())   t << n++ << ". " << daw.keep.replace ("**", "") << "\n";
         if (daw.groove.isNotEmpty()) t << "\nThe Groove .mid (and patterns from SAUCE): drop it " << daw.groove.replace ("**", "") << ".\n";
         return t;
@@ -202,7 +234,7 @@ namespace gg
             md << "**" << daw.name << (daw.id != "other" && daw.sampler != "Groove Grabber" ? ": " + daw.sampler : juce::String()) << "**\n\n";
             int n = 1;
             for (auto s : daw.steps)
-                md << n++ << ". " << s.replace ("{FIRST}", dawNoteName (36, daw)).replace ("{LAST}", "22 FX 2").replace ("{PADS}", "22") << "\n";
+                md << n++ << ". " << fillGuideText (s, daw, 22, "22 FX 2") << "\n";
             md << "\n";
             if (daw.hats.isNotEmpty())   md << "- " << daw.hats.replaceFirstOccurrenceOf ("Hats:", "**Hats:**") << "\n";
             if (daw.keep.isNotEmpty())   md << "- " << daw.keep.replaceFirstOccurrenceOf ("Keep it:", "**Keep it:**") << "\n";

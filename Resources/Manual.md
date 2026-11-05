@@ -138,6 +138,7 @@ Examples that work:
 | A genre: trap, hip-hop, rap, r&b, pop, rock, country, worship, gospel, edm, house, lofi, cinematic... | The genre |
 | A style: g-funk, boom bap, uk drill, phonk, honky tonk, pop rock, hard rock, neo soul, drum and bass... | The style within the genre |
 | A decade: 60s, 70s, 80s, 90s, 2000s, 2010s, today | The era (and, with just a genre, the style that decade is known for: "80s pop" = Synth Pop) |
+| modern, new, latest, contemporary, new school | Today, when no decade is named ("modern rap", "new country"). A decade you name wins: "a modern take on 90s boom bap" stays 90s. "New" in a name (New York, New Orleans, new jack swing, new wave) isn't read as today. |
 | Feel words: punchy, warm, dark, bright, roomy, dry, dusty, vintage, clean, modern, hard, heavy, smooth, gated... | The character sliders. "Not too bright" works too. |
 | live, acoustic, programmed, drum machine, hybrid | Live feel |
 | 808, no 808, fx, risers, lots of percussion, no percussion, minimal | The options |
@@ -187,10 +188,11 @@ Moving a slider shifts all four kits the same way, so each kit keeps its own per
 
 | Option | Choices | What it does |
 | --- | --- | --- |
+| KIT SIZE | 17, 23, 32 | How many sounds each kit holds. **17** (the default): one of each kind. **23:** two kicks, two 808s, two snares, two closed hats, two open hats and three FX, plus one each of clap, rim, crash, ride, the three toms and three percussion. **32:** two of everything, four percussion and four FX. Each second sound is a different one of its kind, not a near twin of the first. It takes effect when you press GENERATE KITS. |
 | FEEL | Auto, Live, Hybrid, Prog | Auto lets the style decide. Live = real drums, Prog = drum machines, Hybrid = a mix. |
 | LOW END | Auto, Kick, Kick + 808 | Just a kick, or a kick and an 808. Auto follows the style (trap and G-Funk use an 808, rock doesn't). |
-| PERC | Auto, 0, 1, 2, 3 | How many percussion pads (shaker, tambourine, conga...) |
-| FX / sound effects | On / off | Adds two FX pads of different kinds: a build-up (riser, reverse), an impact, a texture (vinyl, noise) or an accent (scratch, stab, laser) |
+| PERC | Auto, 0, 1, 2, 3 | How many percussion pads (shaker, tambourine, conga...). Auto follows the style; a 23-sound kit fills its 3 percussion pads and a 32-sound kit its 4. |
+| FX / sound effects | On / off | Fills the FX pads (two, three or four, by the kit size) with different kinds: a build-up (riser, reverse), an impact, a texture (vinyl, noise) or an accent (scratch, stab, laser). Off leaves them empty. LOW END works the same way: with Kick only, a bigger kit's two 808 pads stay empty too. |
 | Tune kick, 808, toms to key | On / off | Tunes the 808 to the song's root, the kick to the root or fifth when it's close, and the toms to notes of the scale. With no key set, the kick is still tuned to the 808's note (or its fifth), so the low end agrees. |
 
 **USE SOUNDS FROM**
@@ -217,7 +219,7 @@ You get four kits across the top of the BUILD page, each a different take on you
 
 **The pads (KIT EDITOR)**
 
-The kit you're editing shows its pads: Kick, 808, Snare, Clap, Rim, Closed Hat, Open Hat, Crash, Ride, three toms, three percussion and two FX. Each pad shows its waveform, file name and how far it was tuned to the key ("KEY +3.5"), or to the 808 when no key is set ("TO 808 +1.2").
+The kit you're editing shows its pads: Kick, 808, Snare, Clap, Rim, Closed Hat, Open Hat, Crash, Ride, three toms, three percussion and two FX. A 23- or 32-sound kit (KIT SIZE) shows them in rows of 8, each second sound beside its first: Kick, Kick 2, 808, 808 2, Snare, Snare 2... Each pad shows its waveform, file name and how far it was tuned to the key ("KEY +3.5"), or to the 808 when no key is set ("TO 808 +1.2").
 
 - **Click a pad** to hear it and open it in the pad editor below.
 - **Drag a pad into your DAW** to use that one sound on its own.
@@ -287,6 +289,7 @@ Each kit shows its genre, style, decade, key, BPM, how many pads it fills and wh
 ```
 Exports/Hip-Hop/90s Westside Classic/
   01 Kick.wav  02 Rim.wav  03 Snare.wav ... 17 808.wav ... 22 FX 2.wav
+  (23 sounds: ... 23 Kick 2.wav ... 27 FX 3.wav;  32 sounds: ... 33 FX 4.wav)
   90s Westside Classic.pgm          MPC 1000 program
   90s Westside Classic Groove.mid   the preview groove
   Kit Info.txt                      where every sound came from + the steps for your DAW
@@ -295,7 +298,9 @@ Exports/Hip-Hop/90s Westside Classic/
 
 **For FL Studio, each file also carries the kit's name**, for example "01 Kick - 90s Westside Classic.wav". FPC finds its samples by file name, so this keeps two kits' kicks from ever getting mixed up.
 
-**Note names differ between DAWs.** The files always sit on MIDI notes 36 to 57, but DAWs name those notes differently: note 36 is C1 in Cubase, Live, Logic, Studio One and Bitwig, C2 in REAPER and C3 in FL Studio. The export panel, Kit Info.txt and the SAUCE grid use your DAW's names.
+**How many files:** a 17-sound kit exports 22 files (notes 36 to 57), a 23-sound kit 27 (36 to 62) and a 32-sound kit 33 (36 to 68). The export panel and Kit Info.txt count them for you, for example which of Groove Agent's pad groups the later files land in.
+
+**Note names differ between DAWs.** The files always start on MIDI note 36, but DAWs name those notes differently: note 36 is C1 in Cubase, Live, Logic, Studio One and Bitwig, C2 in REAPER and C3 in FL Studio. The export panel, Kit Info.txt and the SAUCE grid use your DAW's names.
 
 **Loading the kit, DAW by DAW**
 
@@ -575,5 +580,16 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | 20 | Perc 3 | G2 (55) |
 | 21 | FX 1 | G#2 (56) |
 | 22 | FX 2 | A2 (57) |
+| 23 | Kick 2 | A#2 (58) |
+| 24 | 808 2 | B2 (59) |
+| 25 | Closed Hat 2 | C3 (60) |
+| 26 | Open Hat 2 | C#3 (61) |
+| 27 | FX 3 | D3 (62) |
+| 28 | Clap 2 | D#3 (63) |
+| 29 | Rim 2 | E3 (64) |
+| 30 | Crash 2 | F3 (65) |
+| 31 | Ride 2 | F#3 (66) |
+| 32 | Perc 4 | G3 (67) |
+| 33 | FX 4 | G#3 (68) |
 
-Snare 2, Floor Tom 2, Pedal Hat, Low Tom and Hi-Mid Tom are variations of a main pad (tuned down, quieter or shorter), so General MIDI grooves always find a sound.
+Files 23 to 27 come with a 23-sound kit, 23 to 33 with a 32-sound kit (KIT SIZE). In a 17-sound kit, Snare 2, Floor Tom 2, Low Tom and Hi-Mid Tom are variations of a main pad (tuned down or a little quieter), and the Pedal Hat always is (a shorter, quieter closed hat), so General MIDI grooves always find a sound. A bigger kit puts its real second snare on Snare 2 (E1), and a 32-sound kit its second toms on Floor Tom 2, Low Tom and Hi-Mid Tom. Closed Hat 2 and Open Hat 2 go in the hats' choke group.

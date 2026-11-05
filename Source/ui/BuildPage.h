@@ -28,12 +28,13 @@ namespace ggui
         gg::Genre stylesShownFor = gg::Genre::count;
         juce::OwnedArray<juce::Slider> traits;
         Segmented feel { { "AUTO", "LIVE", "HYBRID", "PROG" } }, lowEnd { { "AUTO", "KICK", "KICK + 808" } },
-                  perc { { "AUTO", "0", "1", "2", "3" } };
+                  perc { { "AUTO", "0", "1", "2", "3" } }, kitSize { { "17", "23", "32" } };
         juce::ToggleButton fx { "FX / sound effects" }, tuneKey { "Tune kick, 808, toms to key" };
         juce::OwnedArray<juce::ToggleButton> sources;
         juce::TextButton generate { "GENERATE KITS" };
         IconButton surprise { "surprise", Icon::dice };
         juce::Rectangle<int> traitsArea, optionsArea, sourcesArea, understoodArea;
+        int optRowH = 26, optGap = 4, optToggleH = 22;   // the OPTIONS rows (tighter on a short window)
         bool updating = false;
     };
 

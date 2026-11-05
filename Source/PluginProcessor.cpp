@@ -86,6 +86,8 @@ juce::AudioProcessorEditor* GrooveGrabberProcessor::createEditor()
 void GrooveGrabberProcessor::notify (const juce::String& message)
 {
     if (message.isNotEmpty()) statusMessage = message;
+    // the selected pad is one the kit has (a 17-sound kit has no Kick 2)
+    if (auto* k = getActiveKit(); k != nullptr && ! gg::slotInKit (selectedSlot, k->size)) selectedSlot = gg::slotKind (selectedSlot);
     sendChangeMessage();
 }
 
@@ -489,7 +491,7 @@ void GrooveGrabberProcessor::setSlotSound (int kitIndex, gg::Slot slot, const ju
     st.locked = locked;
     if (auto info = library->find (path); info.has_value() && options.key >= 0 && kits[(size_t) kitIndex].tuneToKey)
         st.autoTune = gg::KitGenerator::autoTuneFor (*info, slot, options.key);
-    if (options.key < 0 && (slot == gg::Slot::kick || slot == gg::Slot::bass808))
+    if (options.key < 0 && (slot == gg::Slot::kick || slot == gg::Slot::kick2 || slot == gg::Slot::bass808))
         makeGenerator().tuneToKey (kits[(size_t) kitIndex], -1);     // keep the kick on the 808's note
     kitChanged (kitIndex);
 }

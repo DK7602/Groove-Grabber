@@ -48,6 +48,7 @@ namespace ggui
 
     private:
         void showMenu();
+        bool compact() const noexcept;
         juce::Rectangle<int> lockArea() const;
         GrooveGrabberProcessor& proc;
         const gg::Slot slot;
@@ -67,8 +68,10 @@ namespace ggui
 
     private:
         void timerCallback() override;
+        int kitSize() const;
         GrooveGrabberProcessor& proc;
-        juce::OwnedArray<PadTile> tiles;
+        juce::OwnedArray<PadTile> tiles;              // one per slot (all 32); the kit's own are shown
+        int shownSize = 0;
         std::array<std::uint32_t, gg::numPads> lastFlash {};
     };
 

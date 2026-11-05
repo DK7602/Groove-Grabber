@@ -252,6 +252,19 @@ namespace gg
                 const int at = text.indexOf (" " + juce::String (ew.w) + " ");
                 if (at >= 0 && at < bestAt) { bestAt = at; said.era = ew.era; }
             }
+
+            // softer words for today ("modern rap", "new country"), when no decade was named ("a modern take on 90s
+            // boom bap" stays the 90s). "New" in a name isn't about the era: New York, New Orleans, new jack swing,
+            // new wave...
+            if (said.era < 0)
+            {
+                auto t = text;
+                for (auto* name : { "new jack", "new york", "new orleans", "new wave", "new age", "new edition", "new order",
+                                    "new romantic", "new romantics", "new kids", "new jersey", "new zealand", "new mexico", "new england" })
+                    t = t.replace (" " + juce::String (name) + " ", " ");
+                for (auto* w : { "modern", "new", "newer", "newest", "new school", "latest", "contemporary", "recent", "present day" })
+                    if (t.contains (" " + juce::String (w) + " ")) { said.era = numEras - 1; break; }
+            }
         }
         if (said.secondaryGenre == (int) said.genre) said.secondaryGenre = -1;
 

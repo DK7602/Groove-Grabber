@@ -207,7 +207,12 @@ namespace
                 { "80s pop rock", gg::Genre::pop, "pop.rock", 2 },
                 { "80s pop", gg::Genre::pop, "pop.synth", 2 },
                 { "uk drill 142 bpm", gg::Genre::trap, "trap.ukdrill", -1 },
-                { "modern country rap with 808s", gg::Genre::country, "country.rap", -1 },
+                { "modern country rap with 808s", gg::Genre::country, "country.rap", 6 },
+                { "modern rap", gg::Genre::boomBap, nullptr, 6 },
+                { "new country", gg::Genre::country, nullptr, 6 },
+                { "a modern take on 90s boom bap", gg::Genre::boomBap, "hiphop.east", 3 },
+                { "new york boom bap", gg::Genre::boomBap, "hiphop.east", -1 },
+                { "new jack swing", gg::Genre::rnb, "rnb.newjack", -1 },
                 { "70s classic rock", gg::Genre::rock, "rock.classic", 1 },
                 { "dark 90s boom bap, punchy but warm", gg::Genre::boomBap, "hiphop.east", 3 },
                 { "memphis phonk with cowbells", gg::Genre::boomBap, "hiphop.memphis", -1 },
@@ -221,9 +226,9 @@ namespace
             {
                 auto q = gg::parseDescription (c.text);
                 const auto& st = gg::styleFor (q.genre, juce::jmax (0, q.subStyle));
-                check (q.genre == c.genre && st.id == c.style && q.era == c.era,
+                check (q.genre == c.genre && (c.style == nullptr || st.id == c.style) && q.era == c.era,
                        juce::String ("\"") + c.text + "\" -> " + gg::genreName (q.genre) + " / " + st.id + " / era " + juce::String (q.era)
-                       + " (wanted " + c.style + ", era " + juce::String (c.era) + ")");
+                       + " (wanted " + (c.style != nullptr ? c.style : "any style") + ", era " + juce::String (c.era) + ")");
             }
             auto g = gg::parseDescription ("90s g-funk");
             check (g.secondaryGenre < 0, "g-funk isn't also R&B (funk)");
@@ -624,6 +629,132 @@ namespace
         check (v.name == kits[2].name && v[gg::Slot::snare].path == kits[2][gg::Slot::snare].path
                 && v[gg::Slot::bass808].autoTune == kits[2][gg::Slot::bass808].autoTune, "kit saves and loads");
 
+        // KIT SIZE: 23 and 32 sounds (a second sound of each kind, more percussion and FX)
+        {
+            check (gg::kitSlots (17).size() == 17 && gg::kitSlots (23).size() == 23 && gg::kitSlots (32).size() == 32
+                   && gg::padCountFor (17) == 22 && gg::padCountFor (23) == 27 && gg::padCountFor (32) == 33 && gg::validKitSize (20) == 17,
+                   "kit sizes: 17, 23 and 32 sounds on 22, 27 and 33 pads");
+            bool layout = (int) gg::padLayout().size() == gg::numPads;
+            for (int i = 0; i < gg::numPads; ++i) layout = layout && gg::padLayout()[(size_t) i].note == gg::firstPadNote + i;
+            for (int size : { 17, 23, 32 })
+                for (auto sl : gg::kitSlots (size))
+                    layout = layout && gg::mainNoteForSlot (sl) >= gg::firstPadNote && gg::mainNoteForSlot (sl) - gg::firstPadNote < gg::padCountFor (size);
+            juce::StringArray ids;
+            for (int i = 0; i < gg::numSlots; ++i)
+            {
+                ids.addIfNotAlreadyThere (gg::slotId ((gg::Slot) i));
+                layout = layout && gg::slotFromId (gg::slotId ((gg::Slot) i)) == (gg::Slot) i;
+            }
+            check (layout && ids.size() == gg::numSlots, "every size's sounds have a pad inside its files; slot ids unique");
+            check (gg::mainNoteForSlot (gg::Slot::snare2) == 40 && gg::mainNoteForSlot (gg::Slot::tomLow2) == 41 && gg::mainNoteForSlot (gg::Slot::tomHigh2) == 48
+                   && gg::mainNoteForSlot (gg::Slot::kick2) == 58 && gg::mainNoteForSlot (gg::Slot::fx3) == 62 && gg::mainNoteForSlot (gg::Slot::fx4) == 68
+                   && gg::mainNoteForSlot (gg::Slot::snare) == 38 && gg::mainNoteForSlot (gg::Slot::tomLow) == 43,
+                   "Snare 2 and the second toms on General MIDI's own pads, the rest from note 58 up");
+            {
+                gg::KitOptions ko;
+                check (ko.kitSize == 17 && gg::KitOptions::fromVar (ko.toVar()).kitSize == 17, "KIT SIZE: 17 by default");
+                ko.kitSize = 32;
+                check (gg::KitOptions::fromVar (ko.toVar()).kitSize == 32 && ko.wantedPerc() == 4, "KIT SIZE 32: saved; AUTO percussion fills 4 pads");
+                ko.kitSize = 23;
+                check (ko.wantedPerc() == 3, "KIT SIZE 23: AUTO percussion fills 3 pads");
+                ko.percCount = 1;
+                check (ko.wantedPerc() == 1, "PERC still caps a bigger kit's percussion");
+            }
+
+            for (int size : { 23, 32 })
+            {
+                auto bo = o;                // boom bap, with 808, FX on
+                bo.kitSize = size;
+                bo.percCount = -1;
+                gg::KitGenerator bg (sounds, bo);
+                auto bk = bg.generateAll (11);
+                const auto tag = "KIT SIZE " + juce::String (size) + ": ";
+                bool sized = true, inside = true, once = true, kinds = true, seconds = true, extras = true, toms = true;
+                for (auto& k : bk)
+                {
+                    sized = sized && k.size == size;
+                    juce::StringArray used;
+                    for (int i = 0; i < gg::numSlots; ++i)
+                    {
+                        const auto sl = (gg::Slot) i;
+                        if (k[sl].isEmpty()) continue;
+                        inside = inside && gg::slotInKit (sl, size);
+                        once = once && ! used.contains (k[sl].path);
+                        used.add (k[sl].path);
+                        kinds = kinds && bg.find (k[sl].path)->cat == gg::slotCat (sl);
+                    }
+                    // a second sound wherever the library has two of the kind (the toms spread over their pads instead)
+                    for (auto sl : gg::kitSlots (size))
+                        if (gg::isSecondSound (sl) && gg::slotCat (sl) != gg::Cat::tom && ! k[gg::slotKind (sl)].isEmpty()
+                            && bg.usableCount (gg::slotCat (sl)) >= 2)
+                            seconds = seconds && ! k[sl].isEmpty();
+                    if (bg.usableCount (gg::Cat::fx) >= (size == 32 ? 4 : 3))
+                        extras = extras && ! k[size == 32 ? gg::Slot::fx4 : gg::Slot::fx3].isEmpty();
+                    if (size == 32 && bg.usableCount (gg::Cat::perc) >= 4)
+                        extras = extras && ! k[gg::Slot::perc4].isEmpty();
+                    // the main toms fill first (General MIDI grooves use them most), the second toms only after
+                    int mainToms = 0, allToms = 0;
+                    for (auto sl : { gg::Slot::tomLow, gg::Slot::tomMid, gg::Slot::tomHigh, gg::Slot::tomLow2, gg::Slot::tomMid2, gg::Slot::tomHigh2 })
+                        if (! k[sl].isEmpty()) { ++allToms; if (! gg::isSecondSound (sl)) ++mainToms; }
+                    toms = toms && mainToms == juce::jmin (3, allToms);
+                    // the kit's toms rise in pitch from the lowest pad up
+                    float last = -1000;
+                    for (auto sl : { gg::Slot::tomLow2, gg::Slot::tomLow, gg::Slot::tomMid2, gg::Slot::tomMid, gg::Slot::tomHigh2, gg::Slot::tomHigh })
+                        if (gg::slotInKit (sl, size) && ! k[sl].isEmpty())
+                            if (auto* t = bg.find (k[sl].path); t != nullptr && t->hasPitch())
+                            {
+                                toms = toms && t->midiPitch() >= last - 0.01f;
+                                last = t->midiPitch();
+                            }
+                }
+                std::cout << "  " << bk[0].name << " (" << size << "): kick 2 = " << juce::File (bk[0][gg::Slot::kick2].path).getFileNameWithoutExtension()
+                          << ", snare 2 = " << juce::File (bk[0][gg::Slot::snare2].path).getFileNameWithoutExtension() << ", " << bk[0].numFilled() << " sounds" << std::endl;
+                check (sized && inside, tag + "kits of that size, nothing outside it");
+                check (once && kinds, tag + "every sound once, the right kind on every pad");
+                check (seconds, tag + "a second kick, 808, snare, hat... wherever the library has two");
+                check (extras, tag + "its extra FX and percussion pads filled");
+                check (toms, tag + "the main toms first, all of them low to high across the tom pads");
+
+                // saved and opened again: the size and the second sounds come back
+                const auto back = gg::Kit::fromVar (juce::JSON::parse (juce::JSON::toString (bk[0].toVar())));
+                check (back.size == size && back[gg::Slot::kick2].path == bk[0][gg::Slot::kick2].path && back.numFilled() == bk[0].numFilled(),
+                       tag + "saved and loaded with its size and second sounds");
+
+                // the player: the kit's own pads play, a smaller kit's don't
+                auto pk = gg::buildPlayable (bk[0], 44100.0);
+                check (pk->pads[(size_t) (gg::mainNoteForSlot (gg::Slot::kick2) - gg::firstPadNote)] != nullptr || bk[0][gg::Slot::kick2].isEmpty(),
+                       tag + "Kick 2 plays on note 58");
+
+                // a kit regenerated at 17: no leftovers on the pads it doesn't have, even locked ones
+                auto lockedBig = bk[0];
+                for (auto& st : lockedBig.slots) st.locked = ! st.isEmpty();
+                auto so = bo;
+                so.kitSize = 17;
+                gg::KitGenerator sg (sounds, so);
+                const auto small = sg.generate (0, 5, 0.0f, &lockedBig, {});
+                bool leftovers = false;
+                for (int i = 0; i < gg::numSlots; ++i)
+                    if (! gg::slotInKit ((gg::Slot) i, 17) && ! small.slots[(size_t) i].isEmpty()) leftovers = true;
+                check (small.size == 17 && ! leftovers && small[gg::Slot::kick].path == lockedBig[gg::Slot::kick].path,
+                       tag + "made 17 again: locked sounds kept, nothing beyond its pads");
+            }
+            {
+                // an older kit (no size) is a 17-sound kit; a stray second sound in its file is left out
+                auto old = kits[0].toVar();
+                if (auto* ob = old.getDynamicObject())
+                {
+                    ob->removeProperty ("size");
+                    if (auto* sl = ob->getProperty ("slots").getDynamicObject()) sl->setProperty ("kick2", kits[0][gg::Slot::kick].toVar());
+                }
+                const auto ok = gg::Kit::fromVar (old);
+                check (ok.size == 17 && ok[gg::Slot::kick2].isEmpty() && ok.numFilled() == kits[0].numFilled(), "an older kit opens as 17 sounds");
+                // a 17-sound kit: Snare 2's pad plays the snare, a little quieter; nothing on note 58
+                auto pk = gg::buildPlayable (kits[0], 44100.0);
+                check (pk->pads[4] != nullptr && pk->pads[(size_t) (58 - gg::firstPadNote)] == nullptr && kits[0].padSound (gg::padLayout()[4]).slot == gg::Slot::snare,
+                       "17 sounds: Snare 2's pad plays the snare, note 58 is silent");
+            }
+        }
+
         // ---- export ----
         section ("Export");
         gg::ExportOptions eo;
@@ -631,7 +762,7 @@ namespace
         eo.grooveId = "boombap1";
         auto res = gg::exportKit (kits[0], eo);
         check (res.ok, "export ok " + res.error);
-        check (res.padFiles.size() == gg::numPads, "22 pad files");
+        check (res.padFiles.size() == 22 && kits[0].padCount() == 22, "22 pad files (a 17-sound kit)");
         for (int i = 0; i < res.padFiles.size(); ++i)
             check (res.padFiles[i].getFileName().startsWith (juce::String (i + 1).paddedLeft ('0', 2) + " "), "file " + juce::String (i + 1) + " numbered");
         check (res.padFiles[0].getFileName() == "01 Kick.wav" && res.padFiles[2].getFileName() == "03 Snare.wav", "kick first, snare third");
@@ -664,7 +795,7 @@ namespace
             const auto flInfo = flRes.infoFile.loadFileAsString();
             const auto suffix = " - " + flRes.folder.getFileName() + ".wav";
             check (flInfo.contains ("\nC3   36   01 Kick" + suffix) && flInfo.contains ("FPC"), "kit info for FL Studio: note 36 is C3, FPC steps");
-            bool allNamed = flRes.padFiles.size() == gg::numPads;
+            bool allNamed = flRes.padFiles.size() == 22;
             for (int i = 0; i < flRes.padFiles.size(); ++i)
                 if (! flRes.padFiles[i].getFileName().startsWith (juce::String (i + 1).paddedLeft ('0', 2) + " ") || ! flRes.padFiles[i].getFileName().endsWith (suffix))
                     allNamed = false;
@@ -675,8 +806,50 @@ namespace
             forCubase.daw = "cubase";
             forCubase.destination = testRoot().getChildFile ("ExportsCubase");
             const auto gaInfo = gg::exportKit (kits[0], forCubase).infoFile.loadFileAsString();
-            check (gaInfo.contains ("LOAD INTO GROOVE AGENT SE") && gaInfo.contains ("lowest") && gaInfo.contains ("pad group 3"),
-                   "kit info for Cubase: Groove Agent, the lowest drop icon, pad group 3");
+            check (gaInfo.contains ("LOAD INTO GROOVE AGENT SE") && gaInfo.contains ("lowest") && gaInfo.contains ("pad group 3")
+                   && gaInfo.contains ("Files 13 to 22 land in pad group 4 (C2 to A2).") && ! gaInfo.contains ("Closed Hat 2"),
+                   "kit info for Cubase: Groove Agent, the lowest drop icon, pad group 3, files 13 to 22 in group 4");
+
+            // the bigger kits: every pad a file, the steps count them
+            for (int size : { 23, 32 })
+            {
+                auto bo = gg::KitOptions();
+                bo.genre = gg::Genre::boomBap;
+                bo.character = gg::genreCenter (bo.genre);
+                bo.lowEnd = 1;
+                bo.fx = true;
+                bo.kitSize = size;
+                gg::KitGenerator bg (sounds, bo);
+                const auto big = bg.generate (0, 21, 0.0f, nullptr, {});
+                auto ce = forCubase;
+                ce.destination = testRoot().getChildFile ("ExportsBig" + juce::String (size));
+                const auto br = gg::exportKit (big, ce);
+                const auto info = br.infoFile.loadFileAsString();
+                const int n = gg::padCountFor (size);
+                bool numbered = br.padFiles.size() == n;
+                for (int i = 0; i < br.padFiles.size(); ++i)
+                    numbered = numbered && br.padFiles[i].getFileName().startsWith (juce::String (i + 1).paddedLeft ('0', 2) + " ");
+                // (an empty pad's file says so: the test library has only two FX)
+                const auto lastSlot = size == 32 ? gg::Slot::fx4 : gg::Slot::fx3;
+                const auto lastName = juce::String (n) + (big[lastSlot].isEmpty() ? " Empty.wav" : " " + gg::slotName (lastSlot) + ".wav");
+                const bool names = br.padFiles.size() == n && ! big[gg::Slot::kick2].isEmpty() && br.padFiles[22].getFileName() == "23 Kick 2.wav"
+                                   && br.padFiles[n - 1].getFileName() == lastName && br.padFiles[4].getFileName() == "05 Snare 2.wav";
+                const bool steps = info.contains ("Drag all " + juce::String (n) + " files") && info.contains ("Closed Hat 2")
+                                   && (size == 32 ? info.contains ("Files 13 to 28 land in pad group 4 (C2 to D#3) and files 29 to 33 in pad group 5 (E3 to G#3).")
+                                                  : info.contains ("Files 13 to 27 land in pad group 4 (C2 to D3)."));
+                juce::MemoryBlock mb;
+                br.programFile.loadFileAsData (mb);
+                const auto* d = static_cast<const juce::uint8*> (mb.getData());
+                const bool mpc = mb.getSize() == (size_t) gg::mpc::templateSize && juce::String::fromUTF8 ((const char*) d + 24 + 22 * 164, 9) == "23 Kick 2"
+                                 && d[24 + 64 * 164 + 22] == 58 && d[24 + 64 * 164 + 33] == 69 && d[24 + 64 * 164 + 64 + 58] == 22;
+                check (br.ok && numbered && names, "KIT SIZE " + juce::String (size) + ": " + juce::String (n) + " files, 23 Kick 2 ... " + br.padFiles.getLast().getFileName());
+                check (steps, "KIT SIZE " + juce::String (size) + ": Groove Agent's steps count the files and the second hats");
+                check (mpc, "KIT SIZE " + juce::String (size) + ": the MPC program has the second sounds (23 Kick 2 on note 58)");
+            }
+            const auto& impact = gg::dawGuide ("studioone");
+            check (gg::guideSteps (impact, 22, "22 FX 2").joinIntoString (" ").contains ("files 17 to 22 are in bank B")
+                   && gg::guideSteps (impact, 33, "33 FX 4").joinIntoString (" ").contains ("files 17 to 32 are in bank B and file 33 in bank C"),
+                   "Impact's banks follow the file count");
         }
         check (res.folder.getParentDirectory() == eo.destination.getChildFile (gg::genreFolderName (kits[0].genre)),
                "export lands in its genre folder (" + res.folder.getParentDirectory().getFileName() + ")");

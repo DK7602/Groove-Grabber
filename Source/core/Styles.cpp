@@ -498,7 +498,10 @@ namespace gg
 
     int KitOptions::wantedPerc() const
     {
-        return percCount < 0 ? style().percCount : juce::jlimit (0, 3, percCount);
+        // AUTO: the style's own count, or every perc pad a bigger kit has
+        if (percCount < 0)
+            return kitSize >= 32 ? 4 : kitSize >= 23 ? 3 : style().percCount;
+        return juce::jlimit (0, 3, percCount);
     }
 
     Traits KitOptions::targetFor (const Direction& dir) const
@@ -541,6 +544,7 @@ namespace gg
         o->setProperty ("lowEnd", lowEnd);
         o->setProperty ("perc", percCount);
         o->setProperty ("fx", fx);
+        o->setProperty ("kitSize", kitSize);
         o->setProperty ("tuneToKey", tuneToKey);
         o->setProperty ("key", key);
         o->setProperty ("bpm", bpm);
@@ -564,6 +568,7 @@ namespace gg
         k.lowEnd = juce::jlimit (-1, 1, (int) v.getProperty ("lowEnd", -1));
         k.percCount = juce::jlimit (-1, 3, (int) v.getProperty ("perc", -1));
         k.fx = (bool) v["fx"];
+        k.kitSize = validKitSize ((int) v.getProperty ("kitSize", defaultKitSize));
         k.tuneToKey = (bool) v.getProperty ("tuneToKey", true);
         k.key = juce::jlimit (-1, 23, (int) v.getProperty ("key", -1));
         k.bpm = (double) v.getProperty ("bpm", 0.0);

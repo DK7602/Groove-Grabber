@@ -885,19 +885,28 @@ namespace ggui
         if (! gg::mygrooves::isMine (id)) for (const auto& h : gg::grooveFor (id).hits) add (h.slot);
         if (id == "blank")
         {
-            // a blank pad: a row for every sound in the kit you picked (or the usual drums, before there are kits)
+            // a blank pad: a row for every sound in the kit you picked (or the usual drums, before there are kits);
+            // a bigger kit's second sounds are a + ADD DRUM away, so the rows stay big enough to click
             if (const auto* k = const_cast<GrooveGrabberProcessor&> (proc).getActiveKit())
             {
-                for (int i = 0; i < gg::numSlots; ++i)
-                    if (! k->slots[(size_t) i].isEmpty()) add ((gg::Slot) i);
+                for (auto s : gg::kitSlots (17))
+                    if (! (*k)[s].isEmpty()) add (s);
             }
             if (lanes.empty())
                 for (auto s : { gg::Slot::kick, gg::Slot::snare, gg::Slot::clap, gg::Slot::closedHat, gg::Slot::openHat, gg::Slot::perc1 }) add (s);
         }
         if (const auto g = proc.getGroove (id)) for (const auto& h : g->hits) add (h.slot);
         if (const auto it = addedLanes.find (id); it != addedLanes.end()) for (auto s : it->second) add (s);
-        std::sort (lanes.begin(), lanes.end(), [] (gg::Slot a, gg::Slot b) { return (int) a < (int) b; });
+        // in the pads' order: Kick, Kick 2, 808, 808 2, Snare...
+        std::sort (lanes.begin(), lanes.end(), [] (gg::Slot a, gg::Slot b) { return gg::slotRank (a) < gg::slotRank (b); });
         return lanes;
+    }
+
+    const std::vector<gg::Slot>& SaucePage::addableSlots() const
+    {
+        // the drums of the kit you picked (all 32 pads of a 32-sound kit, the usual 17 before there are kits)
+        if (const auto* k = const_cast<GrooveGrabberProcessor&> (proc).getActiveKit()) return k->shownSlots();
+        return gg::kitSlots (17);
     }
 
     void SaucePage::showGroove()
@@ -916,7 +925,12 @@ namespace ggui
                                           : "Delete this groove from MY GROOVES (click twice; a copy stays in Backups)")
                                : "Back to the original pattern (UNDO brings your version back)");
         reset.setEnabled (mine || changed || (addedLanes.count (id) > 0 && ! addedLanes.at (id).empty()));
-        addDrum.setEnabled (id.isNotEmpty() && (int) lanesFor (id).size() < gg::numSlots);
+        addDrum.setEnabled (id.isNotEmpty() && [this, &id]
+        {
+            const auto lanes = lanesFor (id);
+            for (auto s : addableSlots()) if (std::find (lanes.begin(), lanes.end(), s) == lanes.end()) return true;
+            return false;
+        }());
         saveMine.setButtonText (mine ? "SAVE AS COPY" : "SAVE AS MY GROOVE");
         saveMine.setTooltip (mine ? "Save this as a new groove of its own; this one stays as it's saved"
                                   : "Keep this pattern as your own, under a name: it's in every song, here and in BUILD's groove list");
@@ -969,11 +983,10 @@ namespace ggui
         const auto lanes = lanesFor (id);
         juce::PopupMenu m;
         m.addSectionHeader ("ADD A ROW FOR");
-        for (int i = 0; i < gg::numSlots; ++i)
+        for (auto slot : addableSlots())
         {
-            const auto slot = (gg::Slot) i;
             if (std::find (lanes.begin(), lanes.end(), slot) != lanes.end()) continue;
-            m.addItem (i + 1, (slot == gg::Slot::bass808 ? juce::String ("808") : gg::slotName (slot)) + "   " + dawNoteName (gg::mainNoteForSlot (slot)));
+            m.addItem ((int) slot + 1, gg::slotName (slot) + "   " + dawNoteName (gg::mainNoteForSlot (slot)));
         }
         m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&addDrum), [this, id, safe = juce::Component::SafePointer<SaucePage> (this)] (int r)
         {

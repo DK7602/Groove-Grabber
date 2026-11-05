@@ -45,9 +45,9 @@ namespace gg
             }
         }
 
-        // pads 1..22 on notes 36..57, the rest out of the way above
+        // pads 1..33 on notes 36..68 (a smaller kit leaves its last ones empty), the rest out of the way above
         for (int pad = 0; pad < numMpcPads; ++pad)
-            d[padNotesAt + pad] = (juce::uint8) (pad < numPads ? firstPadNote + pad : juce::jmin (127, 58 + (pad - numPads)));
+            d[padNotesAt + pad] = (juce::uint8) juce::jmin (127, firstPadNote + pad);     // (each pad its own note: none shared)
         for (int note = 0; note < 128; ++note) d[notePadsAt + note] = 64;
         for (int pad = 0; pad < numMpcPads; ++pad) d[notePadsAt + d[padNotesAt + pad]] = (juce::uint8) pad;
         return mb;
@@ -91,10 +91,12 @@ namespace gg
         const bool writeMpc = o.mpcProgram && ! kitInNames;
         std::array<juce::String, numPads> mpcNames;
         juce::String table;
-        for (int i = 0; i < numPads; ++i)
+        // the kit's own pads: 22 files for a 17-sound kit, 27 for 23 sounds, 33 for 32
+        for (int i = 0; i < kit.padCount(); ++i)
         {
             const auto& pad = padLayout()[(size_t) i];
-            const auto& st = kit[pad.slot];
+            const auto use = kit.padSound (pad);
+            const auto& st = kit[use.slot];
             auto audio = renderPad (kit, pad, o.sampleRate);
             const bool empty = audio == nullptr || audio->getNumSamples() == 0;
             if (empty && ! o.placeholders) continue;
@@ -126,7 +128,7 @@ namespace gg
             if (empty) table << "(empty)";
             else
             {
-                const float tune = st.tune (kit.tuneToKey) + pad.tuneOffset;
+                const float tune = st.tune (kit.tuneToKey) + (use.shaped ? pad.tuneOffset : 0.0f);
                 table << st.path;
                 if (std::abs (tune) > 0.005f) table << "   [tuned " << (tune > 0 ? "+" : "") << juce::String (tune, 2) << " st]";
                 if (st.reverse) table << "   [reversed]";
@@ -163,7 +165,7 @@ namespace gg
              << "---------------------------------\n" << table << "\n"
              << "LOAD INTO " << (daw.id == "other" ? juce::String ("YOUR SAMPLER") : daw.sampler.toUpperCase() + " (" + daw.name.toUpperCase() + ")") << "\n"
              << "----------------------\n"
-             << dawGuideText (daw, numPads, r.padFiles.isEmpty() ? padFileName (numPads - 1, false) : r.padFiles.getLast().getFileNameWithoutExtension()) << "\n"
+             << dawGuideText (daw, kit.padCount(), r.padFiles.isEmpty() ? padFileName (kit.padCount() - 1, false) : r.padFiles.getLast().getFileNameWithoutExtension()) << "\n"
              << (daw.id != "other" ? "Note names: " + daw.name + " calls MIDI note 36 " + dawNoteName (36, daw) + ".\n" : juce::String())
              << "Another DAW? Every DAW's steps are in Groove Grabber's manual (F1 > Exporting to your DAW).\n\n"
              << "Other options: " << (writeMpc ? "'" + r.programFile.getFileName() + "' is an MPC 1000 program with every pad and note\n"

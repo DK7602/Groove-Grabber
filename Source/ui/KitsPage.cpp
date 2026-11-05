@@ -79,12 +79,14 @@ namespace ggui
                 if (kit.created > 0) info << "  -  " << juce::Time (kit.created).toString (true, true, false);
                 g.drawFittedText (info, in, juce::Justification::topLeft, 1, 0.7f);
 
-                const float w = strip.getWidth() / gg::numSlots;
-                for (int i = 0; i < gg::numSlots; ++i)
+                const auto& shown = kit.shownSlots();          // 17, 23 or 32 pads
+                const float w = strip.getWidth() / (float) shown.size();
+                for (size_t i = 0; i < shown.size(); ++i)
                 {
+                    const auto& st = kit[shown[i]];
                     auto cell = juce::Rectangle<float> (strip.getX() + (float) i * w, strip.getY(), w - 2.0f, strip.getHeight());
-                    g.setColour (kit.slots[(size_t) i].isEmpty() ? p.line.withAlpha (0.5f) : slotColour ((gg::Slot) i));
-                    g.fillRoundedRectangle (kit.slots[(size_t) i].isEmpty() ? cell.withTop (cell.getBottom() - 3) : cell, 1.5f);
+                    g.setColour (st.isEmpty() ? p.line.withAlpha (0.5f) : slotColour (shown[i]));
+                    g.fillRoundedRectangle (st.isEmpty() ? cell.withTop (cell.getBottom() - 3) : cell, 1.5f);
                 }
             }
 

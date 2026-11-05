@@ -22,11 +22,7 @@ namespace ggui
         int drawSteps (juce::Graphics& g, const gg::DawGuide& guide, juce::Rectangle<int> area, int numPads)
         {
             const auto& p = pal();
-            juce::StringArray items;
-            for (auto st : guide.steps)
-                items.add (st.replace ("{FIRST}", gg::dawNoteName (36, guide)).replace ("{LAST}", gg::padFileName (numPads - 1, false))
-                             .replace ("{PADS}", juce::String (numPads)));
-            if (guide.hats.isNotEmpty()) items.add (guide.hats);
+            const auto items = gg::guideSteps (guide, numPads, gg::padFileName (numPads - 1, false));
             const int top = area.getY();
             const auto normal = uiFont (14.0f, false), bold = uiFont (14.0f);
             for (int i = 0; i < items.size() && area.getHeight() > 16; ++i)
@@ -248,7 +244,8 @@ namespace ggui
                                              "already tuned, trimmed and level matched. Then, in " + (guide.id == "other" ? juce::String ("your DAW") : guide.name) + ":",
                                           uiFont (14.5f, false), p.dim, a));
             a.removeFromTop (10);
-            drawSteps (g, guide, a, gg::numPads);
+            const auto* kit = proc.getActiveKit();
+            drawSteps (g, guide, a, kit != nullptr ? kit->padCount() : gg::padCountFor (proc.options.kitSize));
             return;
         }
         if (! result.ok)
