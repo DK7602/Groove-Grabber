@@ -33,6 +33,7 @@ namespace gg::mygrooves
             o->setProperty ("swing", (double) e.groove->swing);
             o->setProperty ("swingEighths", e.groove->swingEighths);
             o->setProperty ("hits", hitsToVar (e.groove->hits));
+            if (e.kit != nullptr) o->setProperty ("kit", e.kit->toVar());
             return juce::var (o);
         }
 
@@ -56,6 +57,9 @@ namespace gg::mygrooves
             e.genre = genreFromId (v["genre"].toString());
             e.styleId = v["style"].toString();
             e.from = v["from"].toString();
+            e.kit = nullptr;
+            if (v["kit"].isObject())
+                if (auto k = Kit::fromVar (v["kit"]); k.isValid()) e.kit = std::make_shared<const Kit> (std::move (k));
             e.file = f;
             return true;
         }
@@ -163,7 +167,15 @@ namespace gg::mygrooves
         return findEntry (s, id);
     }
 
-    juce::String save (const Groove& g, const juce::String& name, Genre genre, const juce::String& styleId)
+    namespace
+    {
+        std::shared_ptr<const Kit> keptKit (const Kit* kit)
+        {
+            return kit != nullptr && kit->isValid() ? std::make_shared<const Kit> (*kit) : nullptr;
+        }
+    }
+
+    juce::String save (const Groove& g, const juce::String& name, Genre genre, const juce::String& styleId, const Kit* kit)
     {
         auto& s = store();
         const juce::ScopedLock sl (s.lock);
@@ -176,6 +188,7 @@ namespace gg::mygrooves
         e.groove = std::move (mine);
         e.genre = genre;
         e.styleId = styleId;
+        e.kit = keptKit (kit);
         e.file = folder().getNonexistentChildFile (paths::safeFileName (e.groove->name), ".gggroove", false);
         if (! write (e)) return {};
         const auto id = e.groove->id;
@@ -184,7 +197,7 @@ namespace gg::mygrooves
         return id;
     }
 
-    std::shared_ptr<const Groove> update (const juce::String& id, std::vector<GrooveHit> hits, float swing)
+    std::shared_ptr<const Groove> update (const juce::String& id, std::vector<GrooveHit> hits, float swing, const Kit* kitIfNone)
     {
         auto& s = store();
         const juce::ScopedLock sl (s.lock);
@@ -197,6 +210,7 @@ namespace gg::mygrooves
         g->hits = std::move (hits);
         g->swing = juce::jlimit (0.0f, 0.5f, swing);
         e->groove = std::move (g);
+        if (e->kit == nullptr) e->kit = keptKit (kitIfNone);       // its original kit stays; one saved before 1.0.29 gets one
         write (*e);
         return old;
     }

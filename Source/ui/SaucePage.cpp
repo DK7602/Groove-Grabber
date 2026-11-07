@@ -453,7 +453,7 @@ namespace ggui
             if (onUseOnBuild) onUseOnBuild();
         };
 
-        play.setTooltip ("Play this pattern with the kit you're editing on BUILD (Space)");
+        play.setTooltip ("Play this pattern with the kit picked here: one of BUILD's, or a groove's ORIGINAL kit (Space)");
         play.onClick = [this] { togglePlay(); };
         addAndMakeVisible (play);
 
@@ -472,9 +472,12 @@ namespace ggui
         {
             auto* b = kitButtons.add (new juce::TextButton (juce::String (i + 1).paddedLeft ('0', 2)));
             b->getProperties().set ("style", "toggle");
-            b->onClick = [this, i] { proc.setActiveKit (i); updateKitButtons(); };
+            b->onClick = [this, i] { proc.setSauceKit (nullptr); proc.setActiveKit (i); showGroove(); repaint (patternArea); };
             addAndMakeVisible (b);
         }
+        originalKit.getProperties().set ("style", "toggle");
+        originalKit.onClick = [this] { useOriginalKit (true); };
+        addChildComponent (originalKit);
 
         blankChip.getProperties().set ("style", "toggle");
         blankChip.setTooltip ("A blank pattern: build one from scratch with the sounds of the kit you picked");
@@ -710,6 +713,8 @@ namespace ggui
     {
         stopTimer();
         if (playingHere) stopPreview();
+        proc.setSauceShowing (false);         // BUILD's kit plays again (the groove's own kit was SAUCE's only)
+        proc.setSauceKit (nullptr);
         docView.setViewedComponent (nullptr, false);
     }
 
@@ -746,15 +751,48 @@ namespace ggui
 
     void SaucePage::updateKitButtons()
     {
+        const bool original = playsOriginalKit();
         for (int i = 0; i < kitButtons.size(); ++i)
         {
             auto* b = kitButtons[i];
             const bool has = i < (int) proc.kits.size();
             b->setEnabled (has);
-            b->setToggleState (has && i == proc.activeKit, juce::dontSendNotification);
+            b->setToggleState (has && i == proc.activeKit && ! original, juce::dontSendNotification);
             b->setTooltip (has ? "Kit " + juce::String (i + 1) + ": " + proc.kits[(size_t) i].name + " (plays the pattern; the same as clicking it on BUILD)"
                                : juce::String ("Generate kits on BUILD to hear the pattern with them"));
         }
+        // one of my grooves with its kit kept: ORIGINAL plays it with that kit
+        const bool show = hasOriginalKit();
+        originalKit.setToggleState (original, juce::dontSendNotification);
+        if (show)
+            if (const auto* e = gg::mygrooves::entry (myShown); e != nullptr && e->kit != nullptr)
+                originalKit.setTooltip ("Its original kit: " + e->kit->name + ", the kit it was saved with. It plays here on SAUCE only; "
+                                        "BUILD's four kits stay as they are.");
+        if (originalKit.isVisible() != show)
+        {
+            originalKit.setVisible (show);
+            resized();
+        }
+    }
+
+    bool SaucePage::hasOriginalKit() const
+    {
+        if (! showingMine()) return false;
+        const auto* e = gg::mygrooves::entry (myShown);
+        return e != nullptr && e->kit != nullptr;
+    }
+
+    bool SaucePage::playsOriginalKit() const
+    {
+        return hasOriginalKit() && proc.getSauceKit() != nullptr;
+    }
+
+    void SaucePage::useOriginalKit (bool use)
+    {
+        const auto* e = showingMine() ? gg::mygrooves::entry (myShown) : nullptr;
+        proc.setSauceKit (use && e != nullptr ? e->kit : nullptr);
+        showGroove();             // (its rows: the drums that kit has)
+        repaint (patternArea);
     }
 
     void SaucePage::refresh()
@@ -853,9 +891,11 @@ namespace ggui
         return myShown.isNotEmpty();
     }
 
-    void SaucePage::pickMine (const juce::String& id)
+    void SaucePage::pickMine (const juce::String& id, bool withOriginalKit)
     {
-        if (gg::mygrooves::find (id) == nullptr) return;
+        const auto* e = gg::mygrooves::entry (id);
+        if (e == nullptr) return;
+        proc.setSauceKit (withOriginalKit ? e->kit : nullptr);     // (BUILD's kits stay as they are either way)
         myShown = id;
         deleteArmed = false;
         for (auto* c : grooveChips) c->setToggleState (false, juce::dontSendNotification);
@@ -903,12 +943,24 @@ namespace ggui
         juce::PopupMenu m, others;
         std::array<juce::PopupMenu, gg::numGenres> byGenre;
         int here = 0;
+        // each groove: load it with its original kit (the kit it was saved with, on SAUCE only) or onto BUILD's kit.
+        // Clicking its name loads it with its original kit, when it has one.
+        const auto* buildKit = proc.getActiveKit();
+        const auto onBuild = buildKit != nullptr && buildKit->isValid()
+                               ? "Onto BUILD's current kit: " + juce::String (proc.activeKit + 1).paddedLeft ('0', 2) + " " + buildKit->name
+                               : juce::String ("Onto BUILD's current kit (none built yet)");
         for (int i = 0; i < (int) all.size(); ++i)
         {
             const auto& e = all[(size_t) i];
             const auto text = e.groove->name + "   (" + juce::String (e.groove->bpm, 0) + ")";
-            if (e.genre == genre) { if (here++ == 0) m.addSectionHeader ("MY " + gg::genreName (genre).toUpperCase() + " GROOVES"); m.addItem (i + 1, text, true, e.groove->id == myShown); }
-            else byGenre[(size_t) e.genre].addItem (i + 1, text, true, e.groove->id == myShown);
+            const bool shown = e.groove->id == myShown, original = shown && playsOriginalKit();
+            juce::PopupMenu load;
+            if (e.kit != nullptr) load.addItem (2 * i + 1, "With its original kit: " + e.kit->name, true, original);
+            else load.addItem (-2, "Its original kit wasn't kept (saved before 1.0.29)", false);
+            load.addItem (2 * i + 2, onBuild, true, shown && ! original);
+            auto& into = e.genre == genre ? m : byGenre[(size_t) e.genre];
+            if (e.genre == genre && here++ == 0) m.addSectionHeader ("MY " + gg::genreName (genre).toUpperCase() + " GROOVES");
+            into.addSubMenu (text, load, true, nullptr, shown, e.kit != nullptr ? 2 * i + 1 : 2 * i + 2);
         }
         for (int g = 0; g < gg::numGenres; ++g)
             if (byGenre[(size_t) g].getNumItems() > 0) others.addSubMenu (gg::genreName ((gg::Genre) g), byGenre[(size_t) g]);
@@ -920,8 +972,9 @@ namespace ggui
         if (all.empty()) m.addItem (-1, "None yet. Change a pattern, then press SAVE AS MY GROOVE.", false);
         m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&myChip), [this, all, safe = juce::Component::SafePointer<SaucePage> (this)] (int r)
         {
-            if (safe == nullptr || r <= 0 || r > (int) all.size()) return;
-            pickMine (all[(size_t) r - 1].groove->id);
+            // 2i + 1: with its original kit, 2i + 2: onto BUILD's kit
+            if (safe == nullptr || r <= 0 || (r - 1) / 2 >= (int) all.size()) return;
+            pickMine (all[(size_t) (r - 1) / 2].groove->id, r % 2 == 1);
         });
     }
 
@@ -990,7 +1043,7 @@ namespace ggui
                         proc.resetGroove (from);
                     }
                     if (replaceOnBuild) proc.setGrooveId (id);          // BUILD plays yours in its place
-                    pickMine (id);
+                    pickMine (id, proc.getSauceKit() != nullptr);        // (saved with the kit you hear: it keeps playing)
                 }
             }
         }
@@ -1020,7 +1073,7 @@ namespace ggui
     {
         const auto id = proc.importMyGroove (file, genre, gg::styleFor (genre, subStyle).id, previewTempo());
         if (id.isEmpty()) return false;
-        pickMine (id);
+        pickMine (id, proc.getSauceKit() != nullptr);      // (kept with the kit you hear: it keeps playing)
         return true;
     }
 
@@ -1061,7 +1114,7 @@ namespace ggui
         {
             // a blank pad: a row for every sound in the kit you picked, all 32 of a 32-sound kit (the rows scroll
             // when they don't fit), or the usual drums before there are kits
-            if (const auto* k = const_cast<GrooveGrabberProcessor&> (proc).getActiveKit())
+            if (const auto* k = const_cast<GrooveGrabberProcessor&> (proc).kitOnSauce())
             {
                 for (auto s : k->shownSlots())
                     if (! (*k)[s].isEmpty()) add (s);
@@ -1079,13 +1132,15 @@ namespace ggui
     const std::vector<gg::Slot>& SaucePage::addableSlots() const
     {
         // the drums of the kit you picked (all 32 pads of a 32-sound kit, the usual 17 before there are kits)
-        if (const auto* k = const_cast<GrooveGrabberProcessor&> (proc).getActiveKit()) return k->shownSlots();
+        if (const auto* k = const_cast<GrooveGrabberProcessor&> (proc).kitOnSauce()) return k->shownSlots();
         return gg::kitSlots (17);
     }
 
     void SaucePage::showGroove()
     {
         if (showingMine() && gg::mygrooves::find (myShown) == nullptr) { myShown = {}; deleteArmed = false; }   // deleted meanwhile
+        if (! hasOriginalKit() && proc.getSauceKit() != nullptr) proc.setSauceKit (nullptr);   // another pattern: BUILD's kit
+        updateKitButtons();
         const auto id = currentId();
         const bool mine = showingMine();
         grid.setGroove (currentGroove(), id.isEmpty() ? std::vector<gg::Slot>() : lanesFor (id));
@@ -1262,6 +1317,7 @@ namespace ggui
     void SaucePage::visibilityChanged()
     {
         if (! isVisible()) stopPreview();
+        proc.setSauceShowing (isVisible());   // a groove's original kit plays while SAUCE shows it, BUILD's kit elsewhere
     }
 
     void SaucePage::lookAndFeelChanged()
@@ -1360,9 +1416,10 @@ namespace ggui
         h.removeFromRight (8);
         dragArea = h.removeFromRight (176);
         h.removeFromRight (12);
-        kitArea = h.removeFromRight (34 + 4 * 36);
+        kitArea = h.removeFromRight (34 + 4 * 36 + (originalKit.isVisible() ? 84 : 0));
         {
             auto ka = kitArea.withTrimmedLeft (34);
+            if (originalKit.isVisible()) originalKit.setBounds (ka.removeFromLeft (84).reduced (2, 3));
             for (auto* b : kitButtons) { b->setBounds (ka.removeFromLeft (36).reduced (2, 3)); }
         }
         h.removeFromRight (12);
@@ -1598,9 +1655,13 @@ namespace ggui
                 {
                     g.setColour (p.dim);
                     g.setFont (uiFont (14.0f, false));
-                    g.drawFittedText (changed ? "Not saved yet. SAVE puts it into this groove, SAVE AS COPY makes a new one, REVERT drops it."
-                                              : "Saved. Changes wait here until you press SAVE or SAVE AS COPY.",
-                                      eb, juce::Justification::centredLeft, 2, 0.8f);
+                    juce::String text = changed ? "Not saved yet. SAVE puts it into this groove, SAVE AS COPY makes a new one, REVERT drops it."
+                                                : "Saved. Changes wait here until you press SAVE or SAVE AS COPY.";
+                    if (playsOriginalKit())
+                        if (const auto k = proc.getSauceKit())
+                            text = (changed ? "Not saved yet (SAVE, SAVE AS COPY or REVERT). " : juce::String())
+                                 + "Original kit: " + k->name + ". BUILD's kits are unchanged.";
+                    g.drawFittedText (text, eb, juce::Justification::centredLeft, 2, 0.8f);
                 }
             }
             else if (proc.isGrooveEdited (id))

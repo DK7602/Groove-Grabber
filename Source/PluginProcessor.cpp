@@ -44,8 +44,8 @@ void GrooveGrabberProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
     const bool rateChanged = std::abs (player.getSampleRate() - sampleRate) > 1.0;
     player.prepare (sampleRate, samplesPerBlock);
     monoScratch.setSize (2, juce::jmax (1, samplesPerBlock), false, false, true);
-    if (rateChanged && ! kits.empty())
-        juce::MessageManager::callAsync ([this, a = alive] { if (a->load()) renderKits(); });
+    if (rateChanged && (! kits.empty() || sauceKit != nullptr))
+        juce::MessageManager::callAsync ([this, a = alive] { if (a->load()) { renderKits(); renderSauceKit(); } });
 }
 
 void GrooveGrabberProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
@@ -313,7 +313,7 @@ void GrooveGrabberProcessor::repointPlayer (const juce::String& id)
 
 juce::String GrooveGrabberProcessor::saveMyGroove (const juce::String& fromId, const juce::String& name, gg::Genre genre, const juce::String& styleId)
 {
-    const auto id = gg::mygrooves::save (*getGroove (fromId), name, genre, styleId);
+    const auto id = gg::mygrooves::save (*getGroove (fromId), name, genre, styleId, kitOnSauce());   // with the kit you hear it with
     notify (id.isNotEmpty() ? "Saved \"" + name.trim() + "\" to MY GROOVES" : "Couldn't save the groove in " + gg::mygrooves::folder().getFullPathName());
     return id;
 }
@@ -340,7 +340,7 @@ juce::String GrooveGrabberProcessor::importMyGroove (const juce::File& file, gg:
     const auto base = g.name.substring (0, 54);
     auto name = base;
     for (int n = 2; names.contains (name, true); ++n) name = base + " " + juce::String (n);
-    const auto id = gg::mygrooves::save (g, name, genre, styleId);
+    const auto id = gg::mygrooves::save (g, name, genre, styleId, kitOnSauce());
     if (id.isEmpty())
     {
         notify ("Couldn't save the groove in " + gg::mygrooves::folder().getFullPathName());
@@ -361,7 +361,7 @@ bool GrooveGrabberProcessor::saveGrooveChanges (const juce::String& id)
     const auto it = grooveEdits.find (id);
     if (! gg::mygrooves::isMine (id) || it == grooveEdits.end()) return false;
     auto hits = it->second->hits;
-    auto old = gg::mygrooves::update (id, std::move (hits), it->second->swing);
+    auto old = gg::mygrooves::update (id, std::move (hits), it->second->swing, kitOnSauce());   // (its own kit stays)
     if (old == nullptr) return false;
     retireGroove (std::move (old));
     swapGroove (id, nullptr);                      // no changes waiting any more: it plays the saved groove
@@ -501,8 +501,65 @@ void GrooveGrabberProcessor::setActiveKit (int index)
 {
     if (! juce::isPositiveAndBelow (index, juce::jmin ((int) kits.size(), (int) playables.size()))) return;
     activeKit = index;
-    if (playables[(size_t) index] != nullptr) player.setKit (playables[(size_t) index]);
+    updatePlayerKit();
     notify();
+}
+
+void GrooveGrabberProcessor::updatePlayerKit()
+{
+    if (sauceShowing && sauceKit != nullptr)
+    {
+        if (saucePlayable != nullptr) player.setKit (saucePlayable);      // (until it's rendered, what was playing)
+        return;
+    }
+    if (juce::isPositiveAndBelow (activeKit, (int) playables.size()) && playables[(size_t) activeKit] != nullptr)
+        player.setKit (playables[(size_t) activeKit]);
+}
+
+void GrooveGrabberProcessor::setSauceKit (std::shared_ptr<const gg::Kit> k)
+{
+    if (k != nullptr && ! k->isValid()) k = nullptr;
+    if (k == sauceKit) return;
+    sauceKit = std::move (k);
+    saucePlayable = nullptr;
+    renderSauceKit();
+    notify();
+}
+
+void GrooveGrabberProcessor::setSauceShowing (bool showing)
+{
+    if (showing == sauceShowing) return;
+    sauceShowing = showing;
+    updatePlayerKit();
+}
+
+const gg::Kit* GrooveGrabberProcessor::kitOnSauce()
+{
+    return sauceKit != nullptr ? sauceKit.get() : getActiveKit();
+}
+
+void GrooveGrabberProcessor::renderSauceKit()
+{
+    const int generation = ++sauceGeneration;
+    if (sauceKit == nullptr)
+    {
+        saucePlayable = nullptr;
+        updatePlayerKit();          // BUILD's kit again
+        return;
+    }
+    const double sr = player.getSampleRate() > 0 ? player.getSampleRate() : 44100.0;
+    runInBackground ([this, a = alive, generation, kit = sauceKit, sr]
+    {
+        if (! a->load() || sauceGeneration.load() != generation) return;
+        auto pk = gg::buildPlayable (*kit, sr);
+        juce::MessageManager::callAsync ([this, a, generation, pk]
+        {
+            if (! a->load() || sauceGeneration.load() != generation) return;
+            saucePlayable = pk;
+            updatePlayerKit();
+            sendChangeMessage();
+        });
+    });
 }
 
 gg::Kit* GrooveGrabberProcessor::getActiveKit()
@@ -592,7 +649,7 @@ void GrooveGrabberProcessor::renderKits()
             {
                 if (! a->load() || renderGeneration.load() != generation) return;
                 playables[(size_t) i] = pk;
-                if (i == activeKit) player.setKit (pk);
+                if (i == activeKit) updatePlayerKit();
                 sendChangeMessage();
             });
         });

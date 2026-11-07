@@ -16,7 +16,7 @@ namespace ggui
         void resized() override;
         std::function<void (const gg::Kit&)> onExport;
         std::function<void()> onLoaded;
-        std::function<void (const juce::String&)> onOpenGroove;    // show one of my grooves on SAUCE
+        std::function<void (const juce::String&, bool withOriginalKit)> onOpenGroove;    // show one of my grooves on SAUCE
         std::function<void()> onUseGroove;                         // after BUILD was set to one of my grooves
         void setView (int v)                       { view.setSelected (v); rebuild (false); }   // 0 saved, 1 recent, 2 my grooves
         int numRows() const noexcept               { return rows.size(); }

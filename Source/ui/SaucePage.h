@@ -95,7 +95,12 @@ namespace ggui
         bool isFollowingBuild() const;
         PatternGrid& getGrid() noexcept               { return grid; }
         juce::String getGrooveId() const              { return currentId(); }
-        void pickMine (const juce::String& id);       // show one of my grooves
+        // show one of my grooves, played with BUILD's kit, or with its original kit (the kit it was saved with: on
+        // SAUCE only, BUILD's four kits stay as they are)
+        void pickMine (const juce::String& id, bool withOriginalKit = false);
+        void useOriginalKit (bool);                   // the kit row's ORIGINAL (the groove's own kit) or BUILD's 01..04
+        bool playsOriginalKit() const;                // SAUCE plays the groove's original kit
+        bool hasOriginalKit() const;                  // the groove shown is one of mine with its kit kept
         void setSwingPercent (int percent);           // SWING (50 = straight .. 66 = a full triplet)
         void playFrom (double beat);                  // the timeline: the playhead goes there and plays from there
         void coachMyBeat();                           // COACH MY BEAT: the report in the bottom panel
@@ -167,6 +172,7 @@ namespace ggui
         int coachedGenre = -1, coachedStyle = -1, coachedEra = -2;
         bool manyRows = false;                                  // the pattern has a lot of rows: it gets more of the page
         juce::OwnedArray<juce::TextButton> kitButtons;   // 01..04: which of BUILD's kits plays the pattern
+        juce::TextButton originalKit { "ORIGINAL" };     // one of my grooves' own kit (the kit it was saved with)
         juce::TextButton blankChip { "BLANK" };          // an empty pattern to build from scratch
         juce::Slider swingSlider;                        // the pattern's swing, 50% (straight) .. 66% (triplet)
         juce::Rectangle<int> swingArea;

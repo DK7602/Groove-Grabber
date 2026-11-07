@@ -26,7 +26,7 @@ GrooveGrabberEditor::GrooveGrabberEditor (GrooveGrabberProcessor& p)
     kitsPage.onExport = [this] (const gg::Kit& k) { exporter.show (k); };
     kitsPage.onLoaded = [this] { showTab (0); };
     sauce.onUseOnBuild = [this] { showTab (0); };
-    kitsPage.onOpenGroove = [this] (const juce::String& id) { showTab (3); sauce.pickMine (id); };
+    kitsPage.onOpenGroove = [this] (const juce::String& id, bool original) { showTab (3); sauce.pickMine (id, original); };
     kitsPage.onUseGroove = [this] { showTab (0); };
 
     proc.addChangeListener (this);

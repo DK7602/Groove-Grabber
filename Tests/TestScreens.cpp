@@ -331,6 +331,103 @@ int runScreenshots (const juce::File& outDir)
                                     && backs.front().why == "deleted";
             if (restoredOk) proc.deleteMyGroove (restored);
             std::cout << (restoredOk ? "  ok: " : "  FAIL: ") << "a deleted groove is kept in Backups and comes back with RESTORE" << std::endl;
+
+            // a groove keeps the kit it was saved with. Loaded "with its original kit" that kit plays on SAUCE only:
+            // BUILD's four kits and the one picked there stay exactly as they were, and BUILD plays BUILD's kit.
+            if (proc.kits.size() >= 2)
+            {
+                auto buildKits = [&proc]
+                {
+                    juce::String s;
+                    for (const auto& k : proc.kits) s << juce::JSON::toString (k.toVar(), true);
+                    return s + juce::String (proc.activeKit);
+                };
+                const int activeAtStart = proc.activeKit;
+                proc.setActiveKit (0);
+                pump (300);
+                const auto kit1 = proc.kits.front();
+                sauce.openGroove ("boombap1");
+                sauce.getGrid().clickStep (0, 3, {});
+                sauce.startNaming();
+                sauce.finishNaming (true, "Kit Keeper");
+                pump (100);
+                const auto keeper = sauce.getGrooveId();
+                const auto* e = gg::mygrooves::entry (keeper);
+                const bool keptKit = e != nullptr && e->kit != nullptr && e->kit->name == kit1.name
+                                     && (*e->kit)[gg::Slot::kick].path == kit1[gg::Slot::kick].path;
+                // BUILD moves on: kit 2 picked, and kit 1's kick swapped for another sound
+                proc.setActiveKit (1);
+                const auto otherKick = proc.kits[1][gg::Slot::kick].path;
+                proc.setSlotSound (0, gg::Slot::kick, otherKick);
+                pump (400);
+                const auto before = buildKits();
+                sauce.pickMine (keeper, true);
+                for (int i = 0; i < 100 && (proc.getSaucePlayable() == nullptr || proc.player.getKit() != proc.getSaucePlayable()); ++i) pump (20);
+                save (*ed, outDir.getChildFile ("sauce-original-kit.png"));
+                e = gg::mygrooves::entry (keeper);
+                const bool original = sauce.playsOriginalKit() && proc.getSauceKit() != nullptr
+                                      && (*proc.getSauceKit())[gg::Slot::kick].path == kit1[gg::Slot::kick].path
+                                      && proc.player.getKit() == proc.getSaucePlayable() && proc.getSaucePlayable() != nullptr
+                                      && buildKits() == before && proc.activeKit == 1 && proc.kits[0][gg::Slot::kick].path == otherKick;
+                // BUILD plays BUILD's kit; back on SAUCE the original plays again
+                ed->showTab (0);
+                pump (100);
+                const bool buildPlaysBuild = proc.player.getKit() == proc.getPlayable (1);
+                ed->showTab (3);
+                pump (100);
+                const bool backToOriginal = proc.player.getKit() == proc.getSaucePlayable() && sauce.getGrooveId() == keeper;
+                // onto BUILD's current kit, then ORIGINAL again on the kit row
+                sauce.pickMine (keeper, false);
+                pump (100);
+                const bool ontoBuild = ! sauce.playsOriginalKit() && proc.getSauceKit() == nullptr && proc.player.getKit() == proc.getPlayable (1)
+                                       && sauce.hasOriginalKit();
+                sauce.useOriginalKit (true);
+                pump (300);
+                const bool rowOriginal = sauce.playsOriginalKit() && proc.player.getKit() == proc.getSaucePlayable();
+                // SAVE AS COPY while the original plays: the copy keeps that kit, and it keeps playing
+                sauce.getGrid().clickStep (0, 7, {});
+                sauce.startNaming();
+                sauce.finishNaming (true, "Kit Keeper Copy");
+                pump (200);
+                const auto keeperCopy = sauce.getGrooveId();
+                const auto* ce = gg::mygrooves::entry (keeperCopy);
+                const bool copyKit = keeperCopy != keeper && ce != nullptr && ce->kit != nullptr
+                                     && (*ce->kit)[gg::Slot::kick].path == kit1[gg::Slot::kick].path && sauce.playsOriginalKit();
+                // another pattern: BUILD's kit again
+                sauce.openGroove ("boombap1");
+                pump (100);
+                const bool otherPattern = proc.getSauceKit() == nullptr && proc.player.getKit() == proc.getPlayable (1);
+                // the kit is in the file: read from disk again, and in the copy kept in Backups
+                gg::mygrooves::reloadForTests();
+                e = gg::mygrooves::entry (keeper);
+                const bool onDisk = e != nullptr && e->kit != nullptr && (*e->kit)[gg::Slot::kick].path == kit1[gg::Slot::kick].path;
+                proc.deleteMyGroove (keeper);
+                proc.deleteMyGroove (keeperCopy);
+                const auto backs2 = gg::mygrooves::backups();
+                const auto back = backs2.empty() ? juce::String() : proc.restoreMyGroove (backs2.front().file);
+                const auto* be = gg::mygrooves::entry (back);
+                const bool inBackup = be != nullptr && be->kit != nullptr;
+                if (be != nullptr) proc.deleteMyGroove (back);
+                // a groove saved before 1.0.29 has no kit: it plays on BUILD's kit, and SAVE keeps the one you hear
+                const auto oldId = gg::mygrooves::save (gg::grooveFor ("boombap2"), "Old Timer", gg::Genre::boomBap, "hiphop.east");
+                sauce.pickMine (oldId, true);
+                pump (100);
+                const bool oldNoKit = ! sauce.hasOriginalKit() && proc.getSauceKit() == nullptr && sauce.getGrooveId() == oldId;
+                sauce.getGrid().clickStep (0, 9, {});
+                proc.saveGrooveChanges (oldId);
+                const auto* oe = gg::mygrooves::entry (oldId);
+                const bool oldGetsKit = oe != nullptr && oe->kit != nullptr && oe->kit->name == proc.kits[1].name;
+                proc.deleteMyGroove (oldId);
+                proc.setSlotSound (0, gg::Slot::kick, kit1[gg::Slot::kick].path);
+                proc.setActiveKit (activeAtStart);
+                pump (300);
+                const bool all = keptKit && original && buildPlaysBuild && backToOriginal && ontoBuild && rowOriginal && copyKit
+                                 && otherPattern && onDisk && inBackup && oldNoKit && oldGetsKit;
+                std::cout << (all ? "  ok: " : "  FAIL: ") << "a groove keeps its kit: ORIGINAL plays it on SAUCE only, BUILD's kits untouched ("
+                          << keptKit << original << buildPlaysBuild << backToOriginal << ontoBuild << rowOriginal << copyKit
+                          << otherPattern << onDisk << inBackup << oldNoKit << oldGetsKit << ")" << std::endl;
+                if (! all) ++failures;
+            }
             // BLANK: an empty pattern with a row for every sound in the kit you picked; SWING works on it
             sauce.openGroove ("blank");
             int sounds = 0;

@@ -253,7 +253,7 @@ The MY KITS page has three views:
 
 - **SAVED:** every kit you kept, filed in a folder for its genre (Documents\Groove Grabber\Kits\Hip-Hop, \Rock, \Country...). Kits saved by older versions are moved into their genre folders automatically.
 - **RECENT:** the last 48 kits you generated, saved or not, so a good one is never lost.
-- **MY GROOVES:** the patterns you saved as your own on SAUCE (see SAUCE: how the drums go). Each shows a small picture of the pattern, its genre and style, tempo, swing and the pattern it started from, with **OPEN** (show it on SAUCE to play, change or drag it), **USE ON BUILD** (BUILD's preview and the export's Groove MIDI use it) and **DELETE** (click twice). The genre tabs and search work here too. **BACKUPS...** (top right) lists the copies kept before a groove was saved over, renamed or deleted; pick one to bring it back as a groove of its own.
+- **MY GROOVES:** the patterns you saved as your own on SAUCE (see SAUCE: how the drums go). Each shows a small picture of the pattern, its genre and style, tempo, swing, the pattern it started from and the kit it was saved with, with **OPEN** (show it on SAUCE to play, change or drag it, with its original kit or onto BUILD's current kit), **USE ON BUILD** (BUILD's preview and the export's Groove MIDI use it) and **DELETE** (click twice). The genre tabs and search work here too. **BACKUPS...** (top right) lists the copies kept before a groove was saved over, renamed or deleted; pick one to bring it back as a groove of its own.
 
 **Finding a kit**
 
@@ -329,7 +329,7 @@ The SAUCE page explains how drums are played and programmed in a genre, style an
 - Each row shows the note it plays in your DAW, for example "C1 (36)".
 - The buttons across the top pick between the style's grooves.
 - **BLANK** (the first button) is an empty two-bar pattern, to build your own from scratch. Its rows are the sounds of the kit you picked (KIT 01 to 04), all of them in a 23- or 32-sound kit, so you hear that kit as you click steps in. When there are more rows than fit, the pattern gets more of the page and the rows scroll (mouse wheel) under the count. It's kept with your song like any other change, SAVE AS MY GROOVE keeps it for every song, and BUILD's groove list has it as "Blank".
-- **KIT 01 to 04** picks which of BUILD's four kits plays the pattern (the same as clicking that kit on BUILD). Point at one to see its name.
+- **KIT 01 to 04** picks which of BUILD's four kits plays the pattern (the same as clicking that kit on BUILD). Point at one to see its name. One of MY GROOVES also has **ORIGINAL** here: the kit it was saved with (see My grooves below).
 - **Play** (or the Space bar) plays it with the kit you picked. It plays at your song's tempo while you're on your song's style, and at the groove's own tempo when you're reading up on another.
 - **The playhead moves where you click.** Click the count over the steps (1 e & a 2...) and the playhead jumps to that step and plays from there, even when it's stopped. Drag along the count to scrub. When you stop, the playhead stays where you last clicked, and Play and the Space bar start from there. Click "1" of bar 1 to start from the top again. (With Follow DAW on and your DAW playing, the DAW's position leads.)
 - **DRAG MIDI** shows the tempo and swing it plays at, and drags the pattern into your DAW twice over (four bars for a two-bar groove), on the same notes as every Groove Grabber kit (MIDI channel 1). **Drop it on the lane of your drum track** (in Cubase, your Groove Agent SE or Groove Grabber track), at the bar where it should start. Dropped below the last track, most DAWs make a new track with no instrument on it, so it stays silent. The files are kept in Documents\Groove Grabber\Sauce MIDI.
@@ -354,9 +354,15 @@ An edit belongs to one song. To keep a pattern for all your songs, save it as yo
     - **SAVE** (or Enter) keeps your version under its new name. The pattern you started from goes back to its original, so BUILD's groove list still has the original under its own name. (UNDO on the original brings your changes back.)
     - **SAVE & REPLACE ON BUILD** does the same, and BUILD's preview plays your version in place of the original (and the export's Groove MIDI uses it).
     - **CANCEL** (or Esc) leaves it.
-3. It's saved on your computer in Documents\Groove Grabber\My Grooves, with its tempo and swing, and listed under MY GROOVES here and on the MY KITS page.
+3. It's saved on your computer in Documents\Groove Grabber\My Grooves, with its tempo and swing and the kit you heard it with, and listed under MY GROOVES here and on the MY KITS page.
 
-- **MY GROOVES** (next to the pattern buttons) lists your grooves, this genre's first and the rest under Other genres. Pick one to see it, play it, change it or drag it into your DAW.
+- **MY GROOVES** (next to the pattern buttons) lists your grooves, this genre's first and the rest under Other genres. Point at one to choose how it loads:
+    - **With its original kit**: the kit you made it with, sound for sound. It plays on SAUCE only. BUILD's four kits, and the one picked there, stay exactly as they are, and BUILD keeps playing its own kit. Clicking the groove's name loads it this way.
+    - **Onto BUILD's current kit**: your hits on the kit picked on BUILD, to hear the beat with your new sounds.
+- While it shows, the KIT row has **ORIGINAL** beside 01 to 04, so you can switch between its original kit and BUILD's kits any time. Going to another pattern goes back to BUILD's kit.
+- While SAUCE plays the original kit, its drum names and the notes from your DAW play that kit too. On the other pages, BUILD's kit plays.
+- Which kit a groove keeps: the one playing when you saved it (SAVE AS MY GROOVE, SAVE AS COPY, or a MIDI file dropped on SAUCE). SAVE keeps its original kit. A groove saved before Groove Grabber 1.0.29 has no original kit yet; SAVE it once and it keeps the kit you hear it with.
+- The kit points at your sound files: if you move or delete them, those sounds are silent in the original kit.
 - While one of your grooves is showing, it's marked **MY GROOVE**. **Nothing changes it until you say so**: as soon as you change a step it's marked **CHANGED**, and then:
     - **SAVE** puts your changes into this groove.
     - **SAVE AS COPY** saves your changes as a new groove (the name counts up: "Trap 1" becomes "Trap 2"), and this one stays exactly as it was saved. SAVE AS COPY works without changes too, for a copy to experiment on.
@@ -540,6 +546,7 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | You want feedback on a beat you made | SAUCE: change a pattern (or build one from BLANK, or drop your MIDI on SAUCE), pick the style it's for, and press COACH MY BEAT. |
 | You want to build a pattern from scratch | SAUCE: press **BLANK**, pick the kit with KIT 01 to 04, click the steps in and set SWING. SAVE AS MY GROOVE keeps it for every song. |
 | You want a pattern in every song, not just this one | SAUCE: SAVE AS MY GROOVE. It's then under MY GROOVES on SAUCE, in BUILD's groove list and on the MY KITS page. |
+| One of your grooves plays on BUILD's kit, not the sounds you made it with | SAUCE: MY GROOVES, point at the groove and pick "With its original kit" (or press ORIGINAL on the KIT row). BUILD's kits stay as they are. Grooves saved before 1.0.29 get their kit the next time you SAVE them. |
 | One of your grooves changed or is gone, and you want it back | MY KITS > MY GROOVES > BACKUPS...: every version from before a save, rename or delete is there. Pick one to bring it back as a groove of its own. |
 | You want to change a groove BUILD is playing | Press EDIT IN SAUCE next to BUILD's groove list. |
 | You saved your version and want BUILD to use it instead of the original | Pick it in BUILD's groove list (MY GROOVES section), or press USE ON BUILD on the MY KITS page. Next time, save with SAVE & REPLACE ON BUILD. |

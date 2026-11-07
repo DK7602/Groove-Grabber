@@ -104,13 +104,29 @@ namespace ggui
         {
         public:
             GrooveRow (GrooveGrabberProcessor& p, const gg::mygrooves::Entry& e,
-                       std::function<void (const juce::String&)> openFn, std::function<void()> usedFn)
+                       std::function<void (const juce::String&, bool)> openFn, std::function<void()> usedFn)
                 : proc (p), entry (e), onOpen (std::move (openFn)), onUsed (std::move (usedFn))
             {
                 open.getProperties().set ("style", "accent");
                 open.getProperties().set ("accent", pal().blue.toString());
-                open.setTooltip ("Show it on SAUCE: play it, change it, drag it into your DAW");
-                open.onClick = [this] { if (onOpen) onOpen (entry.groove->id); };
+                open.setTooltip (entry.kit != nullptr ? "Show it on SAUCE with its original kit (" + entry.kit->name + ") or onto BUILD's current kit"
+                                                      : juce::String ("Show it on SAUCE: play it, change it, drag it into your DAW"));
+                open.onClick = [this]
+                {
+                    if (! onOpen) return;
+                    if (entry.kit == nullptr) { onOpen (entry.groove->id, false); return; }
+                    // with its original kit (on SAUCE only: BUILD's kits stay as they are), or onto BUILD's current kit
+                    juce::PopupMenu m;
+                    m.addItem (1, "With its original kit: " + entry.kit->name);
+                    const auto* k = proc.getActiveKit();
+                    m.addItem (2, k != nullptr && k->isValid() ? "Onto BUILD's current kit: " + juce::String (proc.activeKit + 1).paddedLeft ('0', 2) + " " + k->name
+                                                               : juce::String ("Onto BUILD's current kit (none built yet)"));
+                    m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&open),
+                                     [this, safe = juce::Component::SafePointer<GrooveRow> (this)] (int r)
+                    {
+                        if (safe != nullptr && r > 0 && onOpen) onOpen (entry.groove->id, r == 1);
+                    });
+                };
                 use.getProperties().set ("style", "ghost");
                 use.setTooltip ("BUILD's preview plays this groove (and the export's Groove MIDI uses it)");
                 use.onClick = [this]
@@ -168,6 +184,7 @@ namespace ggui
                 if (const int si = gg::styleIndex (entry.genre, entry.styleId); si > 0) info << ": " << gg::styleFor (entry.genre, si).name;
                 info << "  -  " << juce::String (gr.bpm, 0) << " BPM  -  swing " << gg::swingPercent (gr) << "%";
                 if (entry.from.isNotEmpty()) info << "  -  from " << gg::grooveFor (entry.from).name;
+                if (entry.kit != nullptr) info << "  -  kit: " << entry.kit->name;
                 if (proc.grooveId == gr.id) info << "  -  on BUILD now";
                 g.drawFittedText (info, in, juce::Justification::topLeft, 1, 0.7f);
 
@@ -194,7 +211,7 @@ namespace ggui
         private:
             GrooveGrabberProcessor& proc;
             gg::mygrooves::Entry entry;
-            std::function<void (const juce::String&)> onOpen;
+            std::function<void (const juce::String&, bool)> onOpen;
             std::function<void()> onUsed;
             juce::TextButton open { "OPEN" }, use { "USE ON BUILD" }, del { "DELETE" };
             bool armed = false;

@@ -68,6 +68,14 @@ public:
     void loadKit (const gg::Kit&, int intoIndex);
     juce::String getStatusMessage() const          { return statusMessage; }
 
+    // ---- SAUCE's kit: one of MY GROOVES can play with the kit it was saved with ("its original kit"), on SAUCE only.
+    // BUILD's four kits, and the one picked there, stay as they are, and BUILD always plays BUILD's kit. ----
+    void setSauceKit (std::shared_ptr<const gg::Kit>);     // nullptr: SAUCE plays BUILD's kit again
+    std::shared_ptr<const gg::Kit> getSauceKit() const noexcept   { return sauceKit; }
+    const gg::Kit* kitOnSauce();                           // what SAUCE plays: its own kit, or BUILD's (nullptr: none yet)
+    void setSauceShowing (bool);                           // SAUCE on screen: its kit plays (its pads, your DAW's notes)
+    gg::PlayableKit::Ptr getSaucePlayable() const          { return saucePlayable; }
+
     // ---- listening ----
     gg::KitPlayer player;
     juce::String grooveId = "boombap1";
@@ -111,6 +119,12 @@ public:
 
 private:
     std::map<juce::String, juce::StringArray> coachOnPurpose;     // the song's patterns' ON PURPOSE tips
+    std::shared_ptr<const gg::Kit> sauceKit;                       // a groove's original kit, playing on SAUCE
+    gg::PlayableKit::Ptr saucePlayable;
+    bool sauceShowing = false;
+    std::atomic<int> sauceGeneration { 0 };
+    void renderSauceKit();
+    void updatePlayerKit();          // SAUCE's own kit while SAUCE shows it, BUILD's picked kit otherwise
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
     juce::String makeState();
     void applyState (const juce::String&);
