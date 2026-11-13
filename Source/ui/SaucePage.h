@@ -46,6 +46,7 @@ namespace ggui
 
         // what a click on a lane's step does (the mouse, and the tests)
         void clickStep (int lane, int step, const juce::ModifierKeys&);
+        juce::Rectangle<float> cellBounds (int lane, int step) const;   // where a step is drawn (the tests, the tutorial)
 
     private:
         // header: the timeline; view: where the rows show; area: all the rows' cells (taller than view when they scroll)
@@ -114,6 +115,7 @@ namespace ggui
         // yours in its place
         void finishNaming (bool save, const juce::String& name = {}, bool replaceOnBuild = false);
         int getDocHeight() const noexcept             { return doc.getHeight(); }
+        juce::Rectangle<int> getDragArea() const noexcept   { return dragArea; }   // DRAG MIDI (the tutorial)
 
     private:
         void timerCallback() override;

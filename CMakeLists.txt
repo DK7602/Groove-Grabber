@@ -153,7 +153,7 @@ target_compile_definitions(GrooveGrabber PUBLIC JUCE_MODAL_LOOPS_PERMITTED=0)
 # ------------------------------------------------------------------------------------------------
 if(GG_BUILD_TESTS)
     juce_add_console_app(GGTests PRODUCT_NAME "GGTests")
-    target_sources(GGTests PRIVATE Tests/TestMain.cpp Tests/TestSounds.cpp Tests/TestScreens.cpp Tests/TestHost.cpp ${GG_CORE_SOURCES} ${GG_UI_SOURCES})
+    target_sources(GGTests PRIVATE Tests/TestMain.cpp Tests/TestSounds.cpp Tests/TestScreens.cpp Tests/TestHost.cpp Tests/TestTutorial.cpp ${GG_CORE_SOURCES} ${GG_UI_SOURCES})
     target_compile_definitions(GGTests PRIVATE GG_TEST_RUNNER=1 JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_PLUGINHOST_VST3=1
         GG_TESTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Tests")
     target_link_libraries(GGTests PRIVATE GGShared)

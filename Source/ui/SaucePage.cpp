@@ -75,6 +75,13 @@ namespace ggui
         return geo;
     }
 
+    juce::Rectangle<float> PatternGrid::cellBounds (int lane, int step) const
+    {
+        const auto geo = geometry();
+        if (geo.steps == 0) return {};
+        return { geo.gridX + geo.stepW * (float) step, geo.area.getY() + geo.laneH * (float) lane, geo.stepW, geo.laneH };
+    }
+
     bool PatternGrid::cellAt (juce::Point<float> pos, int& lane, int& step) const
     {
         const auto geo = geometry();

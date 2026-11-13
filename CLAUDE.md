@@ -61,6 +61,13 @@ xvfb-run -a ./build/GGTests_artefacts/Release/GGTests --host "build/GrooveGrabbe
   - `TestScreens.cpp`: screenshots.
   - `TestHost.cpp`: `--host` and `--classify`.
 
+## The video tutorial
+
+`bash tools/tutorial/make.sh` makes "Groove Grabber Tutorial.mp4" (about 5 minutes):
+- `GGTests --tutorial DIR` (`Tests/TestTutorial.cpp`) runs the real window at 1920 x 1080 through the workflow on a made-up sample library and saves each step as a picture, with where its buttons are (`frames.json` "marks"), plus `beat.wav` (the first kit playing the groove). Menus are drawn with the look and feel's menu drawing: a real popup closes itself at once under xvfb.
+- `tools/tutorial/script.py` is what's said and shown: a line of narration, the frames, where the cursor clicks, what's lit, where the camera moves in. Change it when the UI or a feature changes, and keep it accurate and clean.
+- `tools/tutorial/make_video.py` adds the cursor, highlights, subtitles, title and chapter cards, the narrator (Piper, offline; LJ Speech is public domain, check any other voice's licence) and the beat, then ffmpeg makes the MP4. `--preview 12,60` writes stills, `--schedule` lists when each part starts.
+
 ## Checking the sound sorting on real samples
 
 `tools/audit/` scores the analyser against about 1,900 labelled drum-machine and kit one-shots. They come from tidalcycles/Dirt-Samples and ritchse/tidal-drum-machines (not shipped, downloaded on demand):

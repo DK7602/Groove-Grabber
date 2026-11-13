@@ -3,6 +3,7 @@
 //   GGTests --engine     engine tests only
 //   GGTests --shots DIR  also write screenshots to DIR (default: build folder)
 //   GGTests --host <.vst3> load the built plug-in like a DAW would (scan, play, state, window, close)
+//   GGTests --tutorial DIR the video tutorial's pictures and beat (tools/tutorial/make.sh)
 #include <set>
 #include "TestSounds.h"
 #include "core/Analyzer.h"
@@ -1600,6 +1601,7 @@ namespace
 //==============================================================================
 int runHostScan (const juce::File&);
 int runClassify (const juce::File&);
+int runTutorial (const juce::File&);      // TestTutorial.cpp
 
 int main (int argc, char** argv)
 {
@@ -1612,6 +1614,9 @@ int main (int argc, char** argv)
         return runHostScan (juce::File (args[h + 1])) == 0 ? 0 : 1;
     if (const int c = args.indexOf ("--classify"); c >= 0 && c + 1 < args.size())
         return runClassify (juce::File (args[c + 1]));
+    // GGTests --tutorial <dir>: the video tutorial's pictures (run with HOME set to a throwaway folder)
+    if (const int t = args.indexOf ("--tutorial"); t >= 0 && t + 1 < args.size())
+        return runTutorial (juce::File (args[t + 1]));
 
     // keep the tests out of the real settings / library
     const auto home = testRoot().getChildFile ("Home");
