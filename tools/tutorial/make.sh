@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Makes the video tutorial: the app's real screens (GGTests --tutorial), a narrator (Piper, an offline voice) and a
-# beat the first kit plays. Needs the GGTests build, xvfb-run, ffmpeg, curl, and python3 with numpy and Pillow.
+# Makes the video tutorial: the app's real screens (GGTests --tutorial) and a narrator (Piper, an offline voice). Needs the GGTests build, xvfb-run, ffmpeg, curl, and python3 with numpy and Pillow.
 #
 #   bash tools/tutorial/make.sh ["OUT.mp4"]
 #

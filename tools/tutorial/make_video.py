@@ -47,11 +47,11 @@ def sentences(text):
 
 # ---------------------------------------------------------------- the voice
 def synth(piper, voice, text, cache):
-    key = hashlib.sha1((voice + "|" + text).encode()).hexdigest()[:16]
+    key = hashlib.sha1((voice + "|v0.8|" + text).encode()).hexdigest()[:16]
     out = os.path.join(cache, key + ".wav")
     if not os.path.exists(out):
         raw = out + ".raw.wav"
-        subprocess.run([piper, "-m", voice, "-f", raw, "--sentence-silence", "0.0", "--length-scale", "1.04"],
+        subprocess.run([piper, "-m", voice, "-f", raw, "--sentence-silence", "0.0", "--length-scale", "1.04", "--volume", "0.8"],
                        input=text.encode(), check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", raw, "-ar", str(SR), "-ac", "1", "-sample_fmt", "s16", out], check=True)
         os.remove(raw)
@@ -195,7 +195,7 @@ def loudness_gain(path, target=-14.0):
     m = re.findall(r"I:\s+(-?[0-9.]+) LUFS", r.stderr)
     return target - float(m[-1]) if m else 0.0
 
-def make_audio(segs, total, beat_path, out_path):
+def make_audio(segs, total, beat_path, out_path, music_on=False):
     n = int(total * SR) + SR
     voice = np.zeros(n, dtype=np.float32)
     for s in segs:
@@ -204,6 +204,15 @@ def make_audio(segs, total, beat_path, out_path):
             voice[i:i + len(a)] += a[: max(0, n - i)]
     peak = np.max(np.abs(voice)) or 1.0
     voice *= 0.89 / peak
+    if not music_on:
+        # the narrator alone (the demo kit's beat is synthetic noise drums: under the voice it sounds like static)
+        fade = int(0.01 * SR)
+        voice[:fade] *= np.linspace(0, 1, fade)
+        pcm = (np.clip(np.repeat(voice[:, None], 2, axis=1), -1, 1) * 32767).astype(np.int16)
+        with wave.open(out_path, "wb") as w:
+            w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR)
+            w.writeframes(pcm.tobytes())
+        return
     with wave.open(beat_path) as w:
         ch, rate = w.getnchannels(), w.getframerate()
         b = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32).reshape(-1, ch) / 32768.0
@@ -224,7 +233,7 @@ def make_audio(segs, total, beat_path, out_path):
     env[-fade:] *= np.linspace(1, 0, fade)
     env[:int(0.3 * SR)] *= np.linspace(0, 1, int(0.3 * SR))
     mix = music * (env[:, None] * 1.0) + voice[:, None] * 0.95
-    mix = np.tanh(mix * 1.05) / np.tanh(1.05)
+    mix = mix / max(1.0, float(np.max(np.abs(mix))))
     pcm = (np.clip(mix, -1, 1) * 32767).astype(np.int16)
     with wave.open(out_path, "wb") as w:
         w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR)
@@ -453,6 +462,7 @@ def main():
     ap.add_argument("--preview", help="write single frames at these seconds (comma list) as PNGs instead of the video")
     ap.add_argument("--schedule", action="store_true", help="print when each part starts")
     ap.add_argument("--remix", action="store_true", help="only make the sound again, into the video OUT already is")
+    ap.add_argument("--music", action="store_true", help="put the demo kit's beat under the narrator (off: the voice alone)")
     a = ap.parse_args()
     fj = json.load(open(os.path.join(a.capture, "frames.json")))
     marks = Marks(fj["frames"])
@@ -477,9 +487,9 @@ def main():
             print("  wrote", p)
         return
     audio = a.out + ".wav"
-    make_audio(segs, total, os.path.join(a.capture, "beat.wav"), audio)
+    make_audio(segs, total, os.path.join(a.capture, "beat.wav"), audio, a.music)
     gain = loudness_gain(audio)
-    level = ["-af", "volume=%.2fdB,alimiter=limit=0.89:level=false" % gain]
+    level = ["-af", "volume=%.2fdB,alimiter=limit=0.79:level=false" % min(gain, 12.0)]
     if a.remix:
         tmp = a.out + ".remix.mp4"
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", a.out, "-i", audio, "-map", "0:v", "-map", "1:a", "-c:v", "copy"]
