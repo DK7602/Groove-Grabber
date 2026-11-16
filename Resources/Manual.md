@@ -228,6 +228,8 @@ The kit you're editing shows its pads: Kick, 808, Snare, Clap, Rim, Closed Hat, 
 - **Drop a sound file on a pad** to replace it with your own.
 - **The lock icon** on a pad keeps it when you regenerate.
 
+**SONG FX** (the slim row under the pads) holds the song's own effects: the risers, impacts, tape stops and so on you add from the FX tab with ADD TO SONG FX. They belong to the song, not to one kit, so all four kits play them, and GENERATE KITS, REGENERATE and loading a kit never change them. They're saved with your song (your DAW project). They play on notes 69 and up (A3 in Cubase's naming), past any kit's own pads: a 17-sound kit has 4 Song FX pads, a 23-sound kit 6 and a 32-sound kit 8. The bank always keeps all 8, so if you switch to a smaller KIT SIZE the extra ones wait ("+4 waiting") until you switch back. Click a Song FX pad to hear it and shape it in the pad editor (tune, start, length, gain, reverse): the change goes to every kit. Drop a file on it to replace it, or right-click > Clear this pad. Song FX pads have no lock: they're kept anyway. A kit you load from MY KITS brings the Song FX it was saved with only when your song has none yet.
+
 The buttons above the pads act on the whole kit: **REGENERATE** (new sounds for every unlocked pad), **LOCK ALL**, **SAVE KIT** and **EXPORT**.
 
 **The pad editor** (bottom panel)
@@ -279,6 +281,7 @@ Each kit shows its genre, style, decade, key, BPM, how many pads it fills and wh
 - **Name:** the kit's name, which becomes the folder name. Change it if you like.
 - **FOR:** the DAW the loading steps are written for. **Automatic** picks the DAW Groove Grabber is running in (Cubase, Live, FL Studio, Logic, Studio One, REAPER, Bitwig, Reason...). Pick one by hand in the app, or to get another DAW's steps. MPC sets 16-bit for you.
 - **16-BIT / 24-BIT** and **44.1 kHz / 48 kHz.** Use 16-bit for MPCs and older samplers.
+- **Song FX:** when the song has Song FX, the export puts them in a **Song FX** folder inside the kit's folder, numbered from Song FX 1 up to the last one used (a gap gets a silent file, so each lands on its own note). The kit's own files are exactly as without them. Drop the Song FX files on the pad for note 69 (A3 in Cubase) the same way: the export panel and Kit Info.txt give the step for your DAW.
 - **MPC program (.pgm):** an MPC 1000 program with every pad and note set, for MPCs and samplers that import them. (Off for FL Studio: its file names are too long for an MPC program.)
 - **Groove MIDI file:** the preview groove on the same notes, on MIDI channel 1 (your edited version if you edited it on SAUCE).
 - **Silent files for empty pads:** keeps the numbering steady when a kit doesn't fill every pad. Leave it on.
@@ -426,6 +429,9 @@ The FX page gathers every effect in your library (anything LIBRARY lists as FX) 
 - **The effect** (right): its sound, length, note, where it goes against the beat, its fit for your song and where it's at home ("Best in: EDM / Dance, Pop, Trap... 2000s to today"), and a tip on how it's used. The fit is only advice: use anything you like.
 - **HEAR IT IN TIME** plays it over BUILD's groove and kit, at your tempo, placed where it belongs: a build-up (riser, reverse cymbal, swell, sweep, tape stop, rewind) **ends** on a downbeat, a hit or an accent **starts** on one, a whoosh **peaks** on one, a texture runs from the downbeat. One bar of the groove plays first and two after. With no kits yet it plays over a click. Press it again (STOP) to stop.
 - **DRAG** the effect onto an audio track in your DAW (it's the original file). Line a build-up's end up with the bar line where the change comes.
+- **ADD TO SONG FX** puts it on the next free **Song FX** pad: every kit plays it (notes 69 and up), it shows on BUILD's SONG FX row and as a row on SAUCE's grid, and it goes out with every export. When they're all taken, it asks which one to replace. When the effect is already there, the button reads **REMOVE FROM SONG FX**.
+- **PUT ON THIS KIT** puts it on one of the kit's own FX pads instead (FX 1 and 2, up to FX 4 in a 32-sound kit): that kit only. When they're full, it asks which one to replace.
+- **In your song** (under the effect's length) says where it is now: on a Song FX pad, or on a kit's own FX pad.
 
 ## Working with Key Compass, Song Savant and Sample Snagger
 
@@ -568,6 +574,8 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | You want to hear one part of a pattern again and again | Click the count over the steps where it starts: it plays from there. Play and Space start from that spot until you click somewhere else. |
 | You want feedback on a beat you made | SAUCE: change a pattern (or build one from BLANK, or drop your MIDI on SAUCE), pick the style it's for, and press COACH MY BEAT. |
 | You want to build a pattern from scratch | SAUCE: press **BLANK**, pick the kit with KIT 01 to 04, click the steps in and set SWING. SAVE AS MY GROOVE keeps it for every song. |
+| You want a riser or an impact on every kit | FX: pick it and press ADD TO SONG FX. It's on every kit's Song FX pads (notes 69 up), kept when you generate again, and exported in the kit's Song FX folder. |
+| BUILD says "+4 waiting" under SONG FX | Your song has more Song FX than this KIT SIZE has pads (4 for 17 sounds, 6 for 23, 8 for 32). They're kept: a bigger KIT SIZE plays them. |
 | An effect isn't on the FX page | LIBRARY files it as something else (a loop, a perc...). Right-click it there and pick "It's really a..." > FX. |
 | You want to hear where a riser should start | FX: pick it and press HEAR IT IN TIME. It ends on the downbeat, and the BARS column says how long it runs at your tempo. |
 | You want a pattern in every song, not just this one | SAUCE: SAVE AS MY GROOVE. It's then under MY GROOVES on SAUCE, in BUILD's groove list and on the MY KITS page. |
@@ -638,5 +646,18 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | 31 | Ride 2 | F#3 (66) |
 | 32 | Perc 4 | G3 (67) |
 | 33 | FX 4 | G#3 (68) |
+
+**Song FX** (the song's effects, in the export's **Song FX** folder; every kit plays the ones its size has)
+
+| File | Pad | Note |
+| --- | --- | --- |
+| Song FX/01 | Song FX 1 | A3 (69) |
+| Song FX/02 | Song FX 2 | A#3 (70) |
+| Song FX/03 | Song FX 3 | B3 (71) |
+| Song FX/04 | Song FX 4 | C4 (72) |
+| Song FX/05 | Song FX 5 | C#4 (73) |
+| Song FX/06 | Song FX 6 | D4 (74) |
+| Song FX/07 | Song FX 7 | D#4 (75) |
+| Song FX/08 | Song FX 8 | E4 (76) |
 
 Files 23 to 27 come with a 23-sound kit, 23 to 33 with a 32-sound kit (KIT SIZE). In a 17-sound kit, Snare 2, Floor Tom 2, Low Tom and Hi-Mid Tom are variations of a main pad (tuned down or a little quieter), and the Pedal Hat always is (a shorter, quieter closed hat), so General MIDI grooves always find a sound. A bigger kit puts its real second snare on Snare 2 (E1), and a 32-sound kit its second toms on Floor Tom 2, Low Tom and Hi-Mid Tom. Closed Hat 2 and Open Hat 2 go in the hats' choke group.

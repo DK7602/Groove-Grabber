@@ -33,6 +33,6 @@ release commit.
 - [x] FX tab: ADD TO SONG FX (REMOVE when in), PUT ON THIS KIT, "In your song" line
 - [x] SAUCE: rows (BLANK + ADD DRUM), MIDI via padLayout; Song FX pads are amber (slotColour)
 - [x] Export: Song FX folder, MPC, Kit Info, FL names, DAW guide step (Daws::songFxStep), export panel line
-- [ ] Song Savant DrumLanes
+- [x] Song Savant DrumLanes (branch claude/gg-song-fx-notes in Song-Savant, CI there)
 - [ ] Tests (engine + screenshots), manual, CLAUDE.md, version 1.0.31
 - [ ] Release: one commit on main, CI, Windows host annotations, tell the other session
