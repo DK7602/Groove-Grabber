@@ -5,7 +5,8 @@
 #   f      the frame
 #   pre    the frame shown first, until the cursor clicks (the click is what changes it to f)
 #   click  where the cursor clicks (a mark: see frames.json), point: where it moves without clicking
-#   drag   where the cursor grabs and drags off to the right (DRAG MIDI)
+#   drag   where the cursor grabs and drags off (DRAG MIDI); dragBy [dx, dy] sets where to (default down and right),
+#          dragText the file name it carries (default the SAUCE groove's MIDI file)
 #   hl     marks to light up (the rest of the screen dims a little)
 #   zoom   marks to move the camera in on (none: the whole window)
 #   w      how much of the line's time it gets (default 1)
@@ -15,7 +16,7 @@ SCRIPT = [
     {"card": "title"},
 
     {"chapter": "1", "title": "Your sounds"},
-    {"say": "Groove Grabber has four pages: BUILD, SAUCE, MY KITS and LIBRARY. Start on LIBRARY.",
+    {"say": "Groove Grabber has five pages: BUILD, SAUCE, FX, MY KITS and LIBRARY. Start on LIBRARY.",
      "shots": [{"f": "lib-empty", "hl": ["tabs"], "point": "tab0"}, {"f": "lib-empty", "hl": ["tab1"], "point": "tab1"}]},
     {"say": "Press ADD DRUM FOLDER and choose the folder where your drum samples live. Groove Grabber only uses sounds you already own.",
      "shots": [{"pre": "lib-empty", "f": "lib-full", "click": "addFolder", "hl": ["addFolder"], "zoom": ["addFolder", "tab0"]},
@@ -103,9 +104,32 @@ SCRIPT = [
      "shots": [{"pre": "sauce-coach", "f": "sauce-coach-after", "click": "tryIt", "hl": ["grid"]},
                {"f": "sauce-coach-after", "hl": ["coach"]}]},
 
-    {"chapter": "7", "title": "MY KITS and help"},
+    {"chapter": "7", "title": "Effects that fit"},
+    {"say": "The FX page gathers every effect in your library and sorts it by kind: build-ups like risers, hits, falls, textures and accents.",
+     "shots": [{"pre": "sauce-coach-after", "f": "fx", "click": "tab4", "hl": ["fx.kinds"]},
+               {"f": "fx", "hl": ["fxTable"]}]},
+    {"say": "Pick a kind, then an effect to hear it. You see its length in bars at your tempo, and how well it fits your genre and decade. That's only advice, so use anything you like.",
+     "shots": [{"pre": "fx", "f": "fx-riser", "click": "kindRiser", "hl": ["kindRiser", "fxTable"]},
+               {"f": "fx-riser", "hl": ["fxDetail"], "w": 1.6}]},
+    {"say": "HEAR IT IN TIME plays it over your groove, right where it belongs: a riser ends on the downbeat, and an impact starts on it.",
+     "shots": [{"pre": "fx-riser", "f": "fx-intime", "click": "inTime", "hl": ["inTime"], "zoom": ["fx.facts", "inTime"]}]},
+    {"say": "FIT makes it exactly one, two, four or eight bars at your tempo. Too long, it's trimmed from the start. Too short, it's stretched, and its pitch stays the same.",
+     "shots": [{"pre": "fx-riser", "f": "fx-fit", "click": "fit2", "hl": ["fitBars"], "zoom": ["fx.facts", "fitBars"]},
+               {"f": "fx-fit", "hl": ["fx.facts"], "zoom": ["fx.facts", "fitBars"], "w": 1.3}]},
+    {"say": "ADD TO SONG FX puts it on every kit, on its own pads after the drums. PUT ON THIS KIT puts it on just the kit you're on. Or drag it straight onto an audio track, already fit to your bars.",
+     "shots": [{"pre": "fx-fit", "f": "fx-added", "click": "addBank", "hl": ["addBank", "fx.facts"], "zoom": ["fx.facts", "addBank", "onKit"]},
+               {"f": "fx-added", "hl": ["onKit"], "point": "onKit", "zoom": ["fx.facts", "addBank", "onKit"]},
+               {"f": "fx-added", "drag": "fx.drag", "dragBy": [-460, -150], "dragText": "Riser Big (2 bars at 88 BPM).wav", "hl": ["fx.drag"]}]},
+    {"say": "Effects with a clear note, like this air horn, are tuned to your key. Noise, like a riser, is left as it is.",
+     "shots": [{"pre": "fx-added", "f": "fx-tuned", "click": "kindHorn", "hl": ["kindHorn"]},
+               {"f": "fx-tuned", "hl": ["fx.facts"], "zoom": ["fx.facts", "fitBars"], "w": 1.3}]},
+    {"say": "Back on BUILD, the SONG FX row holds them, on every kit. Click one to shape it, and FIT is here too. They go out with every export.",
+     "shots": [{"pre": "fx-tuned", "f": "build-songfx", "click": "tab0", "hl": ["songFxRow"]},
+               {"f": "build-songfx", "hl": ["fitBtn"], "point": "fitBtn", "zoom": ["detail"], "w": 1.3}]},
+
+    {"chapter": "8", "title": "MY KITS and help"},
     {"say": "MY KITS keeps everything you save: your kits by genre, your recent builds, and your grooves. Load a kit back into BUILD, or export it again any time.",
-     "shots": [{"pre": "sauce-coach-after", "f": "kits", "click": "tab2", "hl": ["list"]},
+     "shots": [{"pre": "build-songfx", "f": "kits", "click": "tab2", "hl": ["list"]},
                {"f": "kits-grooves", "hl": ["list"]}]},
     {"say": "Press the question mark, or F1, for the full manual, with the loading steps for every DAW.",
      "shots": [{"pre": "build-final", "f": "manual", "click": "help"}]},

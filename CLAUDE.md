@@ -66,9 +66,9 @@ xvfb-run -a ./build/GGTests_artefacts/Release/GGTests --host "build/GrooveGrabbe
 
 ## The video tutorial
 
-`bash tools/tutorial/make.sh` makes "Groove Grabber Tutorial.mp4" (about 5 minutes):
+`bash tools/tutorial/make.sh` makes "Groove Grabber Tutorial.mp4" (about 7 minutes, eight chapters: sounds, describe, generate, export, SAUCE, MY GROOVES and COACH, FX, MY KITS):
 - `GGTests --tutorial DIR` (`Tests/TestTutorial.cpp`) runs the real window at 1920 x 1080 through the workflow on a made-up sample library and saves each step as a picture, with where its buttons are (`frames.json` "marks"), plus `beat.wav` (the first kit playing the groove). Menus are drawn with the look and feel's menu drawing: a real popup closes itself at once under xvfb.
-- `tools/tutorial/script.py` is what's said and shown: a line of narration, the frames, where the cursor clicks, what's lit, where the camera moves in. Change it when the UI or a feature changes, and keep it accurate and clean.
+- `tools/tutorial/script.py` is what's said and shown: a line of narration, the frames, where the cursor clicks, what's lit, where the camera moves in. Change it when the UI or a feature changes, and keep it accurate and clean. A page's marks come from its widgets or its own `tutorialArea` getter (FX: `FxPage::tutorialArea`; paint the page before reading an area that depends on what's drawn). The demo library has an effects pack ("Hit Factory FX") for the FX chapter.
 - `tools/tutorial/make_video.py` adds the cursor, highlights, subtitles, title and chapter cards, the narrator (Piper, offline; LJ Speech is public domain, check any other voice's licence), then ffmpeg makes the MP4. The voice is alone by default: the owner heard the demo kit's beat (synthetic noise drums) as static under it, so `--music` puts it back only on request. Piper is made at `--volume 0.8` so its lines don't clip. `--preview 12,60` writes stills, `--schedule` lists when each part starts.
 
 ## Checking the sound sorting on real samples

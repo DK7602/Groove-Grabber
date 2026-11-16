@@ -117,6 +117,18 @@ namespace ggui
             }
         }
 
+        juce::Rectangle<int> rowOf (int type) const
+        {
+            float y = 0;
+            for (const auto& it : items())
+            {
+                const float h = rowH (it.header);
+                if (! it.header && it.type == type) return juce::Rectangle<float> (0, y, (float) getWidth(), h).toNearestInt();
+                y += h;
+            }
+            return {};
+        }
+
         int typeAt (float yPos) const
         {
             float y = 0;
@@ -511,6 +523,21 @@ namespace ggui
         inTimeUntil = juce::Time::getMillisecondCounterHiRes() + secs * 1000.0 + 400.0;
     }
 
+    juce::Rectangle<int> FxPage::tutorialArea (const juce::String& which) const
+    {
+        if (which == "kinds") return leftArea;
+        if (which == "detail") return rightArea;
+        if (which == "facts") return factsArea;
+        if (which == "drag") return dragArea;
+        if (which == "fit") return fitRow;
+        if (which.startsWith ("kind."))
+        {
+            const auto t = gg::fx::typeFromId (which.fromFirstOccurrenceOf (".", false, false));
+            if (t != gg::fx::Type::count) return types->rowOf ((int) t) + types->getPosition();
+        }
+        return {};
+    }
+
     int FxPage::getFitBars() const
     {
         const auto it = fitChoice.find (getSelectedPath());
@@ -536,11 +563,16 @@ namespace ggui
         const auto set = gg::fx::fitSettings (item.type);
         const double anchor = set.anchor == 1 ? len * item.shape.peakPos : len;
         juce::String w = juce::String (bars) + (bars == 1 ? " bar" : " bars") + ": ";
-        if (anchor > target * 1.01) return w + (set.anchor == 2 ? "cut short, faded out" : "trimmed from its start");
+        if (anchor > target * 1.01)
+        {
+            if (set.anchor == 2) return w + (anchor < target * 1.05 ? "a touch cut, faded out" : "cut short, faded out");
+            return w + (anchor < target * 1.05 ? "a touch trimmed from its start" : "trimmed from its start");
+        }
         if (anchor < target * 0.99)
         {
             if (! set.stretch) return w + "starts on the downbeat and rings as it is";
             const double factor = target / juce::jmax (0.01, anchor);
+            if (factor < 1.05) return w + "stretched a touch, pitch kept";
             if (factor > 4.0) return w + "stretched x4 (the most), pitch kept" + juce::String (set.anchor == 2 ? ", then silence" : ", silence before it");
             return w + "stretched x" + juce::String (factor, 1) + ", pitch kept";
         }
@@ -863,6 +895,7 @@ namespace ggui
         if (const auto where = whereItIs (s->path); where.isNotEmpty()) add ("In your song   ", where);
         juce::TextLayout factsLayout;
         factsLayout.createLayout (facts, (float) t.getWidth());
+        factsArea = t.withHeight ((int) std::ceil (factsLayout.getHeight()));
         factsLayout.draw (g, t.removeFromTop ((int) std::ceil (factsLayout.getHeight())).toFloat());
         t.removeFromTop (8);
 

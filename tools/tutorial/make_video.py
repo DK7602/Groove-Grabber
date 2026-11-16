@@ -163,7 +163,9 @@ def plan(cap, marks, piper, voice, cache):
                     else: target = centre(r)
             sh["cursorFrom"], sh["cursorTo"] = cursor, target or cursor
             if target: cursor = target
-            if "drag" in s: cursor = (cursor[0] + DRAG[0], cursor[1] + DRAG[1])
+            if "drag" in s:
+                by = s.get("dragBy", DRAG)
+                cursor = (cursor[0] + by[0], cursor[1] + by[1])
             zoom = s.get("zoom")
             new_cam = camera_for(union([marks.get(k, f, pre) for k in zoom])) if zoom else [0.0, 0.0, float(W), float(H)]
             sh["camFrom"], sh["camTo"] = cam, new_cam
@@ -301,7 +303,7 @@ def highlight(img, rects, alpha, cam):
     img.alpha_composite(ring)
     return img.convert("RGB")
 
-def draw_cursor(img, p, cam, ripple=None, drag_chip=False):
+def draw_cursor(img, p, cam, ripple=None, drag_chip=None):
     x, y = to_screen(p, cam)
     rgba = img.convert("RGBA")
     if ripple is not None and 0 <= ripple <= 1:
@@ -315,7 +317,7 @@ def draw_cursor(img, p, cam, ripple=None, drag_chip=False):
         layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         d = ImageDraw.Draw(layer)
         f = G.setdefault("chip_font", font("Rajdhani-SemiBold.ttf", 26))
-        label = "Boom Bap 88 BPM.mid"
+        label = drag_chip
         cw = f.getlength(label) + 40
         cx = x + 18 if x + 18 + cw < W - 10 else x - cw - 10
         d.rounded_rectangle([cx, y + 24, cx + cw, y + 74], radius=10, fill=(24, 26, 36, 240), outline=ORANGE + (255,), width=2)
@@ -422,12 +424,13 @@ def render(i):
         start_hl = CLICK_AT + 0.15 if clicky else 0.25
         img = highlight(img, sh["hlRects"], ease((st - start_hl) / 0.4) * 0.9, cam)
         p = lerp(sh["cursorFrom"], sh["cursorTo"], ease(st / MOVE)) if moves else sh["cursorTo"]
-        ripple, chip = None, False
+        ripple, chip = None, None
         if "click" in sh: ripple = (st - CLICK_AT) / 0.45
         if "drag" in sh and st > CLICK_AT:
             k = ease((st - CLICK_AT - 0.2) / 1.6)
-            p = (sh["cursorTo"][0] + DRAG[0] * k, sh["cursorTo"][1] + DRAG[1] * k)
-            chip = True
+            by = sh.get("dragBy", DRAG)
+            p = (sh["cursorTo"][0] + by[0] * k, sh["cursorTo"][1] + by[1] * k)
+            chip = sh.get("dragText", "Boom Bap 88 BPM.mid")
         img = draw_cursor(img, p, cam, ripple, chip)
     else:
         img = card(seg)

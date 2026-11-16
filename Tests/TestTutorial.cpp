@@ -1,5 +1,5 @@
 // GGTests --tutorial DIR: walks through Groove Grabber the way a new user would (add a drum folder, describe the
-// song, generate, hear and shape a kit, export, SAUCE, MY GROOVES, COACH MY BEAT, MY KITS, the manual) and saves
+// song, generate, hear and shape a kit, export, SAUCE, MY GROOVES, COACH MY BEAT, FX, MY KITS, the manual) and saves
 // each step as a picture of the real window, with where the things to point at are, plus a beat the first kit
 // plays. tools/tutorial/make_video.py turns them into the video tutorial.
 //
@@ -256,6 +256,19 @@ namespace
         add ("Downloads/Untitled 04.wav", s.clap (0.15f));
         add ("Downloads/Untitled 05.wav", s.hat (0.03f));
         add ("Downloads/Untitled 06.wav", s.tom (118));
+        // an effects pack (the FX page)
+        const juce::String fx = "Hit Factory FX/";
+        add (fx + "Risers/Riser Big.wav", s.riser (9.5f));       // (about 3 bars at 88: FIT 2 trims it)
+        add (fx + "Transitions/Reverse Crash.wav", s.reverseCymbal (2.0f));
+        add (fx + "Transitions/Downlifter Dark.wav", s.downlifter (2.5f));
+        add (fx + "Transitions/Whoosh Fast.wav", s.whoosh (1.2f));
+        add (fx + "Hits/Cinematic Impact.wav", s.impact (2.5f));
+        add (fx + "Hits/Sub Drop.wav", s.subDrop (1.8f));
+        add (fx + "Ear Candy/Tape Stop.wav", s.tapeStop (1.2f));
+        add (fx + "Ear Candy/Vinyl Crackle.wav", s.crackle (4.0f));
+        add (fx + "Ear Candy/Scratch Chirp.wav", s.scratch (1.0f));
+        add (fx + "Ear Candy/Laser Zap.wav", s.laser (0.4f));
+        add (fx + "Ear Candy/Air Horn.wav", s.horn (1.4f));
         return root;
     }
 
@@ -317,7 +330,7 @@ int runTutorial (const juce::File& outDir)
     pumpFor (500);
     cap.markUnion ("tabs", std::vector<juce::Component*> { const_cast<juce::TextButton*> (&ed->getHeader().getTabButton (0)),
                                                            const_cast<juce::TextButton*> (&ed->getHeader().getTabButton (1)) });
-    for (int t = 0; t < 4; ++t)
+    for (int t = 0; t < 5; ++t)
         cap.mark ("tab" + juce::String (t), const_cast<juce::TextButton*> (&ed->getHeader().getTabButton (t)));
     cap.mark ("addFolder", button (content, "+ ADD DRUM FOLDER"));
     cap.snap ("lib-empty");
@@ -706,6 +719,90 @@ int runTutorial (const juce::File& outDir)
     markSauce();
     cap.mark ("coach", &sauce.getCoach());
     cap.snap ("sauce-coach-after");
+
+    // ---- FX: your effects by kind, heard in time, fit to the bars, on every kit ----
+    ed->showTab (4);
+    proc.fxCatalog->waitUntilDone (30000);
+    pumpFor (400);
+    ed->refreshAll();
+    pumpFor (400);
+    cap.clearMarks();
+    auto& fxp = ed->getFxPage();
+    auto markFx = [&]
+    {
+        fxp.createComponentSnapshot (fxp.getLocalBounds(), true, 1.0f);      // (painted: the facts' height is known)
+        for (const auto* k : { "kinds", "facts", "drag", "fit" })
+            if (const auto r = fxp.tutorialArea (k); ! r.isEmpty())
+                cap.markIn (juce::String ("fx.") + k, fxp, r.toFloat());
+        cap.markIn ("fxDetail", fxp, fxp.tutorialArea ("detail").toFloat());
+        cap.markIn ("kindRiser", fxp, fxp.tutorialArea ("kind.riser").toFloat());
+        cap.markIn ("kindHorn", fxp, fxp.tutorialArea ("kind.horn").toFloat());
+        if (auto tables = all<juce::TableListBox> (fxp); ! tables.empty()) cap.mark ("fxTable", tables.front());
+        if (auto* b = button (fxp, "HEAR IT IN TIME")) cap.mark ("inTime", b);
+        if (auto* b = button (fxp, "STOP")) cap.mark ("inTime", b);
+        if (auto* b = button (fxp, "ADD TO SONG FX")) cap.mark ("addBank", b);
+        if (auto* b = button (fxp, "REMOVE FROM SONG FX")) cap.mark ("addBank", b);
+        cap.mark ("onKit", button (fxp, "PUT ON THIS KIT"));
+        cap.mark ("fitsFirst", button (fxp, "FITS MY SONG FIRST"));
+        if (auto sg = all<ggui::Segmented> (fxp); ! sg.empty())
+        {
+            cap.mark ("fitBars", sg.front());
+            if (auto* two = button (*sg.front(), "2")) cap.mark ("fit2", two);
+        }
+    };
+    fxp.showType (-1);
+    pumpFor (200);
+    markFx();
+    cap.snap ("fx");
+    // a riser: its length in bars, its fit for the song
+    fxp.showType ((int) gg::fx::Type::riser);
+    pumpFor (150);
+    fxp.selectRow (0);
+    pumpFor (600);
+    markFx();
+    cap.snap ("fx-riser");
+    // HEAR IT IN TIME
+    fxp.hearInTime();
+    pumpFor (900);
+    markFx();
+    cap.snap ("fx-intime");
+    fxp.hearInTime();      // (stop)
+    pumpFor (300);
+    // FIT: 2 bars
+    markFx();
+    fxp.setFitBars (2);
+    pumpFor (300);
+    markFx();
+    cap.snap ("fx-fit");
+    // ADD TO SONG FX (with its FIT): on every kit
+    fxp.addToSongFx();
+    pumpFor (600);
+    markFx();
+    cap.snap ("fx-added");
+    // an air horn: tuned to the key
+    fxp.showType ((int) gg::fx::Type::horn);
+    pumpFor (150);
+    fxp.selectRow (0);
+    pumpFor (600);
+    markFx();
+    cap.snap ("fx-tuned");
+    proc.stopPreview();
+
+    // BUILD: the Song FX row, and FIT in the pad editor
+    ed->showTab (0);
+    proc.selectedSlot = gg::Slot::sfx1;
+    ed->refreshAll();
+    pumpFor (700);
+    cap.clearMarks();
+    markCards();
+    {
+        std::vector<juce::Component*> bank;
+        for (auto* t : all<ggui::PadTile> (ed->getBuild())) if (gg::isBankSlot (t->getSlot())) bank.push_back (t);
+        cap.markUnion ("songFxRow", bank);
+        for (auto* t : all<ggui::PadTile> (ed->getBuild())) if (t->getSlot() == gg::Slot::sfx1) cap.mark ("songFx1", t);
+    }
+    cap.mark ("fitBtn", button (content, "FIT:", true));
+    cap.snap ("build-songfx");
 
     // ---- MY KITS ----
     ed->showTab (2);

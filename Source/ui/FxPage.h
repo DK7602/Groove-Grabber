@@ -39,6 +39,9 @@ namespace ggui
         void setFitBars (int bars);                  // FIT for the effect picked: 0 (as it is), 1, 2, 4, 8
         int getFitBars() const;
         juce::String fitTextOf (int row) const;
+        // (the video tutorial) where things are, in the page: "kinds", "detail", "facts", "drag", "fit", or
+        // "kind.<typeId>" (that kind's row in the list)
+        juce::Rectangle<int> tutorialArea (const juce::String& which) const;
 
     private:
         struct Row { int index; gg::fx::Catalog::Item item; gg::fx::Fit fit; };
@@ -83,6 +86,6 @@ namespace ggui
         juce::String shownPath;                      // the one in the detail panel
         int loadGeneration = 0;
         double inTimeUntil = 0;                      // while HEAR IT IN TIME plays (ms counter)
-        juce::Rectangle<int> leftArea, midArea, rightArea, dragArea, detailText, statusArea;
+        juce::Rectangle<int> leftArea, midArea, rightArea, dragArea, detailText, statusArea, factsArea;
     };
 }

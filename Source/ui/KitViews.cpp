@@ -652,7 +652,7 @@ namespace ggui
                     n.add ("fit to " + juce::String (st.fitBars) + (st.fitBars == 1 ? " bar" : " bars") + " at "
                            + juce::String (juce::roundToInt (kit->bpm)) + " BPM");
                 if (info->clipped) n.add ("clipped in the file");
-                if (info->tailFloorDb > -45.0f) n.add ("hiss / vinyl noise");
+                if (info->tailFloorDb > -45.0f && gg::slotCat (slot) != gg::Cat::fx) n.add ("hiss / vinyl noise");   // (an effect's noise is the sound)
                 notes = n.joinIntoString ("  -  ");
             }
             else
