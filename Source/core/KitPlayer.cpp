@@ -68,8 +68,9 @@ namespace gg
 
     std::shared_ptr<const juce::AudioBuffer<float>> renderPad (const Kit& kit, const PadDef& pad, double sr)
     {
-        // a pad beyond the kit's size is silent (a 17-sound kit has no Kick 2); a stand-in pad plays its stand-in
-        if (pad.note - firstPadNote >= kit.padCount()) return nullptr;
+        // a pad beyond the kit's size is silent (a 17-sound kit has no Kick 2); a stand-in pad plays its stand-in; the
+        // Song FX bank's pads play the ones the kit's size has
+        if (isBankSlot (pad.slot) ? ! slotInBank (pad.slot, kit.size) : pad.note - firstPadNote >= kit.padCount()) return nullptr;
         const auto use = kit.padSound (pad);
         return renderCached (kit[use.slot], slotCat (use.slot), kit.tuneToKey, use.shaped ? pad.tuneOffset : 0.0f,
                              use.shaped ? pad.gainDb : 0.0f, use.shaped ? pad.lengthScale : 1.0f, sr);

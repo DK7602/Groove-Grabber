@@ -52,6 +52,7 @@ namespace gg
         tomLow, tomMid, tomHigh, perc1, perc2, perc3, fx1, fx2,
         kick2, bass808_2, snare2, clap2, rim2, closedHat2, openHat2, crash2, ride2,
         tomLow2, tomMid2, tomHigh2, perc4, fx3, fx4,
+        sfx1, sfx2, sfx3, sfx4, sfx5, sfx6, sfx7, sfx8,     // the Song FX bank (1.0.31): the song's, on every kit
         count
     };
     constexpr int numSlots = (int) Slot::count;
@@ -72,6 +73,17 @@ namespace gg
     bool slotInKit (Slot, int kitSize) noexcept;
     int slotRank (Slot) noexcept;                        // where it's shown among all 32 (Kick, Kick 2, 808, 808 2...)
     int padCountFor (int kitSize) noexcept;              // the pads (and export files) it uses: 22, 27 or 33
+
+    // The Song FX bank: up to 8 effects that belong to the song, not to a kit (FX tab > ADD TO SONG FX). Every kit plays
+    // them on notes 69 up (A3 in Cubase's naming), past any kit's own pads, so a kit exports the same with or without
+    // them. A 17-sound kit has 4 of the bank's pads, 23 has 6, 32 all 8; the bank keeps all 8 whatever the size.
+    constexpr int numBankSlots = 8;
+    constexpr int firstBankNote = 69;
+    bool isBankSlot (Slot) noexcept;
+    int bankIndex (Slot) noexcept;                       // 0..7 (-1: not a bank slot)
+    Slot bankSlot (int index) noexcept;
+    int bankSizeFor (int kitSize) noexcept;              // 4, 6 or 8
+    bool slotInBank (Slot, int kitSize) noexcept;        // one of the bank's pads a kit this size plays
 
     //==============================================================================
     // The pad layout: General MIDI drums on 36..51 (so GM grooves and Groove Agent's own grooves play
@@ -96,7 +108,7 @@ namespace gg
     };
 
     constexpr int firstPadNote = 36;
-    constexpr int numPads = 33;                        // every pad any kit uses (36..68)
+    constexpr int numPads = 41;                        // every pad: the kits' (36..68), then the Song FX bank (69..76)
     const std::array<PadDef, numPads>& padLayout();
     const PadDef* padForNote (int note) noexcept;      // nullptr if not one of ours
     int mainNoteForSlot (Slot) noexcept;               // the note a slot is "on" (first pad using it)

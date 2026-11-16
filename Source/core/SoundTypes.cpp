@@ -180,6 +180,14 @@ namespace gg
             case Slot::perc4:      return "Perc 4";
             case Slot::fx3:        return "FX 3";
             case Slot::fx4:        return "FX 4";
+            case Slot::sfx1:       return "Song FX 1";
+            case Slot::sfx2:       return "Song FX 2";
+            case Slot::sfx3:       return "Song FX 3";
+            case Slot::sfx4:       return "Song FX 4";
+            case Slot::sfx5:       return "Song FX 5";
+            case Slot::sfx6:       return "Song FX 6";
+            case Slot::sfx7:       return "Song FX 7";
+            case Slot::sfx8:       return "Song FX 8";
             case Slot::count:     break;
         }
         return {};
@@ -250,6 +258,21 @@ namespace gg
         }
     }
 
+    bool isBankSlot (Slot s) noexcept               { return (int) s >= (int) Slot::sfx1 && (int) s <= (int) Slot::sfx8; }
+    int bankIndex (Slot s) noexcept                 { return isBankSlot (s) ? (int) s - (int) Slot::sfx1 : -1; }
+    Slot bankSlot (int i) noexcept                  { return juce::isPositiveAndBelow (i, numBankSlots) ? (Slot) ((int) Slot::sfx1 + i) : Slot::count; }
+    bool slotInBank (Slot s, int kitSize) noexcept  { return isBankSlot (s) && bankIndex (s) < bankSizeFor (kitSize); }
+
+    int bankSizeFor (int kitSize) noexcept
+    {
+        switch (validKitSize (kitSize))
+        {
+            case 23: return 6;
+            case 32: return 8;
+            default: return 4;
+        }
+    }
+
     bool slotInKit (Slot s, int kitSize) noexcept
     {
         for (auto x : kitSlots (kitSize)) if (x == s) return true;
@@ -260,7 +283,7 @@ namespace gg
     {
         const auto& all = kitSlots (32);
         for (size_t i = 0; i < all.size(); ++i) if (all[i] == s) return (int) i;
-        return (int) all.size();
+        return (int) all.size() + (isBankSlot (s) ? bankIndex (s) : numBankSlots);     // (the Song FX after every kit sound)
     }
 
     int padCountFor (int kitSize) noexcept
@@ -275,6 +298,7 @@ namespace gg
 
     Cat slotCat (Slot s) noexcept
     {
+        if (isBankSlot (s)) return Cat::fx;
         s = slotKind (s);
         switch (s)
         {
@@ -346,6 +370,15 @@ namespace gg
             { 66, Slot::ride2,      0.0f,  0.0f, 1.0f,  "Ride 2",       0 },
             { 67, Slot::perc4,      0.0f,  0.0f, 1.0f,  "Perc 4",       0 },
             { 68, Slot::fx4,        0.0f,  0.0f, 1.0f,  "FX 4",         0 },
+            // the Song FX bank (every kit: the first 4, 6 or 8 by its size)
+            { 69, Slot::sfx1,       0.0f,  0.0f, 1.0f,  "Song FX 1",    0 },
+            { 70, Slot::sfx2,       0.0f,  0.0f, 1.0f,  "Song FX 2",    0 },
+            { 71, Slot::sfx3,       0.0f,  0.0f, 1.0f,  "Song FX 3",    0 },
+            { 72, Slot::sfx4,       0.0f,  0.0f, 1.0f,  "Song FX 4",    0 },
+            { 73, Slot::sfx5,       0.0f,  0.0f, 1.0f,  "Song FX 5",    0 },
+            { 74, Slot::sfx6,       0.0f,  0.0f, 1.0f,  "Song FX 6",    0 },
+            { 75, Slot::sfx7,       0.0f,  0.0f, 1.0f,  "Song FX 7",    0 },
+            { 76, Slot::sfx8,       0.0f,  0.0f, 1.0f,  "Song FX 8",    0 },
         }};
         return pads;
     }

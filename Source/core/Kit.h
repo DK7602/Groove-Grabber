@@ -45,6 +45,15 @@ namespace gg
         bool isValid() const noexcept                         { return numFilled() > 0; }
         const std::vector<Slot>& shownSlots() const           { return kitSlots (size); }
         int padCount() const noexcept                         { return padCountFor (size); }
+        // the Song FX bank's pads this kit plays (the processor copies the song's bank in), and how many hold a sound
+        // up to the last one used (the files the export writes for them)
+        int bankCount() const noexcept                        { return bankSizeFor (size); }
+        int bankUsed() const noexcept
+        {
+            int n = 0;
+            for (int i = 0; i < bankCount(); ++i) if (! (*this)[bankSlot (i)].isEmpty()) n = i + 1;
+            return n;
+        }
 
         // the sound a pad plays: its own slot's, or (Snare 2 and the second toms in a kit without them) the
         // stand-in's; `shaped` says whether the pad's own tune / gain / length apply

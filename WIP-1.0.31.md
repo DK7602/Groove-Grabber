@@ -26,9 +26,9 @@ release commit.
 - Kit::fromVar keeps sfx slots (older versions ignore the unknown ids).
 
 ## Checklist
-- [ ] SoundTypes: slots, pads, names, ids, helpers
-- [ ] Processor: bank, sync, state, ADD / PUT ON KIT API
-- [ ] Player / render: bank pads play (padCount for playback covers them)
+- [x] SoundTypes: slots, pads, names, ids, helpers (Kit::bankCount / bankUsed, renderPad plays bank pads)
+- [x] Processor: bank, sync, state, ADD / PUT ON KIT API (setSlotSound on a bank slot -> setSongFx; loadKit adopts a saved kit's bank when the song has none)
+- [x] Player / render: bank pads play
 - [ ] BUILD: SONG FX row
 - [ ] FX tab: ADD TO SONG FX, PUT ON THIS KIT
 - [ ] SAUCE: rows, addable, MIDI

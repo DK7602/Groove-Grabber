@@ -355,7 +355,9 @@ namespace gg
                                       Slot::perc1, Slot::perc2, Slot::perc3, Slot::fx1, Slot::fx2,
                                       Slot::kick2, Slot::snare2, Slot::closedHat2, Slot::bass808_2, Slot::openHat2, Slot::clap2,
                                       Slot::rim2, Slot::crash2, Slot::ride2, Slot::tomLow2, Slot::tomMid2, Slot::tomHigh2,
-                                      Slot::perc4, Slot::fx3, Slot::fx4 };
+                                      Slot::perc4, Slot::fx3, Slot::fx4,
+                                      // (the Song FX bank is the song's: never filled here)
+                                      Slot::sfx1, Slot::sfx2, Slot::sfx3, Slot::sfx4, Slot::sfx5, Slot::sfx6, Slot::sfx7, Slot::sfx8 };
         static_assert (sizeof (order) / sizeof (order[0]) == (size_t) numSlots, "every slot has its turn");
 
         // the kit's toms from the lowest note up: (Tom Low 2,) Tom Low, (Tom Mid 2,) Tom Mid, (Tom High 2,) Tom High
