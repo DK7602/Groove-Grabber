@@ -110,7 +110,7 @@ namespace ggui
         }
     }
 
-    juce::Colour slotColour (gg::Slot s)   { return catColour (gg::slotCat (s)); }
+    juce::Colour slotColour (gg::Slot s)   { return gg::isBankSlot (s) ? pal().amber : catColour (gg::slotCat (s)); }   // (Song FX: amber)
 
     juce::Font titleFont (float h)           { return withTypeface (fonts().black, h); }
     juce::Font headFont (float h)            { return withTypeface (fonts().bold, h); }

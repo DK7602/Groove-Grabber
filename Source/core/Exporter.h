@@ -8,6 +8,8 @@
 //                                    right note. Empty pads get a silent file so the numbering never shifts.
 //     <Kit name>.pgm                 an Akai MPC 1000 program with every pad and note set (Groove Agent can
 //                                    import it: right-click the kit slot > Import)
+//     Song FX/01 Song FX 1.wav ...   the song's FX (FX tab > ADD TO SONG FX), when there are any: notes 69 up (A3
+//                                    in Cubase's naming), dropped on that pad the same way
 //     <Kit name> Groove.mid          the preview groove on the same notes
 //     Kit Info.txt                   where every sound came from, its tuning, and the loading steps for your DAW
 #pragma once
@@ -40,6 +42,8 @@ namespace gg
         juce::String error;
         juce::File folder;
         juce::Array<juce::File> padFiles;    // in pad order (what to drag onto the sampler's first pad)
+        juce::File bankFolder;               // "Song FX" (when the kit has any)
+        juce::Array<juce::File> bankFiles;   // Song FX 1 up to the last one used (dragged onto note 69's pad)
         juce::File programFile, midiFile, infoFile;
         int soundsWritten = 0;
     };

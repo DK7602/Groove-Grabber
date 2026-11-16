@@ -19,10 +19,10 @@ namespace ggui
         }
 
         // The DAW's loading steps (and the hats tip), numbered, **bold** where marked; returns the height used
-        int drawSteps (juce::Graphics& g, const gg::DawGuide& guide, juce::Rectangle<int> area, int numPads)
+        int drawSteps (juce::Graphics& g, const gg::DawGuide& guide, juce::Rectangle<int> area, int numPads, int songFx = 0)
         {
             const auto& p = pal();
-            const auto items = gg::guideSteps (guide, numPads, gg::padFileName (numPads - 1, false));
+            const auto items = gg::guideSteps (guide, numPads, gg::padFileName (numPads - 1, false), songFx);
             const int top = area.getY();
             const auto normal = uiFont (14.0f, false), bold = uiFont (14.0f);
             for (int i = 0; i < items.size() && area.getHeight() > 16; ++i)
@@ -245,7 +245,7 @@ namespace ggui
                                           uiFont (14.5f, false), p.dim, a));
             a.removeFromTop (10);
             const auto* kit = proc.getActiveKit();
-            drawSteps (g, guide, a, kit != nullptr ? kit->padCount() : gg::padCountFor (proc.options.kitSize));
+            drawSteps (g, guide, a, kit != nullptr ? kit->padCount() : gg::padCountFor (proc.options.kitSize), kit != nullptr ? kit->bankUsed() : 0);
             return;
         }
         if (! result.ok)
@@ -269,10 +269,12 @@ namespace ggui
         g.setFont (uiFont (14.5f, false));
         in.removeFromTop (drawWrapped (g, juce::String (result.soundsWritten) + " sounds written to " + result.folder.getFileName()
                                           + (result.programFile.existsAsFile() ? ", plus an MPC program" : "") + (result.midiFile.existsAsFile() ? " and the groove MIDI" : "")
-                                          + ". Grab here and drop all " + juce::String (result.padFiles.size()) + " files at once:",
+                                          + ". Grab here and drop all " + juce::String (result.padFiles.size()) + " files at once"
+                                          + (result.bankFiles.isEmpty() ? juce::String (":") : ", then the Song FX folder's " + juce::String (result.bankFiles.size())
+                                                                                           + (result.bankFiles.size() == 1 ? " file" : " files") + " (the last step):"),
                                        uiFont (14.5f, false), p.dim, in));
         in.removeFromTop (10);
-        drawSteps (g, guide, in, result.padFiles.size());
+        drawSteps (g, guide, in, result.padFiles.size(), result.bankFiles.size());
     }
 
     void ExportPanel::mouseDown (const juce::MouseEvent& e)

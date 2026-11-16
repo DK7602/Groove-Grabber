@@ -33,6 +33,8 @@ namespace ggui
         gg::fx::Type getSelectedType() const;
         int countOf (int type) const;                // -1 = all
         void hearInTime();
+        void addToSongFx();                          // ADD TO SONG FX (or REMOVE, when it's there): the song's bank
+        void putOnKit();                             // PUT ON THIS KIT: the kit you're on, one of its own FX pads
         void setFitsFirst (bool);
         juce::String fitTextOf (int row) const;
 
@@ -54,11 +56,15 @@ namespace ggui
         void showTypeMenu (int row);
         const gg::SoundInfo* soundAt (int row) const;
         juce::String inTimeWords (gg::fx::Type) const;
+        juce::String whereItIs (const juce::String& path) const;     // "On Song FX 2 (every kit) and Kit 1's FX 1"
+        int bankIndexOf (const juce::String& path) const;
+        void updateButtons();
 
         GrooveGrabberProcessor& proc;
         juce::TableListBox table { "fx", this };
         juce::TextEditor search;
-        juce::TextButton fitsFirst { "FITS MY SONG FIRST" }, inTime { "HEAR IT IN TIME" };
+        juce::TextButton fitsFirst { "FITS MY SONG FIRST" }, inTime { "HEAR IT IN TIME" }, addBank { "ADD TO SONG FX" },
+                         onKit { "PUT ON THIS KIT" };
         IconButton play { "play", Icon::play };
         WaveView wave;
         std::unique_ptr<TypeList> types;

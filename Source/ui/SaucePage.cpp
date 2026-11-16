@@ -1125,6 +1125,8 @@ namespace ggui
             {
                 for (auto s : k->shownSlots())
                     if (! (*k)[s].isEmpty()) add (s);
+                for (int i = 0; i < k->bankCount(); ++i)          // (and the song's FX, after the kit's sounds)
+                    if (! (*k)[gg::bankSlot (i)].isEmpty()) add (gg::bankSlot (i));
             }
             if (lanes.empty())
                 for (auto s : { gg::Slot::kick, gg::Slot::snare, gg::Slot::clap, gg::Slot::closedHat, gg::Slot::openHat, gg::Slot::perc1 }) add (s);
@@ -1136,11 +1138,16 @@ namespace ggui
         return lanes;
     }
 
-    const std::vector<gg::Slot>& SaucePage::addableSlots() const
+    std::vector<gg::Slot> SaucePage::addableSlots() const
     {
-        // the drums of the kit you picked (all 32 pads of a 32-sound kit, the usual 17 before there are kits)
-        if (const auto* k = const_cast<GrooveGrabberProcessor&> (proc).kitOnSauce()) return k->shownSlots();
-        return gg::kitSlots (17);
+        // the drums of the kit you picked (all 32 pads of a 32-sound kit, the usual 17 before there are kits), then the
+        // Song FX it has a sound on
+        const auto* k = const_cast<GrooveGrabberProcessor&> (proc).kitOnSauce();
+        auto slots = k != nullptr ? k->shownSlots() : gg::kitSlots (17);
+        if (k != nullptr)
+            for (int i = 0; i < k->bankCount(); ++i)
+                if (! (*k)[gg::bankSlot (i)].isEmpty()) slots.push_back (gg::bankSlot (i));
+        return slots;
     }
 
     void SaucePage::showGroove()

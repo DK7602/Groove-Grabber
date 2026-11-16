@@ -66,6 +66,16 @@ public:
     void setSlotSound (int kitIndex, gg::Slot, const juce::String& path);
     void setAllLocked (int kitIndex, bool locked);
     juce::StringArray alternativesFor (int kitIndex, gg::Slot, int count = 5);
+
+    // ---- the Song FX bank: up to 8 effects for the song (FX tab > ADD TO SONG FX). Every kit plays them on its Song FX
+    // pads (notes 69 up; 4, 6 or 8 by its size). Saved with the song; GENERATE, REGENERATE and LOAD never touch it. ----
+    std::array<gg::SlotState, gg::numBankSlots> songFx;
+    int songFxPads() const;                              // the bank pads the kit you're on has (4, 6 or 8)
+    int songFxWaiting() const;                           // sounds in the bank past them (a smaller kit size)
+    int addSongFx (const juce::String& path);            // on the next free pad; -1: they're full
+    void setSongFx (int index, const juce::String& path);   // empty: clears it
+    gg::Slot freeKitFx() const;                          // the kit's first empty FX pad (Slot::count: none)
+    bool putOnKit (const juce::String& path, gg::Slot fxSlot);   // on the kit you're on, one of its own FX pads
     void loadKit (const gg::Kit&, int intoIndex);
     juce::String getStatusMessage() const          { return statusMessage; }
 
@@ -138,6 +148,8 @@ private:
     juce::String makeState();
     void applyState (const juce::String&);
     void renderKits();
+    void pushSongFx();                  // the bank into every kit (the pads its size has; the rest cleared)
+    void pullSongFx (int kitIndex);     // changes made on a kit's Song FX pads (its knobs), back into the bank
     void notify (const juce::String& message = {});
     gg::KitGenerator makeGenerator() const;
     void resetCharacter();          // the sliders back to style + era + what the description said

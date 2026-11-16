@@ -621,7 +621,10 @@ namespace ggui
             if (k->era >= 0) info << "  -  " << gg::eraName (k->era);
             if (k->key >= 0) info << "  -  " << gg::keyName (k->key);
             if (k->bpm > 0) info << "  -  " << juce::String (k->bpm, 0) << " BPM";
-            info << "  -  " << k->numFilled() << " pads";
+            int own = 0;
+            for (auto sl : k->shownSlots()) own += (*k)[sl].isEmpty() ? 0 : 1;
+            info << "  -  " << own << " pads";
+            if (const int fx = k->numFilled() - own; fx > 0) info << " + " << fx << " Song FX";
             auto infoArea = h.withRight (regenerate.getX() - 10);
             if (infoArea.getWidth() > 160)
                 g.drawFittedText (info, infoArea, juce::Justification::centredLeft, 1, 0.8f);

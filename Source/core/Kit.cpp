@@ -106,7 +106,7 @@ namespace gg
             for (auto& p : sl->getProperties())
             {
                 const auto s = slotFromId (p.name.toString());
-                if (s != Slot::count && slotInKit (s, k.size))
+                if (s != Slot::count && (slotInKit (s, k.size) || isBankSlot (s)))
                     k[s] = SlotState::fromVar (p.value);
             }
         return k;

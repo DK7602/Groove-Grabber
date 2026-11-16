@@ -186,6 +186,13 @@ namespace ggui
         inTime.onClick = [this] { hearInTime(); };
         addAndMakeVisible (inTime);
 
+        addBank.getProperties().set ("style", "accent");
+        addBank.onClick = [this] { addToSongFx(); };
+        addAndMakeVisible (addBank);
+        onKit.getProperties().set ("style", "ghost");
+        onKit.onClick = [this] { putOnKit(); };
+        addAndMakeVisible (onKit);
+
         proc.fxCatalog->addChangeListener (this);
         startTimerHz (4);
     }
@@ -202,6 +209,7 @@ namespace ggui
         search.applyColourToAllText (pal().text);
         search.setTextToShowWhenEmpty ("Search effects, packs, folders...", pal().faint);
         inTime.getProperties().set ("accent", pal().orange.toString());
+        addBank.getProperties().set ("accent", pal().amber.toString());
         if (proc.library->getVersion() != lastVersion)
         {
             lastVersion = proc.library->getVersion();
@@ -234,6 +242,7 @@ namespace ggui
         const bool playingInTime = juce::Time::getMillisecondCounterHiRes() < inTimeUntil;
         const auto text = playingInTime ? juce::String ("STOP") : juce::String ("HEAR IT IN TIME");
         if (inTime.getButtonText() != text) inTime.setButtonText (text);
+        updateButtons();
         repaint (statusArea);
     }
 
@@ -492,6 +501,92 @@ namespace ggui
         inTimeUntil = juce::Time::getMillisecondCounterHiRes() + secs * 1000.0 + 400.0;
     }
 
+    int FxPage::bankIndexOf (const juce::String& path) const
+    {
+        for (int i = 0; i < gg::numBankSlots; ++i)
+            if (path.isNotEmpty() && proc.songFx[(size_t) i].path == path) return i;
+        return -1;
+    }
+
+    juce::String FxPage::whereItIs (const juce::String& path) const
+    {
+        juce::StringArray where;
+        if (const int b = bankIndexOf (path); b >= 0)
+            where.add (b < proc.songFxPads() ? "Song FX " + juce::String (b + 1) + " (note " + juce::String (gg::firstBankNote + b) + ", every kit)"
+                                             : "Song FX " + juce::String (b + 1) + " (waiting for a bigger KIT SIZE)");
+        for (int k = 0; k < (int) proc.kits.size(); ++k)
+            for (auto s : { gg::Slot::fx1, gg::Slot::fx2, gg::Slot::fx3, gg::Slot::fx4 })
+                if (gg::slotInKit (s, proc.kits[(size_t) k].size) && proc.kits[(size_t) k][s].path == path)
+                    where.add ("Kit " + juce::String (k + 1) + "'s " + gg::slotName (s));
+        return where.joinIntoString (", ");
+    }
+
+    void FxPage::updateButtons()
+    {
+        const auto path = getSelectedPath();
+        const bool any = path.isNotEmpty();
+        const bool inBank = bankIndexOf (path) >= 0;
+        const auto addText = inBank ? juce::String ("REMOVE FROM SONG FX") : juce::String ("ADD TO SONG FX");
+        if (addBank.getButtonText() != addText) addBank.setButtonText (addText);
+        addBank.setEnabled (any);
+        addBank.setTooltip (inBank ? "Take it out of the song's FX bank (every kit's Song FX pads)"
+                                   : "Put it on the next free Song FX pad: every kit plays it (notes " + juce::String (gg::firstBankNote) + " up), and it stays when you generate again");
+        const auto* k = proc.getActiveKit();
+        onKit.setEnabled (any && k != nullptr);
+        onKit.setTooltip (k == nullptr ? juce::String ("Generate kits on BUILD first")
+                                       : "Put it on one of " + k->name + "'s own FX pads (this kit only)");
+    }
+
+    void FxPage::addToSongFx()
+    {
+        const auto path = getSelectedPath();
+        if (path.isEmpty()) return;
+        if (const int b = bankIndexOf (path); b >= 0)
+        {
+            proc.setSongFx (b, {});
+            updateButtons();
+            repaint (rightArea);
+            return;
+        }
+        if (proc.addSongFx (path) >= 0) { updateButtons(); repaint (rightArea); return; }
+        // full: which one does it replace?
+        juce::PopupMenu m;
+        m.addSectionHeader ("Song FX is full: replace...");
+        for (int i = 0; i < proc.songFxPads(); ++i)
+            m.addItem (i + 1, "Song FX " + juce::String (i + 1) + ": " + juce::File (proc.songFx[(size_t) i].path).getFileNameWithoutExtension());
+        m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&addBank), [this, path, safe = juce::Component::SafePointer<FxPage> (this)] (int r)
+        {
+            if (safe == nullptr || r <= 0) return;
+            proc.setSongFx (r - 1, path);
+            updateButtons();
+            repaint (rightArea);
+        });
+    }
+
+    void FxPage::putOnKit()
+    {
+        const auto path = getSelectedPath();
+        const auto* k = proc.getActiveKit();
+        if (path.isEmpty() || k == nullptr) return;
+        if (const auto free = proc.freeKitFx(); free != gg::Slot::count)
+        {
+            proc.putOnKit (path, free);
+            repaint (rightArea);
+            return;
+        }
+        juce::PopupMenu m;
+        m.addSectionHeader (k->name + "'s FX pads are full: replace...");
+        for (auto s : { gg::Slot::fx1, gg::Slot::fx2, gg::Slot::fx3, gg::Slot::fx4 })
+            if (gg::slotInKit (s, k->size))
+                m.addItem ((int) s + 1, gg::slotName (s) + ": " + juce::File ((*k)[s].path).getFileNameWithoutExtension());
+        m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&onKit), [this, path, safe = juce::Component::SafePointer<FxPage> (this)] (int r)
+        {
+            if (safe == nullptr || r <= 0) return;
+            proc.putOnKit (path, (gg::Slot) (r - 1));
+            repaint (rightArea);
+        });
+    }
+
     juce::String FxPage::inTimeWords (gg::fx::Type t) const
     {
         switch (gg::fx::anchorOf (t))
@@ -509,6 +604,7 @@ namespace ggui
         const bool any = s != nullptr;
         play.setEnabled (any);
         inTime.setEnabled (any);
+        updateButtons();
         if (! any)
         {
             if (shownPath.isNotEmpty() && (all == nullptr || std::none_of (all->begin(), all->end(), [this] (const gg::SoundInfo& x) { return x.path == shownPath; })))
@@ -595,6 +691,10 @@ namespace ggui
         dragArea = bottom.removeFromRight (bottom.getWidth() / 2 - 4);
         bottom.removeFromRight (8);
         inTime.setBounds (bottom.reduced (0, 4));
+        auto use = d.removeFromBottom (44);
+        onKit.setBounds (use.removeFromRight (use.getWidth() / 2 - 4).reduced (0, 2));
+        use.removeFromRight (8);
+        addBank.setBounds (use.reduced (0, 2));
         d.removeFromBottom (10);
         detailText = d;
     }
@@ -685,6 +785,7 @@ namespace ggui
         add ("Length   ", juce::String (secs, 2) + " s  -  " + barsText (gg::fx::barsAt (secs, bpm)) + " at " + juce::String (bpm, 0) + " BPM");
         if (const auto note = steadyNote (r.item.shape); note.isNotEmpty()) add ("Note   ", note);
         add ("In time   ", inTimeWords (r.item.type));
+        if (const auto where = whereItIs (s->path); where.isNotEmpty()) add ("In your song   ", where);
         juce::TextLayout factsLayout;
         factsLayout.createLayout (facts, (float) t.getWidth());
         factsLayout.draw (g, t.removeFromTop ((int) std::ceil (factsLayout.getHeight())).toFloat());

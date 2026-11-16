@@ -470,6 +470,7 @@ void GrooveGrabberProcessor::generate (bool surprise)
     for (auto& k : kits) k.description = description;
     gg::nameKits (kits, description, seed);     // fresh names every build
     activeKit = juce::jlimit (0, 3, activeKit);
+    pushSongFx();                               // (the song's FX on every new kit)
     gg::kitstore::addToHistory (kits);
 
     juce::String missing;
@@ -493,6 +494,7 @@ void GrooveGrabberProcessor::regenerateKit (int index, bool surprise)
     auto fresh = gen.generate (dir, seed, surprise ? 0.14f : 0.06f, &kits[(size_t) index], others);
     fresh.description = description;
     kits[(size_t) index] = fresh;
+    pushSongFx();
     renderKits();
     notify ("New sounds for " + fresh.name + " (locked pads kept).");
 }
@@ -572,14 +574,17 @@ gg::PlayableKit::Ptr GrooveGrabberProcessor::getPlayable (int i) const
     return juce::isPositiveAndBelow (i, 4) ? playables[(size_t) i] : nullptr;
 }
 
-void GrooveGrabberProcessor::kitChanged (int)
+void GrooveGrabberProcessor::kitChanged (int index)
 {
+    pullSongFx (index);
+    pushSongFx();
     renderKits();
     notify();
 }
 
 void GrooveGrabberProcessor::setSlotSound (int kitIndex, gg::Slot slot, const juce::String& path)
 {
+    if (gg::isBankSlot (slot)) { setSongFx (gg::bankIndex (slot), path); return; }     // (the song's, not the kit's)
     if (! juce::isPositiveAndBelow (kitIndex, (int) kits.size())) return;
     auto& st = kits[(size_t) kitIndex][slot];
     const bool locked = st.locked;
@@ -620,11 +625,88 @@ void GrooveGrabberProcessor::loadKit (const gg::Kit& k, int into)
     }
     into = juce::jlimit (0, 3, into);
     kits[(size_t) into] = k;
+    // the song's FX stay; a song with none takes the ones the kit was saved with
+    if (std::all_of (songFx.begin(), songFx.end(), [] (const gg::SlotState& s) { return s.isEmpty(); }))
+        for (int i = 0; i < gg::numBankSlots; ++i) songFx[(size_t) i] = k[gg::bankSlot (i)];
+    pushSongFx();
     if (k.key >= 0) options.key = k.key;
     if (k.bpm > 0) setBpm (k.bpm);
     activeKit = into;
     renderKits();
     notify ("Loaded " + k.name + ".");
+}
+
+//==============================================================================
+void GrooveGrabberProcessor::pushSongFx()
+{
+    for (auto& k : kits)
+        for (int i = 0; i < gg::numBankSlots; ++i)
+        {
+            auto st = i < k.bankCount() ? songFx[(size_t) i] : gg::SlotState {};
+            st.locked = false;                   // (nothing to lock: REGENERATE never touches them)
+            k[gg::bankSlot (i)] = st;
+        }
+}
+
+void GrooveGrabberProcessor::pullSongFx (int index)
+{
+    if (! juce::isPositiveAndBelow (index, (int) kits.size())) return;
+    const auto& k = kits[(size_t) index];
+    for (int i = 0; i < k.bankCount(); ++i)
+        if (k[gg::bankSlot (i)].path == songFx[(size_t) i].path)     // (its knobs: the same sound, shaped)
+            songFx[(size_t) i] = k[gg::bankSlot (i)];
+}
+
+int GrooveGrabberProcessor::songFxPads() const
+{
+    const int size = juce::isPositiveAndBelow (activeKit, (int) kits.size()) ? kits[(size_t) activeKit].size : options.kitSize;
+    return gg::bankSizeFor (size);
+}
+
+int GrooveGrabberProcessor::songFxWaiting() const
+{
+    int n = 0;
+    for (int i = songFxPads(); i < gg::numBankSlots; ++i) n += songFx[(size_t) i].isEmpty() ? 0 : 1;
+    return n;
+}
+
+void GrooveGrabberProcessor::setSongFx (int index, const juce::String& path)
+{
+    if (! juce::isPositiveAndBelow (index, gg::numBankSlots)) return;
+    songFx[(size_t) index] = {};
+    songFx[(size_t) index].path = path;
+    pushSongFx();
+    renderKits();
+    notify (path.isEmpty() ? "Cleared Song FX " + juce::String (index + 1) + "."
+                           : "\"" + juce::File (path).getFileNameWithoutExtension() + "\" is on Song FX " + juce::String (index + 1)
+                             + (index < songFxPads() ? " (note " + juce::String (gg::firstBankNote + index) + ") on every kit."
+                                                     : ": a bigger KIT SIZE plays it."));
+}
+
+int GrooveGrabberProcessor::addSongFx (const juce::String& path)
+{
+    for (int i = 0; i < songFxPads(); ++i)
+        if (songFx[(size_t) i].isEmpty()) { setSongFx (i, path); return i; }
+    return -1;
+}
+
+gg::Slot GrooveGrabberProcessor::freeKitFx() const
+{
+    if (! juce::isPositiveAndBelow (activeKit, (int) kits.size())) return gg::Slot::count;
+    const auto& k = kits[(size_t) activeKit];
+    for (auto s : { gg::Slot::fx1, gg::Slot::fx2, gg::Slot::fx3, gg::Slot::fx4 })
+        if (gg::slotInKit (s, k.size) && k[s].isEmpty()) return s;
+    return gg::Slot::count;
+}
+
+bool GrooveGrabberProcessor::putOnKit (const juce::String& path, gg::Slot slot)
+{
+    auto* k = getActiveKit();
+    if (k == nullptr || ! gg::slotInKit (slot, k->size) || gg::slotCat (slot) != gg::Cat::fx || gg::isBankSlot (slot)) return false;
+    selectedSlot = slot;
+    setSlotSound (activeKit, slot, path);
+    notify ("\"" + juce::File (path).getFileNameWithoutExtension() + "\" is on " + k->name + "'s " + gg::slotName (slot) + ".");
+    return true;
 }
 
 //==============================================================================
@@ -829,6 +911,11 @@ juce::String GrooveGrabberProcessor::makeState()
         purposed->setProperty (id, a);
     }
     o->setProperty ("coachOnPurpose", juce::var (purposed));
+    {
+        juce::Array<juce::var> bank;
+        for (const auto& st : songFx) bank.add (st.isEmpty() ? juce::var() : st.toVar());
+        o->setProperty ("songFx", bank);
+    }
     o->setProperty ("swing", player.getSwing());
     o->setProperty ("volume", player.getVolume());
     o->setProperty ("follow", player.isFollowingHost());
@@ -905,6 +992,12 @@ void GrooveGrabberProcessor::applyState (const juce::String& text)
                     if (! ids.isEmpty()) coachOnPurpose[prop.name.toString().substring (0, 80)] = ids;
                 }
     }
+    // the Song FX bank (a song from before 1.0.31 has none)
+    for (auto& st : songFx) st = {};
+    if (auto* bank = v["songFx"].getArray())
+        for (int i = 0; i < juce::jmin (gg::numBankSlots, bank->size()); ++i)
+            if ((*bank)[i].isObject()) songFx[(size_t) i] = gg::SlotState::fromVar ((*bank)[i]);
+    pushSongFx();
     setGrooveId (v.getProperty ("groove", "boombap1").toString());
     player.setSwing ((float) (double) v.getProperty ("swing", (double) player.getSwing()));
     player.setVolume ((float) (double) v.getProperty ("volume", 0.9));
