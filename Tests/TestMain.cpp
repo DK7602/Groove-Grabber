@@ -766,6 +766,71 @@ namespace
         auto res = gg::exportKit (kits[0], eo);
         check (res.ok, "export ok " + res.error);
         check (res.padFiles.size() == 22 && kits[0].padCount() == 22, "22 pad files (a 17-sound kit)");
+        check (res.bankFiles.isEmpty() && ! res.folder.getChildFile ("Song FX").exists(), "no Song FX: the export is exactly as before");
+
+        // ---- the Song FX bank: notes 69 up, every kit, its own folder on export ----
+        {
+            using S = gg::Slot;
+            bool layout = gg::bankSizeFor (17) == 4 && gg::bankSizeFor (23) == 6 && gg::bankSizeFor (32) == 8 && gg::numPads == 41;
+            for (int i = 0; i < gg::numBankSlots; ++i)
+            {
+                const auto sl = gg::bankSlot (i);
+                layout = layout && gg::isBankSlot (sl) && gg::bankIndex (sl) == i && gg::mainNoteForSlot (sl) == 69 + i
+                         && gg::padForNote (69 + i)->slot == sl && gg::slotCat (sl) == gg::Cat::fx && gg::slotFromId (gg::slotId (sl)) == sl
+                         && ! gg::slotInKit (sl, 32) && gg::slotInBank (sl, 32) == true && gg::slotInBank (sl, 17) == (i < 4);
+            }
+            check (layout && ! gg::isBankSlot (S::fx4) && gg::mainNoteForSlot (S::fx4) == 68, "Song FX pads: notes 69 to 76, 4 / 6 / 8 by kit size");
+
+            auto k = kits[0];
+            const auto fxFile = testRoot().getChildFile ("Library/Trap Essentials/FX/Riser Up.wav").getFullPathName();
+            const auto fxFile2 = testRoot().getChildFile ("Mystery/Sound 10.wav").getFullPathName();
+            k[S::sfx1].path = fxFile;
+            k[S::sfx3].path = testRoot().getChildFile ("Library/Mystery/Sound 10.wav").getFullPathName();
+            k[S::sfx6].path = fxFile;        // (past a 17-sound kit's 4: not played, not exported)
+            (void) fxFile2;
+            const auto again = gg::Kit::fromVar (k.toVar());
+            check (again[S::sfx1].path == fxFile && again.bankUsed() == 3 && k.bankCount() == 4, "a kit keeps its Song FX when saved and opened");
+            auto pk = gg::buildPlayable (k, 44100.0);
+            check (pk->pads[33] != nullptr && pk->pads[34] == nullptr && pk->pads[35] != nullptr && pk->pads[38] == nullptr,
+                   "Song FX play on notes 69 up, only the ones the kit's size has");
+            auto er = gg::exportKit (k, eo);
+            const auto bankDir = er.folder.getChildFile ("Song FX");
+            const bool files = er.ok && er.padFiles.size() == 22 && er.bankFiles.size() == 3 && bankDir.getChildFile ("01 Song FX 1.wav").existsAsFile()
+                               && bankDir.getChildFile ("02 Empty.wav").existsAsFile() && bankDir.getChildFile ("03 Song FX 3.wav").existsAsFile()
+                               && ! bankDir.getChildFile ("04 Empty.wav").exists();
+            const auto info = er.infoFile.loadFileAsString();
+            check (files, "export: the kit's 22 files as before, the Song FX in their own folder (1 to the last used, gaps silent)");
+            check (info.contains ("SONG FX") && info.contains ("Song FX/01 Song FX 1.wav") && info.contains ("Song FX: put Song FX 1 on note 69")
+                   && ! info.contains ("**"), "Kit Info lists the Song FX and the step for them");
+            // the MPC program names their pads (34 and up = notes 69 up)
+            if (er.programFile.existsAsFile())
+            {
+                juce::MemoryBlock pgm;
+                er.programFile.loadFileAsData (pgm);
+                const auto* d = static_cast<const char*> (pgm.getData());
+                check (juce::String::fromUTF8 (d + 24 + 33 * 164, 16).startsWith ("01 Song FX 1"), "the MPC program has the Song FX on its pads for notes 69 up");
+            }
+            // every DAW says where the Song FX go
+            bool steps = true;
+            for (const auto& daw : gg::dawGuides())
+            {
+                const auto withFx = gg::guideSteps (daw, 22, "22 FX 2", 3);
+                const auto without = gg::guideSteps (daw, 22, "22 FX 2", 0);
+                int fxSteps = 0;
+                for (const auto& st : withFx) if (st.startsWith ("Song FX:") && (st.contains ("69") || st.contains (gg::dawNoteName (69, daw)))) ++fxSteps;
+                steps = steps && withFx.size() == without.size() + 1 && fxSteps == 1 && ! without.joinIntoString (" ").contains ("Song FX");
+                if (fxSteps != 1) std::cout << "  (" << daw.id << ": no Song FX step with its note)" << std::endl;
+            }
+            check (steps && gg::dawGuidesMarkdown().contains ("**Song FX** (when the kit has them)"), "every DAW's steps say where the Song FX files go");
+            // a pattern with a Song FX hit goes out on note 69 and comes back on its row
+            gg::Groove g = gg::grooveFor ("boombap1");
+            g.hits.push_back ({ 7.0, S::sfx1, 1.0f });
+            gg::sortHits (g.hits);
+            const auto back = gg::grooveFromMidi (gg::grooveToMidi (g, g.bpm, g.swing, 2), "x.mid").groove;
+            bool fxBack = false;
+            for (const auto& h : back.hits) if (h.slot == S::sfx1 && std::abs (h.beat - 7.0) < 0.01) fxBack = true;
+            check (fxBack, "a Song FX hit in a pattern: note 69 in the MIDI, its own row again when dropped back");
+        }
         for (int i = 0; i < res.padFiles.size(); ++i)
             check (res.padFiles[i].getFileName().startsWith (juce::String (i + 1).paddedLeft ('0', 2) + " "), "file " + juce::String (i + 1) + " numbered");
         check (res.padFiles[0].getFileName() == "01 Kick.wav" && res.padFiles[2].getFileName() == "03 Snare.wav", "kick first, snare third");
