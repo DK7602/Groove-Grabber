@@ -11,6 +11,7 @@ GrooveGrabberProcessor::GrooveGrabberProcessor()
     player.setGroove (&gg::grooveFor (grooveId));
     player.setTempo (options.style().bpm);
     library->addChangeListener (this);
+    fxCatalog->addChangeListener (this);     // (FX sorted: they can be tuned to the key)
     addChangeListener (this);       // keeps the state snapshot up to date
 
     // the last line written when the DAW unloads the plug-in (at quit): if it hangs there, the log says so
@@ -24,6 +25,7 @@ GrooveGrabberProcessor::~GrooveGrabberProcessor()
 {
     alive->store (false);
     library->removeChangeListener (this);
+    fxCatalog->removeChangeListener (this);
     removeChangeListener (this);
     // wait for background work (rendering, exporting, harvesting) to finish: a thread stopped by force can leave
     // Windows' memory locks held, and the DAW freezes later (at quit)
@@ -59,6 +61,7 @@ void GrooveGrabberProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
             host.playing = pos->getIsPlaying();
             if (auto ppq = pos->getPpqPosition()) host.ppq = *ppq;
             if (auto bpm = pos->getBpm()) host.bpm = *bpm;
+            if (host.valid && host.bpm > 0) hostBpm.store (host.bpm);
         }
 
     if (buffer.getNumChannels() >= 2)
@@ -95,7 +98,13 @@ void GrooveGrabberProcessor::changeListenerCallback (juce::ChangeBroadcaster* so
 {
     if (source == &library.get())
     {
+        fxCatalog->update (library->getSounds());     // (new FX get sorted in the background)
         sendChangeMessage();     // the library changed: pages refresh
+        return;
+    }
+    if (source == &fxCatalog.get())
+    {
+        retuneFx();              // an effect's pitch is known now
         return;
     }
     const auto s = makeState();
@@ -182,6 +191,7 @@ void GrooveGrabberProcessor::setKey (int key)
     auto gen = makeGenerator();
     for (auto& k : kits)
         gen.tuneToKey (k, options.key);     // (no key: just the kick to the 808)
+    retuneFx (false);
     renderKits();
     notify();
 }
@@ -191,6 +201,13 @@ void GrooveGrabberProcessor::setBpm (double bpm)
     options.bpm = juce::jlimit (40.0, 250.0, bpm);
     player.setTempo (options.bpm);
     for (auto& k : kits) k.bpm = options.bpm;
+    // FX with a FIT: made again at the new tempo
+    bool fitted = false;
+    for (auto& st : songFx) fitted = fitted || (! st.isEmpty() && st.fitBars > 0);
+    for (auto& k : kits)
+        for (auto s : { gg::Slot::fx1, gg::Slot::fx2, gg::Slot::fx3, gg::Slot::fx4 })
+            fitted = fitted || (! k[s].isEmpty() && k[s].fitBars > 0);
+    if (fitted) renderKits();
     notify();
 }
 
@@ -471,6 +488,7 @@ void GrooveGrabberProcessor::generate (bool surprise)
     gg::nameKits (kits, description, seed);     // fresh names every build
     activeKit = juce::jlimit (0, 3, activeKit);
     pushSongFx();                               // (the song's FX on every new kit)
+    retuneFx (false);
     gg::kitstore::addToHistory (kits);
 
     juce::String missing;
@@ -495,6 +513,7 @@ void GrooveGrabberProcessor::regenerateKit (int index, bool surprise)
     fresh.description = description;
     kits[(size_t) index] = fresh;
     pushSongFx();
+    retuneFx (false);
     renderKits();
     notify ("New sounds for " + fresh.name + " (locked pads kept).");
 }
@@ -595,6 +614,7 @@ void GrooveGrabberProcessor::setSlotSound (int kitIndex, gg::Slot slot, const ju
         st.autoTune = gg::KitGenerator::autoTuneFor (*info, slot, options.key);
     if (options.key < 0 && (slot == gg::Slot::kick || slot == gg::Slot::kick2 || slot == gg::Slot::bass808))
         makeGenerator().tuneToKey (kits[(size_t) kitIndex], -1);     // keep the kick on the 808's note
+    if (gg::slotCat (slot) == gg::Cat::fx && kits[(size_t) kitIndex].tuneToKey) st.autoTune = fxTuneFor (path);
     kitChanged (kitIndex);
 }
 
@@ -670,11 +690,50 @@ int GrooveGrabberProcessor::songFxWaiting() const
     return n;
 }
 
-void GrooveGrabberProcessor::setSongFx (int index, const juce::String& path)
+void GrooveGrabberProcessor::setFit (gg::SlotState& st, int fitBars) const
+{
+    st.fitBars = fitBars == 1 || fitBars == 2 || fitBars == 4 || fitBars == 8 ? fitBars : 0;
+    gg::SoundInfo s;
+    s.path = st.path;
+    if (auto info = library->find (st.path)) s = *info;
+    const auto fit = gg::fx::fitSettings (fxCatalog->get (s).type);
+    st.fitAnchor = fit.anchor;
+    st.fitStretch = fit.stretch;
+}
+
+float GrooveGrabberProcessor::fxTuneFor (const juce::String& path) const
+{
+    if (path.isEmpty() || options.key < 0 || ! options.tuneToKey) return 0.0f;
+    gg::SoundInfo s;
+    s.path = path;
+    if (auto info = library->find (path)) s = *info;
+    const auto item = fxCatalog->get (s);
+    return gg::fx::keyTune (item.shape, item.type, options.key);
+}
+
+void GrooveGrabberProcessor::retuneFx (bool render)
+{
+    bool changed = false;
+    auto retune = [this, &changed] (gg::SlotState& st)
+    {
+        const float t = fxTuneFor (st.path);
+        if (std::abs (t - st.autoTune) > 0.001f) { st.autoTune = t; changed = true; }
+    };
+    for (auto& st : songFx) if (! st.isEmpty()) retune (st);
+    for (auto& k : kits)
+        for (auto s : { gg::Slot::fx1, gg::Slot::fx2, gg::Slot::fx3, gg::Slot::fx4 })
+            if (! k[s].isEmpty()) retune (k[s]);
+    pushSongFx();
+    if (changed && render) { renderKits(); notify(); }
+}
+
+void GrooveGrabberProcessor::setSongFx (int index, const juce::String& path, int fitBars)
 {
     if (! juce::isPositiveAndBelow (index, gg::numBankSlots)) return;
     songFx[(size_t) index] = {};
     songFx[(size_t) index].path = path;
+    setFit (songFx[(size_t) index], fitBars);
+    songFx[(size_t) index].autoTune = fxTuneFor (path);
     pushSongFx();
     renderKits();
     notify (path.isEmpty() ? "Cleared Song FX " + juce::String (index + 1) + "."
@@ -683,10 +742,10 @@ void GrooveGrabberProcessor::setSongFx (int index, const juce::String& path)
                                                      : ": a bigger KIT SIZE plays it."));
 }
 
-int GrooveGrabberProcessor::addSongFx (const juce::String& path)
+int GrooveGrabberProcessor::addSongFx (const juce::String& path, int fitBars)
 {
     for (int i = 0; i < songFxPads(); ++i)
-        if (songFx[(size_t) i].isEmpty()) { setSongFx (i, path); return i; }
+        if (songFx[(size_t) i].isEmpty()) { setSongFx (i, path, fitBars); return i; }
     return -1;
 }
 
@@ -699,12 +758,14 @@ gg::Slot GrooveGrabberProcessor::freeKitFx() const
     return gg::Slot::count;
 }
 
-bool GrooveGrabberProcessor::putOnKit (const juce::String& path, gg::Slot slot)
+bool GrooveGrabberProcessor::putOnKit (const juce::String& path, gg::Slot slot, int fitBars)
 {
     auto* k = getActiveKit();
     if (k == nullptr || ! gg::slotInKit (slot, k->size) || gg::slotCat (slot) != gg::Cat::fx || gg::isBankSlot (slot)) return false;
     selectedSlot = slot;
     setSlotSound (activeKit, slot, path);
+    setFit ((*k)[slot], fitBars);
+    if (fitBars > 0) renderKits();
     notify ("\"" + juce::File (path).getFileNameWithoutExtension() + "\" is on " + k->name + "'s " + gg::slotName (slot) + ".");
     return true;
 }
@@ -766,7 +827,46 @@ void GrooveGrabberProcessor::stopPreview()
     player.playPreview (std::make_shared<juce::AudioBuffer<float>> (2, 64));     // (silence takes its place)
 }
 
-double GrooveGrabberProcessor::hearFxInTime (const juce::String& path, gg::fx::Type type)
+juce::File GrooveGrabberProcessor::fxFileToDrag (const juce::String& path, gg::fx::Type type, int fitBars)
+{
+    const float tune = fxTuneFor (path);
+    if (fitBars <= 0 && std::abs (tune) < 0.005f) return juce::File (path);      // as it is: the original
+    gg::RenderParams p;
+    p.tune = tune;
+    p.normalise = false;
+    const double bpm = songBpm();
+    if (fitBars > 0)
+    {
+        const auto fit = gg::fx::fitSettings (type);
+        p.fitBeats = 4.0 * fitBars;
+        p.fitBpm = bpm;
+        p.fitAnchor = fit.anchor;
+        p.fitStretch = fit.stretch;
+    }
+    const auto audio = gg::render::sound (path, gg::Cat::fx, p, 44100.0);
+    if (audio.getNumSamples() == 0) return juce::File (path);
+    juce::String name = juce::File (path).getFileNameWithoutExtension() + " (";
+    if (fitBars > 0) name << fitBars << (fitBars == 1 ? " bar" : " bars") << " at " << juce::String (bpm, 0) << " BPM";
+    if (std::abs (tune) >= 0.005f) name << (fitBars > 0 ? ", " : "") << (tune > 0 ? "+" : "") << juce::String (tune, 1) << " st to " << gg::keyShortName (options.key);
+    name << ")";
+    const auto dir = gg::paths::documentsDir().getChildFile ("FX Renders");
+    dir.createDirectory();
+    const auto f = dir.getChildFile (gg::paths::safeFileName (name, 90) + ".wav");
+    f.deleteFile();
+    if (auto os = std::unique_ptr<juce::OutputStream> (f.createOutputStream().release()))
+    {
+        juce::WavAudioFormat wav;
+        if (std::unique_ptr<juce::AudioFormatWriter> w (wav.createWriterFor (os.get(), 44100.0, 2, 24, {}, 0)); w != nullptr)
+        {
+            os.release();
+            w->writeFromAudioSampleBuffer (audio, 0, audio.getNumSamples());
+            return f;
+        }
+    }
+    return juce::File (path);
+}
+
+double GrooveGrabberProcessor::hearFxInTime (const juce::String& path, gg::fx::Type type, int fitBars)
 {
     const double sr = player.getSampleRate() > 0 ? player.getSampleRate() : 44100.0;
     const double bpm = songBpm();
@@ -776,19 +876,32 @@ double GrooveGrabberProcessor::hearFxInTime (const juce::String& path, gg::fx::T
     const float swing = player.getSwing();
     if (player.isGroovePlaying()) { player.setGroovePlaying (false); sendChangeMessage(); }
 
+    // tuned to the key, fit to the bars, as the pads play it
+    gg::RenderParams params;
+    params.tune = fxTuneFor (path);
+    if (fitBars > 0)
+    {
+        const auto fit = gg::fx::fitSettings (type);
+        params.fitBeats = 4.0 * fitBars;
+        params.fitBpm = bpm;
+        params.fitAnchor = fit.anchor;
+        params.fitStretch = fit.stretch;
+    }
+
     // how long it'll run (to say so at once): the file's length is near enough
     double guess = 8.0;
     {
         juce::AudioFormatManager fm;
         fm.registerBasicFormats();
         if (std::unique_ptr<juce::AudioFormatReader> r (fm.createReaderFor (juce::File (path))); r != nullptr && r->sampleRate > 0)
-            guess = gg::fx::place (type, (double) r->lengthInSamples / r->sampleRate, 0, bpm).totalBeats * 60.0 / bpm;
+            guess = gg::fx::place (type, fitBars > 0 ? juce::jmax ((double) r->lengthInSamples / r->sampleRate, fitBars * 240.0 / bpm)
+                                                     : (double) r->lengthInSamples / r->sampleRate, 0, bpm).totalBeats * 60.0 / bpm;
     }
 
-    runInBackground ([this, a = alive, path, type, sr, bpm, groove, kit, swing]
+    runInBackground ([this, a = alive, path, type, sr, bpm, groove, kit, swing, params]
     {
         if (! a->load()) return;
-        const auto fxBuf = gg::render::sound (path, gg::Cat::fx, {}, sr);
+        const auto fxBuf = gg::render::sound (path, gg::Cat::fx, params, sr);
         if (fxBuf.getNumSamples() == 0) return;
         // where it peaks and where it really ends (tails under -40 dB don't count)
         int peakAt = 0, endAt = fxBuf.getNumSamples();

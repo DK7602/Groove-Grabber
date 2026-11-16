@@ -15,6 +15,12 @@ namespace gg
         float gainDb = 0;
         bool reverse = false;
         bool locked = false;         // kept by REGENERATE
+        // FIT (FX pads): 1, 2, 4 or 8 bars at the song's tempo (0 = as it is). What lands on the bar line: 0 its end (a
+        // build-up), 1 its loudest point (a whoosh), 2 its start (a hit or a fall); too long, it's trimmed (from the start
+        // when the end lands); too short, stretched to fit (fitStretch: a hit is left to ring instead)
+        int fitBars = 0;
+        int fitAnchor = 0;
+        bool fitStretch = true;
 
         float tune (bool keyTuning) const noexcept   { return (keyTuning ? autoTune : 0.0f) + userTune; }
         bool isEmpty() const noexcept                { return path.isEmpty(); }

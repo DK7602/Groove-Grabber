@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 # Windows: link the C++ runtime into the plug-in itself, so a DAW's plug-in scanner never trips over missing runtime DLLs
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-project(GrooveGrabber VERSION 1.0.31 LANGUAGES C CXX)
+project(GrooveGrabber VERSION 1.0.32 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -112,7 +112,7 @@ set(GG_UI_SOURCES
     Source/ui/FxPage.cpp)
 
 add_library(GGShared INTERFACE)
-target_include_directories(GGShared INTERFACE Source)
+target_include_directories(GGShared INTERFACE Source ThirdParty)    # (ThirdParty: Signalsmith Stretch, MIT)
 target_link_libraries(GGShared INTERFACE
     GrooveGrabberBinaryData
     juce::juce_audio_utils

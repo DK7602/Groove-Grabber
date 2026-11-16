@@ -21,6 +21,7 @@
 #include "core/Daws.h"
 #include "core/MyGrooves.h"
 #include "core/Fx.h"
+#include "core/SampleRender.h"
 #include <juce_events/juce_events.h>
 #include <cmath>
 #include <iostream>
@@ -1270,6 +1271,55 @@ namespace
             check (std::abs (p.startBeat + 6.0 - p.downbeat) < 1.0e-6 && std::fmod (p.downbeat, 4.0) == 0 && p.startBeat >= 4.0
                    && h.startBeat == 4.0 && h.downbeat == 4.0 && std::abs (w.startBeat + 1.0 - w.downbeat) < 1.0e-6 && std::fmod (w.downbeat, 4.0) == 0,
                    "in time: a riser ends on a downbeat, an impact starts on one, a whoosh peaks on one");
+        }
+
+        // ---- FIT: so many bars at the song's tempo; a build-up's end on the bar line ----
+        {
+            const double sr = syn.sr, bpm = 120.0, bar = 2.0;      // (a bar at 120 BPM: 2 s)
+            auto at = [sr] (const juce::AudioBuffer<float>& b, int anchor) { return gg::render::anchorSample (b, anchor) / sr; };
+            auto longRiser = syn.riser (3.0f);
+            gg::render::fitTo (longRiser, sr, bar, 0, true);
+            auto shortRiser = syn.riser (1.2f);
+            const double factor = gg::render::fitTo (shortRiser, sr, bar, 0, true);
+            auto tooShortHit = syn.impact (1.0f);
+            const int hitBefore = tooShortHit.getNumSamples();
+            gg::render::fitTo (tooShortHit, sr, bar, 2, false);
+            auto longHit = syn.impact (3.5f);
+            gg::render::fitTo (longHit, sr, bar, 2, false);
+            auto whoosh = syn.whoosh (1.2f);
+            gg::render::fitTo (whoosh, sr, bar, 1, true);
+            const bool landed = std::abs (at (longRiser, 0) - bar) < 0.002 && std::abs (at (shortRiser, 0) - bar) < 0.002 && factor > 1.5
+                                && tooShortHit.getNumSamples() == hitBefore && std::abs (longHit.getNumSamples() / sr - bar) < 0.002
+                                && std::abs (at (whoosh, 1) - bar) < 0.01;
+            check (landed, "FIT: a riser too long is trimmed and one too short stretched so its end is on the bar; a hit is cut to the bar; "
+                           "a whoosh peaks on it (" + juce::String (at (longRiser, 0), 3) + " " + juce::String (at (shortRiser, 0), 3) + " x"
+                           + juce::String (factor, 2) + " " + juce::String (at (whoosh, 1), 3) + ")");
+            // a stretch keeps the pitch: a steady 1046 Hz tone, twice as long, is still 1046 Hz
+            juce::AudioBuffer<float> tone = syn.horn (0.8f);
+            const auto before = gg::fx::measureShape (tone.getReadPointer (0), tone.getNumSamples(), sr);
+            gg::render::fitTo (tone, sr, 1.6, 2, true);
+            const auto after = gg::fx::measureShape (tone.getReadPointer (0), tone.getNumSamples(), sr);
+            check (std::abs (tone.getNumSamples() / sr - 1.6) < 0.01 && std::abs (12.0 * std::log2 (after.pitchHz / before.pitchHz)) < 0.3,
+                   "FIT: a stretch keeps the pitch (" + juce::String (before.pitchHz, 1) + " Hz -> " + juce::String (after.pitchHz, 1) + " Hz)");
+            // tuning to the key: a held note to the nearest note of the scale, a boom to the root; noise and slides not at all
+            gg::fx::Shape held;
+            held.valid = true; held.pitchShare = 1.0f; held.pitchHz = 466.16f;          // A#4
+            gg::fx::Shape boom = held;
+            boom.pitchHz = 55.0f;                                                     // A1
+            gg::fx::Shape slide = held;
+            slide.pitchTrend = -14.0f;
+            const float horn = gg::fx::keyTune (held, T::horn, 21);                  // A minor: A or B, a semitone away
+            check (std::abs (std::abs (horn) - 1.0f) < 0.02f && gg::fx::keyTune (boom, T::subDrop, 21) == 0.0f
+                   && std::abs (gg::fx::keyTune (boom, T::subDrop, 0) - 3.0f) < 0.02f && gg::fx::keyTune (slide, T::laser, 21) == 0.0f
+                   && gg::fx::keyTune (held, T::horn, -1) == 0.0f,
+                   "tune to key: a held note to the scale, a boom to the root (A to C: +3), a slide and no key: none");
+            // the fit is kept with a pad
+            gg::SlotState st;
+            st.path = "x.wav"; st.fitBars = 2; st.fitAnchor = 1; st.fitStretch = false;
+            const auto back = gg::SlotState::fromVar (st.toVar());
+            check (back.fitBars == 2 && back.fitAnchor == 1 && ! back.fitStretch && back.sameSound (st), "a pad keeps its FIT");
+            const auto rs = gg::fx::fitSettings (T::riser), im = gg::fx::fitSettings (T::impact), wh = gg::fx::fitSettings (T::whoosh);
+            check (rs.anchor == 0 && rs.stretch && im.anchor == 2 && ! im.stretch && wh.anchor == 1, "FIT per kind: a riser's end, an impact's start, a whoosh's peak");
         }
 
         // ---- a long riser with no name to go by is an effect, not a loop; the catalog types the library's FX ----

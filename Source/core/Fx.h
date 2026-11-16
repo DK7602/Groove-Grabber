@@ -85,6 +85,18 @@ namespace gg::fx
     // How long it is in bars at a tempo
     double barsAt (double seconds, double bpm);
 
+    // FIT for this kind: what lands on the bar line (0 its end: build-ups, sweeps, tape stops, rewinds; 1 its loudest
+    // point: a whoosh; 2 its start: hits, falls, textures, accents), and whether a short one is stretched to fill the
+    // bars (build-ups, moves, textures) or left to ring (hits, accents)
+    struct FitSettings { int anchor = 0; bool stretch = true; };
+    FitSettings fitSettings (Type);
+
+    // Tuning to the key (semitones), for a sound that holds a clear, steady pitch (none for noise, slides and wobbles):
+    // hits (an impact, a sub drop, a boom) to the key's root like an 808, the rest to the nearest note of the key's
+    // scale. key: 0..11 major, 12..23 minor, -1 none (no tuning).
+    float keyTune (const Shape&, Type, int key);
+    bool hasSteadyPitch (const Shape&);
+
     // Where it goes when you hear it in time: the beat (from the start of the preview) it starts on, the downbeat it
     // lands on, and how many beats the preview runs. One bar of the groove first, two after.
     struct Placement { double startBeat = 0, downbeat = 0, totalBeats = 0; };

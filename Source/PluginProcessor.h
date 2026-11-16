@@ -72,10 +72,15 @@ public:
     std::array<gg::SlotState, gg::numBankSlots> songFx;
     int songFxPads() const;                              // the bank pads the kit you're on has (4, 6 or 8)
     int songFxWaiting() const;                           // sounds in the bank past them (a smaller kit size)
-    int addSongFx (const juce::String& path);            // on the next free pad; -1: they're full
-    void setSongFx (int index, const juce::String& path);   // empty: clears it
+    // (fitBars: FIT, 1 2 4 or 8 bars at the song's tempo, 0 = as it is; what lands on the bar line comes from its kind)
+    int addSongFx (const juce::String& path, int fitBars = 0);            // on the next free pad; -1: they're full
+    void setSongFx (int index, const juce::String& path, int fitBars = 0);   // empty: clears it
     gg::Slot freeKitFx() const;                          // the kit's first empty FX pad (Slot::count: none)
-    bool putOnKit (const juce::String& path, gg::Slot fxSlot);   // on the kit you're on, one of its own FX pads
+    bool putOnKit (const juce::String& path, gg::Slot fxSlot, int fitBars = 0);   // on the kit you're on, one of its own FX pads
+    void setFit (gg::SlotState&, int fitBars) const;     // FIT on a pad, with what lands on the bar line for its kind
+    // Pitched FX tuned to the key (with "Tune ... to key" on): the steps for this effect (0: none, or it can't be)
+    float fxTuneFor (const juce::String& path) const;
+    void retuneFx (bool render = true);                  // every FX pad (the kits' and the bank) to the key; re-renders when it changed
     void loadKit (const gg::Kit&, int intoIndex);
     juce::String getStatusMessage() const          { return statusMessage; }
 
@@ -124,9 +129,13 @@ public:
     // ---- FX: your effects, typed (core/Fx), and heard in time with the groove ----
     juce::SharedResourcePointer<gg::fx::Catalog> fxCatalog;
     double songBpm() const;                        // the song's tempo (or its style's)
+    double dawBpm() const noexcept                 { return hostBpm.load(); }   // the DAW's tempo (0: none, or standalone)
     // Plays the effect over BUILD's groove and kit, placed where it goes: a build-up ends on a downbeat, a hit starts
     // on one, a whoosh peaks on one. With no kits yet, over a click. Returns how long it plays (seconds).
-    double hearFxInTime (const juce::String& path, gg::fx::Type);
+    double hearFxInTime (const juce::String& path, gg::fx::Type, int fitBars = 0);
+    // The effect as it plays here (tuned to the key, fit to the bars), written to Documents/Groove Grabber/FX Renders
+    // for DRAG; the original file when it's played as it is
+    juce::File fxFileToDrag (const juce::String& path, gg::fx::Type, int fitBars);
     void stopPreview();                            // a sound playing on its own (a library sound, an FX) stops
 
     // ---- library & settings ----
@@ -159,6 +168,7 @@ private:
     std::shared_ptr<std::atomic<bool>> alive = std::make_shared<std::atomic<bool>> (true);
     std::array<gg::PlayableKit::Ptr, 4> playables;
     std::atomic<int> renderGeneration { 0 };
+    std::atomic<double> hostBpm { 0.0 };
     juce::uint32 seed = 1;
     juce::String statusMessage;
     juce::AudioBuffer<float> monoScratch;            // for hosts that pick a mono output

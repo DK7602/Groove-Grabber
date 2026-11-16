@@ -558,6 +558,12 @@ namespace ggui
             addAndMakeVisible (*b);
         }
         reverse.onClick = [this] { applyKnobs(); };
+        fitBtn.setTooltip ("FIT: make this effect 1, 2, 4 or 8 bars at the song's tempo. A build-up ends on the downbeat, "
+                           "a hit starts on it; too long, it's trimmed, too short, stretched with its pitch kept. "
+                           "The pads, SAUCE and the export all play it fit.");
+        fitBtn.getProperties().set ("style", "toggle");     // (lit while it fits)
+        fitBtn.onClick = [this] { showFitMenu(); };
+        addChildComponent (fitBtn);
         lock.setTooltip ("Keep this pad when you regenerate");
         lock.onClick = [this]
         {
@@ -597,6 +603,13 @@ namespace ggui
         const bool has = kit != nullptr && ! (*kit)[slot].isEmpty();
         for (auto* k : { &tune, &start, &length, &gain }) k->setEnabled (has);
         reverse.setEnabled (has);
+        fitBtn.setVisible (gg::slotCat (slot) == gg::Cat::fx);
+        fitBtn.setEnabled (has);
+        {
+            const int bars = has ? (*kit)[slot].fitBars : 0;
+            fitBtn.setButtonText (bars <= 0 ? juce::String ("FIT: AS IT IS") : "FIT: " + juce::String (bars) + (bars == 1 ? " BAR" : " BARS"));
+            fitBtn.setToggleState (bars > 0, juce::dontSendNotification);
+        }
         lock.setEnabled (has && ! gg::isBankSlot (proc.selectedSlot));     // (Song FX: kept anyway)
         playBtn.setEnabled (has);
         if (has)
@@ -635,6 +648,9 @@ namespace ggui
                            + (kit->key >= 0 ? gg::keyShortName (kit->key) : juce::String ("the 808")));
                 if (info->hasPitch() && (slot == gg::Slot::bass808 || slot == gg::Slot::kick || gg::slotCat (slot) == gg::Cat::tom))
                     n.add ("note " + gg::noteName ((int) std::round (info->midiPitch() + st.tune (kit->tuneToKey))));
+                if (st.fitBars > 0)
+                    n.add ("fit to " + juce::String (st.fitBars) + (st.fitBars == 1 ? " bar" : " bars") + " at "
+                           + juce::String (juce::roundToInt (kit->bpm)) + " BPM");
                 if (info->clipped) n.add ("clipped in the file");
                 if (info->tailFloorDb > -45.0f) n.add ("hiss / vinyl noise");
                 notes = n.joinIntoString ("  -  ");
@@ -659,6 +675,37 @@ namespace ggui
         const auto list = proc.kits.empty() ? juce::StringArray() : proc.alternativesFor (proc.activeKit, proc.selectedSlot, alts.size());
         for (int i = 0; i < alts.size(); ++i)
             alts[i]->setSound (list[i], gg::slotCat (proc.selectedSlot));
+    }
+
+    void PadDetail::setFitBars (int bars)
+    {
+        auto* kit = proc.getActiveKit();
+        if (kit == nullptr || gg::slotCat (proc.selectedSlot) != gg::Cat::fx) return;
+        auto& st = (*kit)[proc.selectedSlot];
+        if (st.isEmpty()) return;
+        proc.setFit (st, bars);
+        proc.kitChanged (proc.activeKit);
+        refresh();
+    }
+
+    void PadDetail::showFitMenu()
+    {
+        const auto* kit = proc.getActiveKit();
+        if (kit == nullptr) return;
+        const int cur = (*kit)[proc.selectedSlot].fitBars;
+        juce::PopupMenu m;
+        m.addSectionHeader ("FIT AT " + juce::String (juce::roundToInt (kit->bpm)) + " BPM");
+        m.addItem (1, "As it is (its own length)", true, cur == 0);
+        for (int bars : { 1, 2, 4, 8 })
+            m.addItem (10 + bars, juce::String (bars) + (bars == 1 ? " bar" : " bars"), true, cur == bars);
+        juce::Component::SafePointer<PadDetail> safe (this);
+        m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&fitBtn),
+                         [safe] (int r)
+                         {
+                             if (safe == nullptr || r <= 0) return;
+                             safe->setFitBars (r == 1 ? 0 : r - 10);
+                             safe->proc.auditionSlot (safe->proc.selectedSlot);
+                         });
     }
 
     void PadDetail::applyKnobs()
@@ -695,6 +742,8 @@ namespace ggui
         lock.setBounds (buttons.removeFromRight (90));
         buttons.removeFromRight (8);
         reverse.setBounds (buttons.removeFromRight (100));
+        buttons.removeFromRight (8);
+        fitBtn.setBounds (buttons);
         knobs.removeFromBottom (6);
         const int kw = knobs.getWidth() / 4;
         for (auto* k : { &tune, &start, &length, &gain }) k->setBounds (knobs.removeFromLeft (kw));

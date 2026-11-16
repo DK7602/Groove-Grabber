@@ -186,6 +186,16 @@ namespace ggui
         inTime.onClick = [this] { hearInTime(); };
         addAndMakeVisible (inTime);
 
+        {
+            const juce::String how = " at your tempo. A build-up ends on the downbeat, a hit starts on it: too long, it's trimmed "
+                                     "(a riser from its start); too short, stretched without changing its pitch. HEAR IT IN TIME, DRAG, "
+                                     "ADD TO SONG FX and PUT ON THIS KIT use it.";
+            fit.setTooltips ({ "As it is: its own length", "Make it 1 bar" + how, "Make it 2 bars" + how, "Make it 4 bars" + how,
+                               "Make it 8 bars" + how });
+        }
+        fit.onChange = [this] (int i) { static const int bars[] { 0, 1, 2, 4, 8 }; setFitBars (bars[juce::jlimit (0, 4, i)]); };
+        addAndMakeVisible (fit);
+
         addBank.getProperties().set ("style", "accent");
         addBank.onClick = [this] { addToSongFx(); };
         addAndMakeVisible (addBank);
@@ -497,8 +507,44 @@ namespace ggui
         }
         const auto path = getSelectedPath();
         if (path.isEmpty()) return;
-        const double secs = proc.hearFxInTime (path, getSelectedType());
+        const double secs = proc.hearFxInTime (path, getSelectedType(), getFitBars());
         inTimeUntil = juce::Time::getMillisecondCounterHiRes() + secs * 1000.0 + 400.0;
+    }
+
+    int FxPage::getFitBars() const
+    {
+        const auto it = fitChoice.find (getSelectedPath());
+        return it != fitChoice.end() ? it->second : 0;
+    }
+
+    void FxPage::setFitBars (int bars)
+    {
+        const auto path = getSelectedPath();
+        if (path.isEmpty()) return;
+        fitChoice[path] = bars;
+        static const int all[] { 0, 1, 2, 4, 8 };
+        for (int i = 0; i < 5; ++i) if (all[i] == bars) fit.setSelected (i);
+        repaint (rightArea);
+    }
+
+    juce::String FxPage::fitWords (const gg::fx::Catalog::Item& item, const gg::SoundInfo& s) const
+    {
+        const int bars = getFitBars();
+        if (bars <= 0) return {};
+        const double bpm = proc.songBpm(), target = bars * 240.0 / bpm;
+        const double len = item.shape.valid ? item.shape.duration : s.duration;
+        const auto set = gg::fx::fitSettings (item.type);
+        const double anchor = set.anchor == 1 ? len * item.shape.peakPos : len;
+        juce::String w = juce::String (bars) + (bars == 1 ? " bar" : " bars") + ": ";
+        if (anchor > target * 1.01) return w + (set.anchor == 2 ? "cut short, faded out" : "trimmed from its start");
+        if (anchor < target * 0.99)
+        {
+            if (! set.stretch) return w + "starts on the downbeat and rings as it is";
+            const double factor = target / juce::jmax (0.01, anchor);
+            if (factor > 4.0) return w + "stretched x4 (the most), pitch kept" + juce::String (set.anchor == 2 ? ", then silence" : ", silence before it");
+            return w + "stretched x" + juce::String (factor, 1) + ", pitch kept";
+        }
+        return w + "fits as it is";
     }
 
     int FxPage::bankIndexOf (const juce::String& path) const
@@ -548,7 +594,7 @@ namespace ggui
             repaint (rightArea);
             return;
         }
-        if (proc.addSongFx (path) >= 0) { updateButtons(); repaint (rightArea); return; }
+        if (proc.addSongFx (path, getFitBars()) >= 0) { updateButtons(); repaint (rightArea); return; }
         // full: which one does it replace?
         juce::PopupMenu m;
         m.addSectionHeader ("Song FX is full: replace...");
@@ -557,7 +603,7 @@ namespace ggui
         m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&addBank), [this, path, safe = juce::Component::SafePointer<FxPage> (this)] (int r)
         {
             if (safe == nullptr || r <= 0) return;
-            proc.setSongFx (r - 1, path);
+            proc.setSongFx (r - 1, path, getFitBars());
             updateButtons();
             repaint (rightArea);
         });
@@ -570,7 +616,7 @@ namespace ggui
         if (path.isEmpty() || k == nullptr) return;
         if (const auto free = proc.freeKitFx(); free != gg::Slot::count)
         {
-            proc.putOnKit (path, free);
+            proc.putOnKit (path, free, getFitBars());
             repaint (rightArea);
             return;
         }
@@ -582,7 +628,7 @@ namespace ggui
         m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&onKit), [this, path, safe = juce::Component::SafePointer<FxPage> (this)] (int r)
         {
             if (safe == nullptr || r <= 0) return;
-            proc.putOnKit (path, (gg::Slot) (r - 1));
+            proc.putOnKit (path, (gg::Slot) (r - 1), getFitBars());
             repaint (rightArea);
         });
     }
@@ -604,6 +650,12 @@ namespace ggui
         const bool any = s != nullptr;
         play.setEnabled (any);
         inTime.setEnabled (any);
+        fit.setEnabled (any);
+        {
+            static const int all[] { 0, 1, 2, 4, 8 };
+            const int bars = getFitBars();
+            for (int i = 0; i < 5; ++i) if (all[i] == bars) fit.setSelected (i);
+        }
         updateButtons();
         if (! any)
         {
@@ -648,7 +700,9 @@ namespace ggui
         if (dragging || path.isEmpty() || ! dragArea.contains (e.getMouseDownPosition()) || e.getDistanceFromDragStart() < 6) return;
         dragging = true;
         repaint (dragArea);
-        juce::DragAndDropContainer::performExternalDragDropOfFiles ({ path }, false, this,
+        // (tuned or fit: a file of it as it plays here; as it is: the original)
+        const auto file = proc.fxFileToDrag (path, getSelectedType(), getFitBars());
+        juce::DragAndDropContainer::performExternalDragDropOfFiles ({ file.getFullPathName() }, false, this,
                                                                     [safe = juce::Component::SafePointer<FxPage> (this)]
         {
             if (safe != nullptr) { safe->dragging = false; safe->repaint (safe->dragArea); }
@@ -692,6 +746,9 @@ namespace ggui
         bottom.removeFromRight (8);
         inTime.setBounds (bottom.reduced (0, 4));
         auto use = d.removeFromBottom (44);
+        d.removeFromBottom (6);
+        fitRow = d.removeFromBottom (32);
+        fit.setBounds (fitRow.withTrimmedLeft (44).reduced (0, 2));
         onKit.setBounds (use.removeFromRight (use.getWidth() / 2 - 4).reduced (0, 2));
         use.removeFromRight (8);
         addBank.setBounds (use.reduced (0, 2));
@@ -785,6 +842,24 @@ namespace ggui
         add ("Length   ", juce::String (secs, 2) + " s  -  " + barsText (gg::fx::barsAt (secs, bpm)) + " at " + juce::String (bpm, 0) + " BPM");
         if (const auto note = steadyNote (r.item.shape); note.isNotEmpty()) add ("Note   ", note);
         add ("In time   ", inTimeWords (r.item.type));
+        if (const auto f = fitWords (r.item, *s); f.isNotEmpty())
+        {
+            add ("Fit   ", f);
+            if (const double daw = proc.dawBpm(); daw > 0 && std::abs (daw - bpm) > 0.05)
+                add ("Tempo   ", "your DAW is at " + juce::String (daw, daw == std::round (daw) ? 0 : 1) + " BPM: set BPM to match");
+        }
+        if (proc.options.tuneToKey && proc.options.key >= 0)
+        {
+            const float t = proc.fxTuneFor (s->path);
+            if (std::abs (t) >= 0.005f)
+            {
+                juce::String to;
+                if (r.item.shape.pitchHz > 20.0f)     // (the note it lands on)
+                    to = gg::noteName ((int) std::round (69.0 + 12.0 * std::log2 (r.item.shape.pitchHz / 440.0) + t)) + ", ";
+                add ("Key   ", "tuned " + juce::String (t > 0 ? "+" : "") + juce::String (t, 1) + " st to " + to + gg::keyName (proc.options.key));
+            }
+            else if (gg::fx::hasSteadyPitch (r.item.shape)) add ("Key   ", "in " + gg::keyName (proc.options.key) + " already");
+        }
         if (const auto where = whereItIs (s->path); where.isNotEmpty()) add ("In your song   ", where);
         juce::TextLayout factsLayout;
         factsLayout.createLayout (facts, (float) t.getWidth());
@@ -818,6 +893,11 @@ namespace ggui
             g.reduceClipRegion (t);
             layout.draw (g, t.toFloat().withHeight (juce::jmax ((float) t.getHeight(), layout.getHeight())));
         }
+
+        // FIT
+        g.setColour (p.dim);
+        g.setFont (headFont (10.5f).withExtraKerningFactor (0.1f));
+        g.drawText ("FIT", fitRow.withWidth (40), juce::Justification::centredLeft);
 
         // DRAG
         {
