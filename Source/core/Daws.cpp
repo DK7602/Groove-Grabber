@@ -200,10 +200,43 @@ namespace gg
                    .replace ("{GA_GROUPS}", ga).replace ("{BANK_B}", bank);
     }
 
-    juce::StringArray guideSteps (const DawGuide& daw, int numPads, const juce::String& lastFileName)
+    juce::String songFxStep (const DawGuide& daw, int count)
+    {
+        const auto first = dawNoteName (firstBankNote, daw);
+        const auto files = count == 1 ? juce::String ("the file") : count > 1 ? "the " + juce::String (count) + " files" : juce::String ("the files");
+        juce::String s;
+        if (daw.id == "cubase")
+            s = "Song FX: show **pad group 5** and drag " + files + " in the **Song FX** folder over its **" + first + "** pad (the second one). Drop on the lowest drop icon, as before.";
+        else if (daw.id == "ableton")
+            s = "Song FX: scroll the pad overview up and drag " + files + " in the **Song FX** folder onto the **" + first + "** pad. They map upward from it.";
+        else if (daw.id == "fl")
+            s = "Song FX: drag " + files + " in the **Song FX** folder onto the Channel Rack too. In FPC, put each one on a pad that plays its note: Song FX 1 is " + first + " (note 69), Song FX 2 the note above, and so on.";
+        else if (daw.id == "logic")
+            s = "Song FX: they play on " + first + " (note 69) and up, on a later page of Drum Machine Designer. Drag each file in the **Song FX** folder onto its pad there: Song FX 1 on " + first + ", Song FX 2 on the pad after it.";
+        else if (daw.id == "garageband")
+            s = "Song FX: Groove Grabber plays them on " + first + " (note 69) and up.";
+        else if (daw.id == "studioone")
+            s = "Song FX: show **bank C**, drag " + files + " in the **Song FX** folder over its second pad (" + first + ") and **hold Shift** as you let go.";
+        else if (daw.id == "reaper")
+            s = "Song FX: give each file in the **Song FX** folder its own ReaSamplOmatic5000 on notes 69 and up (Song FX 1 = note 69, which REAPER shows as " + first + ").";
+        else if (daw.id == "bitwig")
+            s = "Song FX: scroll the pad strip up and drag " + files + " in the **Song FX** folder onto the **" + first + "** pad.";
+        else if (daw.id == "protools")
+            s = "Song FX: load the ones you need on free GrooveCell pads (the Groove .mid plays them on notes 69 and up).";
+        else if (daw.id == "reason")
+            s = "Song FX: put " + files + " in the **Song FX** folder in a second Kong or an NN-XT, on " + first + " (note 69) and up.";
+        else if (daw.id == "mpc")
+            s = "Song FX: the program has pads for them (notes 69 and up). Copy " + files + " from the **Song FX** folder next to the .pgm before you load it.";
+        else
+            s = "Song FX: put Song FX 1 on note 69, Song FX 2 on note 70 and so on. Many samplers do this when you drop " + files + " in the **Song FX** folder on the note 69 pad.";
+        return s;
+    }
+
+    juce::StringArray guideSteps (const DawGuide& daw, int numPads, const juce::String& lastFileName, int songFx)
     {
         juce::StringArray items;
         for (const auto& s : daw.steps) items.add (fillGuideText (s, daw, numPads, lastFileName));
+        if (songFx > 0) items.add (songFxStep (daw, songFx));
         if (daw.hats.isNotEmpty())
         {
             auto hats = daw.hats;
@@ -215,11 +248,11 @@ namespace gg
         return items;
     }
 
-    juce::String dawGuideText (const DawGuide& daw, int numPads, const juce::String& lastFileName)
+    juce::String dawGuideText (const DawGuide& daw, int numPads, const juce::String& lastFileName, int songFx)
     {
         juce::String t;
         int n = 1;
-        for (const auto& s : guideSteps (daw, numPads, lastFileName))
+        for (const auto& s : guideSteps (daw, numPads, lastFileName, songFx))
             t << n++ << ". " << s.replace ("**", "") << "\n";
         if (daw.keep.isNotEmpty())   t << n++ << ". " << daw.keep.replace ("**", "") << "\n";
         if (daw.groove.isNotEmpty()) t << "\nThe Groove .mid (and patterns from SAUCE): drop it " << daw.groove.replace ("**", "") << ".\n";
@@ -238,6 +271,7 @@ namespace gg
             md << "\n";
             if (daw.hats.isNotEmpty())   md << "- " << daw.hats.replaceFirstOccurrenceOf ("Hats:", "**Hats:**") << "\n";
             if (daw.keep.isNotEmpty())   md << "- " << daw.keep.replaceFirstOccurrenceOf ("Keep it:", "**Keep it:**") << "\n";
+            md << "- " << songFxStep (daw, 0).replaceFirstOccurrenceOf ("Song FX:", "**Song FX** (when the kit has them):") << "\n";
             if (daw.groove.isNotEmpty()) md << "- **MIDI** (the Groove .mid, or a pattern from SAUCE): drop it " << daw.groove << ".\n";
             if (daw.id != "other")       md << "- **Note names:** " << daw.name << " calls note 36 " << dawNoteName (36, daw) << ".\n";
             md << "\n";

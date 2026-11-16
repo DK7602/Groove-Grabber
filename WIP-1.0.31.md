@@ -31,8 +31,8 @@ release commit.
 - [x] Player / render: bank pads play
 - [x] BUILD: SONG FX row (PadGrid bottom strip, "+N waiting", no lock on bank pads)
 - [x] FX tab: ADD TO SONG FX (REMOVE when in), PUT ON THIS KIT, "In your song" line
-- [ ] SAUCE: rows, addable, MIDI
-- [ ] Export: Song FX folder, MPC, Kit Info, FL names, DAW guide step
+- [x] SAUCE: rows (BLANK + ADD DRUM), MIDI via padLayout; Song FX pads are amber (slotColour)
+- [x] Export: Song FX folder, MPC, Kit Info, FL names, DAW guide step (Daws::songFxStep), export panel line
 - [ ] Song Savant DrumLanes
 - [ ] Tests (engine + screenshots), manual, CLAUDE.md, version 1.0.31
 - [ ] Release: one commit on main, CI, Windows host annotations, tell the other session

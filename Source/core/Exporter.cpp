@@ -136,6 +136,48 @@ namespace gg
             table << "\n";
         }
 
+        // the Song FX bank: its own folder, numbered from Song FX 1 up to the last one used (a gap gets a silent file, so
+        // each lands on its own note when they're all dropped on note 69's pad)
+        if (const int used = kit.bankUsed(); used > 0)
+        {
+            r.bankFolder = r.folder.getChildFile ("Song FX");
+            r.bankFolder.createDirectory();
+            table << "\nSONG FX (the song's, on notes " << firstBankNote << " up)\n";
+            for (int b = 0; b < used; ++b)
+            {
+                const int i = (int) (std::find_if (padLayout().begin(), padLayout().end(), [b] (const PadDef& p) { return p.slot == bankSlot (b); })
+                                     - padLayout().begin());
+                const auto& pad = padLayout()[(size_t) i];
+                const auto& st = kit[pad.slot];
+                auto audio = renderPad (kit, pad, o.sampleRate);
+                const bool empty = audio == nullptr || audio->getNumSamples() == 0;
+                const auto name = juce::String (b + 1).paddedLeft ('0', 2) + " " + (empty ? juce::String ("Empty") : juce::String (pad.label))
+                                + (kitInNames ? " - " + r.folder.getFileName() : juce::String());
+                const auto file = r.bankFolder.getChildFile (name + ".wav");
+                bool ok;
+                if (empty)
+                {
+                    juce::AudioBuffer<float> silence (2, juce::jmax (1, (int) (o.sampleRate * 0.01)));
+                    silence.clear();
+                    ok = writeWav (file, silence, o.sampleRate, o.bitDepth);
+                }
+                else
+                {
+                    ok = writeWav (file, *audio, o.sampleRate, o.bitDepth);
+                    ++r.soundsWritten;
+                    mpcNames[(size_t) i] = name;
+                }
+                if (! ok)
+                {
+                    r.error = "Couldn't write " + file.getFullPathName();
+                    return r;
+                }
+                r.bankFiles.add (file);
+                table << dawNoteName (pad.note, daw).paddedRight (' ', 5) << juce::String (pad.note).paddedRight (' ', 5)
+                      << ("Song FX/" + name + ".wav").paddedRight (' ', 30) << (empty ? juce::String ("(empty)") : st.path) << "\n";
+            }
+        }
+
         if (writeMpc)
         {
             r.programFile = r.folder.getChildFile (kitName.substring (0, 16).trim() + ".pgm");
@@ -165,7 +207,8 @@ namespace gg
              << "---------------------------------\n" << table << "\n"
              << "LOAD INTO " << (daw.id == "other" ? juce::String ("YOUR SAMPLER") : daw.sampler.toUpperCase() + " (" + daw.name.toUpperCase() + ")") << "\n"
              << "----------------------\n"
-             << dawGuideText (daw, kit.padCount(), r.padFiles.isEmpty() ? padFileName (kit.padCount() - 1, false) : r.padFiles.getLast().getFileNameWithoutExtension()) << "\n"
+             << dawGuideText (daw, kit.padCount(), r.padFiles.isEmpty() ? padFileName (kit.padCount() - 1, false) : r.padFiles.getLast().getFileNameWithoutExtension(),
+                              r.bankFiles.size()) << "\n"
              << (daw.id != "other" ? "Note names: " + daw.name + " calls MIDI note 36 " + dawNoteName (36, daw) + ".\n" : juce::String())
              << "Another DAW? Every DAW's steps are in Groove Grabber's manual (F1 > Exporting to your DAW).\n\n"
              << "Other options: " << (writeMpc ? "'" + r.programFile.getFileName() + "' is an MPC 1000 program with every pad and note\n"

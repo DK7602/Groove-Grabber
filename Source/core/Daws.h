@@ -35,9 +35,12 @@ namespace gg
     // A step or hats tip with its numbers filled in for a kit of numPads files (22, 27 or 33): {FIRST} {LAST}
     // {PADS} {LASTNOTE} {LASTNUM} and the pad groups / banks the later files land in. Keeps the **bold** marks.
     juce::String fillGuideText (const juce::String& text, const DawGuide&, int numPads, const juce::String& lastFileName);
-    juce::StringArray guideSteps (const DawGuide&, int numPads, const juce::String& lastFileName);   // the steps + the hats tip
+    // the steps + the hats tip (+ where the Song FX files go, when the kit has songFx of them)
+    juce::StringArray guideSteps (const DawGuide&, int numPads, const juce::String& lastFileName, int songFx = 0);
+    // Where a kit's Song FX files (its "Song FX" folder) go in this DAW: on note 69's pad and up. count 0: said generally
+    juce::String songFxStep (const DawGuide&, int count);
 
     // The whole guide as plain text (Kit Info.txt) and as the manual's markdown
-    juce::String dawGuideText (const DawGuide&, int numPads, const juce::String& lastFileName);
+    juce::String dawGuideText (const DawGuide&, int numPads, const juce::String& lastFileName, int songFx = 0);
     juce::String dawGuidesMarkdown();                  // every DAW, for the manual ({DAW_GUIDES})
 }
