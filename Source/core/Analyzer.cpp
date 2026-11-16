@@ -131,6 +131,12 @@ namespace gg::analysis
                              "scratches", "stab", "stabs", "transition", "glitch", "foley",
                              "texture", "atmos", "drone", "siren", "gunshot", "airhorn", "tag" }))
                 set (Cat::fx, 0.85f);
+            // words only an effect has: they beat a drum word in the same name ("Snare Swell", "Sub Drop", "Air Horn")
+            if (hasAny (t, { "swell", "swells", "riser", "risers", "uplifter", "downlifter", "whoosh", "swoosh", "impact", "impacts",
+                             "airhorn", "siren", "laser", "lasers", "zap", "zaps", "tapestop", "rewind", "spinback", "crackle", "subdrop",
+                             "downsweep", "upsweep" })
+                 || phrase (joined, "sub drop") || phrase (joined, "air horn") || phrase (joined, "tape stop") || phrase (joined, "vinyl stop"))
+                set (Cat::fx, 0.96f);
 
             // vocals and instruments: never drums, unless a drum word says otherwise ("Vocal Snare", "Synth Kick")
             {
@@ -859,7 +865,12 @@ namespace gg::analysis
             }
 
             // loops and whole songs never go in a kit (vocal / instrument loops stay "Vocal / Melodic")
-            if (c != Cat::melodic)
+            // (one long build that peaks late, a riser or a reverse swell, is an effect however long it runs, unless
+            // its name says loop)
+            const bool oneBuild = ! g.loopWord && s.onsets <= 2 && s.duration <= 30.0f && s.attackMs >= 1500.0f
+                                  && s.attackMs > 0.3f * juce::jmin (s.duration, 8.0f) * 1000.0f;
+            if (oneBuild && c != Cat::melodic) { c = Cat::fx; conf = juce::jmax (conf, 0.7f); }
+            if (c != Cat::melodic && ! oneBuild)
             if (s.duration > 12.0f || (s.onsets >= 4 && s.duration > 1.0f) || (g.loopWord && (s.onsets >= 2 || s.duration > 1.5f) && s.duration > 0.8f))
                 if (! (c == Cat::fx && g.cat == Cat::fx))
                 {

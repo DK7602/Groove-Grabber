@@ -5,6 +5,7 @@
 #include "core/Settings.h"
 #include "core/MyGrooves.h"
 #include "core/Coach.h"
+#include "TestSounds.h"
 #include <iostream>
 
 namespace
@@ -84,9 +85,10 @@ int runScreenshots (const juce::File& outDir)
             {
                 auto& hb = ed->getHeader();
                 const auto x = [&hb] (int page) { return hb.getTabButton (page).getX(); };
-                const bool order = x (0) < x (3) && x (3) < x (2) && x (2) < x (1)
-                                   && hb.getTabButton (3).getButtonText() == "SAUCE" && hb.getTabButton (1).getButtonText() == "LIBRARY";
-                std::cout << (order ? "  ok: " : "  FAIL: ") << "the tabs read BUILD, SAUCE, MY KITS, LIBRARY" << std::endl;
+                const bool order = x (0) < x (3) && x (3) < x (4) && x (4) < x (2) && x (2) < x (1)
+                                   && hb.getTabButton (3).getButtonText() == "SAUCE" && hb.getTabButton (4).getButtonText() == "FX"
+                                   && hb.getTabButton (1).getButtonText() == "LIBRARY";
+                std::cout << (order ? "  ok: " : "  FAIL: ") << "the tabs read BUILD, SAUCE, FX, MY KITS, LIBRARY" << std::endl;
                 if (! order) ++failures;
                 // the bigger logo and tab names still fit the bar, from the smallest window up
                 bool fits = true;
@@ -883,6 +885,126 @@ int runScreenshots (const juce::File& outDir)
         p.applyDescription ("");
         p.applyDescription ("Morgan Wallen");
         expect (p.options.genre == gg::Genre::country, "cleared, then Morgan Wallen: Country");
+    }
+
+    // ---- FX: a folder of effects (some named, some not), sorted by kind, with their fit, heard in time ----
+    {
+        auto expect = [&failures] (bool ok, const juce::String& what)
+        {
+            std::cout << (ok ? "  ok: " : "  FAIL: ") << what << std::endl;
+            if (! ok) ++failures;
+        };
+        const auto fxDir = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("GrooveGrabberTests").getChildFile ("FX Pack");
+        fxDir.deleteRecursively();
+        ggtest::Synth syn;
+        auto add = [&] (const juce::String& rel, const juce::AudioBuffer<float>& b) { ggtest::Synth::write (fxDir.getChildFile (rel), b, syn.sr); };
+        add ("Risers/Riser 4 Bars.wav", syn.riser (10.9f));
+        add ("Risers/Noise Uplifter 02.wav", syn.riser (5.4f));
+        add ("Transitions/Reverse Crash.wav", syn.reverseCymbal (2.0f));
+        add ("Transitions/Snare Swell.wav", syn.swell (0.8f));
+        add ("Transitions/Downlifter Dark.wav", syn.downlifter (2.5f));
+        add ("Transitions/Whoosh Fast.wav", syn.whoosh (1.2f));
+        add ("Hits/Cinematic Impact.wav", syn.impact (2.5f));
+        add ("Hits/Sub Drop G.wav", syn.subDrop (1.8f));
+        add ("Ear Candy/Tape Stop.wav", syn.tapeStop (1.2f));
+        add ("Ear Candy/Vinyl Crackle.wav", syn.crackle (4.0f));
+        add ("Ear Candy/Scratch Chirp.wav", syn.scratch (1.0f));
+        add ("Ear Candy/Laser 3.wav", syn.laser (0.4f));
+        add ("Ear Candy/Air Horn.wav", syn.horn (1.4f));
+        add ("Downloads/FX 01.wav", syn.riser (3.0f));
+        add ("Downloads/FX 02.wav", syn.impact (2.5f));
+        add ("Downloads/FX 03.wav", syn.tapeStop (1.2f));
+
+        GrooveGrabberProcessor p;
+        p.prepareToPlay (44100.0, 512);
+        for (int i = 0; i < 400 && p.library->isScanning(); ++i) pump (25);
+        p.library->addSource (fxDir, gg::Source::packs);
+        pump (300);
+        for (int i = 0; i < 800 && p.library->isScanning(); ++i) pump (25);
+        // (the library's own "is it an effect" rule on these: everything here should be FX)
+        juce::StringArray notFx;
+        for (const auto& si : *p.library->getSounds())
+            if (si.path.startsWith (fxDir.getFullPathName()) && si.cat != gg::Cat::fx) notFx.add (juce::File (si.path).getFileName() + " (" + gg::catName (si.cat) + ")");
+        // FX in your 90s boom bap song
+        p.applyDescription ("90s boom bap, 90 BPM");
+        p.generate (false);
+        std::unique_ptr<GrooveGrabberEditor> ed (dynamic_cast<GrooveGrabberEditor*> (p.createEditor()));
+        ed->setSize (1440, 900);
+        ed->showTab (4);
+        auto& fxp = ed->getFxPage();
+        p.fxCatalog->waitUntilDone (30000);
+        pump (500);
+        ed->refreshAll();
+        pump (300);
+        save (*ed, outDir.getChildFile ("fx.png"));
+        const int fxCount = fxp.countOf (-1);
+        expect (fxCount == 18 && notFx.isEmpty(), "FX: the pack's 16 effects and the library's 2 in the FX tab (" + juce::String (fxCount) + ")"
+                + (notFx.isEmpty() ? juce::String() : ", not FX: " + notFx.joinIntoString (", ")));
+        using T = gg::fx::Type;
+        // (the test library has two risers of its own: "Riser Up" and the unnamed "Sound 10")
+        const bool kinds = fxp.countOf ((int) T::riser) == 5 && fxp.countOf ((int) T::impact) == 2 && fxp.countOf ((int) T::tapeStop) == 2
+                           && fxp.countOf ((int) T::reverseCymbal) == 1 && fxp.countOf ((int) T::scratch) == 1 && fxp.countOf ((int) T::crackle) == 1;
+        if (! kinds)
+            for (const auto& si : *p.library->getSounds())
+                if (si.cat == gg::Cat::fx) std::cout << "    " << si.fileName() << ": " << gg::fx::typeName (p.fxCatalog->get (si).type) << std::endl;
+        expect (kinds, "FX: sorted by kind, the unnamed ones by their sound (risers " + juce::String (fxp.countOf ((int) T::riser))
+                + ", impacts " + juce::String (fxp.countOf ((int) T::impact)) + ", tape stops " + juce::String (fxp.countOf ((int) T::tapeStop)) + ")");
+        // the kind picked, then one effect: its detail, its fit for the song
+        fxp.showType ((int) T::scratch);
+        pump (100);
+        fxp.selectRow (0);
+        pump (600);
+        save (*ed, outDir.getChildFile ("fx-scratch.png"));
+        expect (fxp.getNumShown() == 1 && fxp.fitTextOf (0).startsWith ("Great fit for Hip-Hop"), "FX: a scratch is a great fit for 90s hip-hop (" + fxp.fitTextOf (0) + ")");
+        fxp.showType ((int) T::riser);
+        fxp.setFitsFirst (true);
+        pump (100);
+        fxp.selectRow (0);
+        pump (600);
+        save (*ed, outDir.getChildFile ("fx-riser.png"));
+        expect (fxp.fitTextOf (0).startsWith ("Unusual") || fxp.fitTextOf (0).startsWith ("Fits"), "FX: a riser is unusual in 90s boom bap (" + fxp.fitTextOf (0) + ")");
+        // HEAR IT IN TIME: the groove with the riser on top, ending on a downbeat
+        {
+            juce::AudioBuffer<float> buf (2, 512);
+            juce::MidiBuffer none;
+            fxp.hearInTime();
+            bool heard = false;
+            for (int i = 0; i < 200 && ! heard; ++i)
+            {
+                pump (20);
+                buf.clear();
+                p.processBlock (buf, none);
+                heard = buf.getMagnitude (0, buf.getNumSamples()) > 0.0005f;
+            }
+            pump (300);
+            save (*ed, outDir.getChildFile ("fx-intime.png"));
+            expect (heard && fxp.getSelectedType() == T::riser, "FX: HEAR IT IN TIME plays the riser over the groove");
+            fxp.hearInTime();      // (stop)
+        }
+        // light
+        p.getSettings().setLightTheme (true);
+        ed.reset();
+        ed.reset (dynamic_cast<GrooveGrabberEditor*> (p.createEditor()));
+        ed->setSize (1440, 900);
+        ed->showTab (4);
+        pump (400);
+        ed->getFxPage().showType ((int) T::impact);
+        ed->getFxPage().selectRow (0);
+        pump (500);
+        save (*ed, outDir.getChildFile ("fx-light.png"));
+        p.getSettings().setLightTheme (false);
+        ed.reset();
+        // a small window: everything still fits
+        ed.reset (dynamic_cast<GrooveGrabberEditor*> (p.createEditor()));
+        ed->setSize (1180, 780);
+        ed->showTab (4);
+        pump (400);
+        ed->getFxPage().selectRow (0);
+        pump (400);
+        save (*ed, outDir.getChildFile ("fx-small.png"));
+        ed.reset();
+        p.library->removeSource ((int) p.library->getSources().size() - 1);
+        pump (300);
     }
     return failures;
 }

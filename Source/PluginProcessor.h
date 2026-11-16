@@ -6,6 +6,7 @@
 #include "core/KitPlayer.h"
 #include "core/SongContext.h"
 #include "core/Exporter.h"
+#include "core/Fx.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <map>
 
@@ -109,6 +110,14 @@ public:
     void previewFile (const juce::String& path, gg::Cat);
     gg::PlayableKit::Ptr getPlayable (int kitIndex) const;
     bool isStandalone() const noexcept             { return wrapperType == wrapperType_Standalone; }
+
+    // ---- FX: your effects, typed (core/Fx), and heard in time with the groove ----
+    juce::SharedResourcePointer<gg::fx::Catalog> fxCatalog;
+    double songBpm() const;                        // the song's tempo (or its style's)
+    // Plays the effect over BUILD's groove and kit, placed where it goes: a build-up ends on a downbeat, a hit starts
+    // on one, a whoosh peaks on one. With no kits yet, over a click. Returns how long it plays (seconds).
+    double hearFxInTime (const juce::String& path, gg::fx::Type);
+    void stopPreview();                            // a sound playing on its own (a library sound, an FX) stops
 
     // ---- library & settings ----
     juce::SharedResourcePointer<gg::Library> library;

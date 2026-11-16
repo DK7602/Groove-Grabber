@@ -48,8 +48,8 @@ namespace ggui
         void showKeyCompassMenu();
         void showSettingsMenu();
         GrooveGrabberProcessor& proc;
-        juce::OwnedArray<juce::TextButton> tabs;                      // by page: BUILD, LIBRARY, MY KITS, SAUCE
-        static constexpr int tabOrder[] = { 0, 3, 2, 1 };              // left to right: BUILD, SAUCE, MY KITS, LIBRARY
+        juce::OwnedArray<juce::TextButton> tabs;                      // by page: BUILD, LIBRARY, MY KITS, SAUCE, FX
+        static constexpr int tabOrder[] = { 0, 3, 4, 2, 1 };           // left to right: BUILD, SAUCE, FX, MY KITS, LIBRARY
         juce::ComboBox key;
         DragNumber bpm;
         IconButton keyCompass { "Key Compass", Icon::compass }, theme { "theme", Icon::moon }, gear { "settings", Icon::gear },

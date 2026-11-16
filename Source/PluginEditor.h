@@ -9,6 +9,7 @@
 #include "ui/ExportPanel.h"
 #include "ui/HelpPanel.h"
 #include "ui/SaucePage.h"
+#include "ui/FxPage.h"
 
 class GrooveGrabberEditor : public juce::AudioProcessorEditor,
                             private juce::ChangeListener,
@@ -32,6 +33,7 @@ public:
     ggui::HeaderBar& getHeader()  { return header; }
     ggui::ExportPanel& getExporter()   { return exporter; }
     ggui::KitsPage& getKitsPage()      { return kitsPage; }
+    ggui::FxPage& getFxPage()          { return fxPage; }
     float getZoom() const              { return content.getTransform().getScaleFactor(); }
     juce::Component& getContent()      { return content; }
 
@@ -51,6 +53,7 @@ private:
     ggui::LibraryPage library;
     ggui::KitsPage kitsPage;
     ggui::SaucePage sauce;
+    ggui::FxPage fxPage;
     ggui::ExportPanel exporter;
     ggui::HelpPanel help;
     int tab = 0;

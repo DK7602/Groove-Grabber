@@ -69,8 +69,8 @@ namespace ggui
     //==============================================================================
     HeaderBar::HeaderBar (GrooveGrabberProcessor& p) : proc (p)
     {
-        const char* names[] = { "BUILD", "LIBRARY", "MY KITS", "SAUCE" };
-        for (int i = 0; i < 4; ++i)
+        const char* names[] = { "BUILD", "LIBRARY", "MY KITS", "SAUCE", "FX" };
+        for (int i = 0; i < 5; ++i)
         {
             auto* b = tabs.add (new juce::TextButton (names[i]));
             b->getProperties().set ("style", "tab");
@@ -81,6 +81,7 @@ namespace ggui
         tabs[1]->setTooltip ("Your sound folders, scanning, and every analysed sound");
         tabs[2]->setTooltip ("Kits you saved, and recent ones");
         tabs[3]->setTooltip ("How the drums go in your genre, style and decade: patterns to play and drag into your DAW");
+        tabs[4]->setTooltip ("Your effects by kind (risers, impacts, sweeps, scratches...): where each fits, and how it sounds in time");
 
         key.addItem ("No key", 1);
         for (int k = 0; k < 24; ++k)
@@ -161,16 +162,33 @@ namespace ggui
         logoArea = { 14, (getHeight() - 2 - badge) / 2, badge + 14 + (int) std::ceil (grooveW) + 8, badge };
         r.setLeft (logoArea.getRight() + (narrow ? 6 : 14));
 
-        // the tabs, each as wide as its name: shown BUILD, SAUCE, MY KITS, LIBRARY; each keeps its page's
-        // number (0 BUILD, 1 LIBRARY, 2 MY KITS, 3 SAUCE)
-        const float textH = narrow ? 16.0f : 17.0f;
+        // the tabs, each as wide as its name: shown BUILD, SAUCE, FX, MY KITS, LIBRARY; each keeps its page's
+        // number (0 BUILD, 1 LIBRARY, 2 MY KITS, 3 SAUCE, 4 FX)
+        // (they get a little smaller when the window is too narrow for them and the controls on the right)
+        const int controlsW = 46 * 3 + 4 * 2 + 10 + (narrow ? 46 : 158) + 10 + 64 + 36 + 6 + (narrow ? 124 : 140) + 34 + 8;
+        const int room = r.getWidth() - controlsW;
+        float textH = narrow ? 16.0f : 17.0f;
+        int pad = narrow ? 26 : 32;
+        auto widthOf = [this] (float h, int padding)
+        {
+            const auto f = headFont (h).withExtraKerningFactor (0.1f);
+            int w = 0;
+            for (const int page : tabOrder)
+                w += (int) std::ceil (juce::GlyphArrangement::getStringWidth (f, tabs[page]->getButtonText())) + padding;
+            return w;
+        };
+        while (widthOf (textH, pad) > room && (pad > 14 || textH > 13.0f))
+        {
+            if (pad > 14) pad -= 2;
+            else textH -= 0.5f;
+        }
         const auto tabFont = headFont (textH).withExtraKerningFactor (0.1f);
         auto tabRow = r.withSizeKeepingCentre (r.getWidth(), 44);
         for (const int page : tabOrder)
         {
             auto* t = tabs[page];
             t->getProperties().set ("textH", textH);
-            const int w = (int) std::ceil (juce::GlyphArrangement::getStringWidth (tabFont, t->getButtonText())) + (narrow ? 26 : 32);
+            const int w = (int) std::ceil (juce::GlyphArrangement::getStringWidth (tabFont, t->getButtonText())) + pad;
             t->setBounds (tabRow.removeFromLeft (w).reduced (2, 2));
         }
         r = r.withLeft (tabRow.getX());

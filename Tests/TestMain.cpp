@@ -20,6 +20,7 @@
 #include "core/Coach.h"
 #include "core/Daws.h"
 #include "core/MyGrooves.h"
+#include "core/Fx.h"
 #include <juce_events/juce_events.h>
 #include <cmath>
 #include <iostream>
@@ -1108,6 +1109,145 @@ namespace
         }
     }
 
+    //==============================================================================
+    void testFx()
+    {
+        section ("FX");
+        using T = gg::fx::Type;
+        // ---- names ----
+        struct N { const char* file; const char* folders; T want; };
+        const N names[] = {
+            { "Riser 4 Bars 128", "FX Pack/Risers", T::riser }, { "Long Uplifter 02", "", T::riser },
+            { "Rev Cymbal 1", "", T::reverseCymbal }, { "Reverse Crash Long", "Transitions", T::reverseCymbal },
+            { "Reversed Snare", "", T::swell }, { "Snare Swell", "", T::swell },
+            { "Cinematic Impact 3", "", T::impact }, { "Sub Drop G", "", T::subDrop }, { "808 Boom", "FX", T::subDrop },
+            { "Downlifter White", "", T::downlifter }, { "Noise Sweep Up", "", T::riser }, { "Filter Sweep", "", T::sweep },
+            { "Whoosh Fast", "", T::whoosh }, { "Tape Stop 02", "", T::tapeStop }, { "Vinyl Stop", "", T::tapeStop },
+            { "DJ Rewind", "", T::rewind }, { "Spinback 1", "", T::rewind }, { "Vinyl Crackle Loop", "", T::crackle },
+            { "Dust", "Textures", T::crackle }, { "Room Tone", "", T::noise }, { "Scratch Chirp 3", "", T::scratch },
+            { "Zap 01", "", T::zap }, { "Laser Pew", "", T::laser }, { "UI Blip", "", T::blip }, { "Glitch Stutter 4", "", T::glitch },
+            { "Air Horn", "", T::horn }, { "Dub Siren", "", T::horn }, { "Untitled 4", "Downloads", T::count },
+            { "FX 12", "Transitions", T::count }, { "01", "Risers", T::riser },
+        };
+        int nameRight = 0;
+        for (const auto& n : names)
+        {
+            const auto got = gg::fx::fromName (n.file, n.folders);
+            if (got == n.want) ++nameRight;
+            else std::cout << "  (name \"" << n.file << "\" -> " << (got == T::count ? juce::String ("none") : gg::fx::typeName (got))
+                           << ", wanted " << (n.want == T::count ? juce::String ("none") : gg::fx::typeName (n.want)) << ")" << std::endl;
+        }
+        check (nameRight == (int) (sizeof (names) / sizeof (names[0])), "FX types from names (" + juce::String (nameRight) + " right)");
+
+        // ---- the sound alone ----
+        ggtest::Synth syn;
+        struct A { const char* what; juce::AudioBuffer<float> audio; T want; };
+        std::vector<A> sounds;
+        sounds.push_back ({ "riser", syn.riser (3.0f), T::riser });
+        sounds.push_back ({ "long riser", syn.riser (8.0f), T::riser });
+        sounds.push_back ({ "reverse cymbal", syn.reverseCymbal (2.0f), T::reverseCymbal });
+        sounds.push_back ({ "swell", syn.swell (0.8f), T::swell });
+        sounds.push_back ({ "impact", syn.impact (2.5f), T::impact });
+        sounds.push_back ({ "sub drop", syn.subDrop (1.8f), T::subDrop });
+        sounds.push_back ({ "downlifter", syn.downlifter (2.5f), T::downlifter });
+        sounds.push_back ({ "whoosh", syn.whoosh (1.2f), T::whoosh });
+        sounds.push_back ({ "tape stop", syn.tapeStop (1.2f), T::tapeStop });
+        sounds.push_back ({ "crackle", syn.crackle (4.0f), T::crackle });
+        sounds.push_back ({ "noise bed", syn.noiseBed (4.0f), T::noise });
+        sounds.push_back ({ "scratch", syn.scratch (1.0f), T::scratch });
+        sounds.push_back ({ "zap", syn.zap (0.25f), T::zap });
+        sounds.push_back ({ "laser", syn.laser (0.4f), T::laser });
+        sounds.push_back ({ "blip", syn.blip (0.12f), T::blip });
+        sounds.push_back ({ "glitch", syn.glitch (1.2f), T::glitch });
+        sounds.push_back ({ "horn", syn.horn (1.4f), T::horn });
+        int audioRight = 0;
+        for (auto& a : sounds)
+        {
+            const auto sh = gg::fx::measureShape (a.audio.getReadPointer (0), a.audio.getNumSamples(), syn.sr);
+            const auto got = gg::fx::fromShape (sh, {});
+            if (got == a.want) { ++audioRight; continue; }
+            std::cout << "  (" << a.what << " -> " << gg::fx::typeName (got) << ": dur " << sh.duration << " peak " << sh.peakPos
+                      << " start " << sh.startRelDb << " end " << sh.endRelDb << " hold " << sh.holdPos << " bright " << sh.brightTrend
+                      << " (" << (int) sh.brightHz << " Hz) pitch " << sh.pitchShare << " " << (int) sh.pitchHz << " Hz " << sh.pitchTrend
+                      << " st, wobble " << sh.wobble << " clicks " << sh.clicks << " gaps " << sh.gaps << " steady " << sh.steadyDb
+                      << " low " << sh.lowShare << ")" << std::endl;
+        }
+        std::cout << "  " << audioRight << " / " << sounds.size() << " FX told apart by their sound" << std::endl;
+        check (audioRight >= (int) sounds.size() - 1, "FX types from the sound alone (at most one wrong)");
+
+        // ---- every type: a name, a tip, a fit; clean, plain words ----
+        bool covered = true, clean = true;
+        const juce::StringArray banned { "damn", "hell", "shit", "fuck", "bitch", "ass" };
+        for (int i = 0; i < gg::fx::numTypes; ++i)
+        {
+            const auto t = (T) i;
+            const auto text = gg::fx::tip (t);
+            covered = covered && gg::fx::typeName (t).isNotEmpty() && text.length() > 80 && gg::fx::typeFromId (gg::fx::typeId (t)) == t
+                      && gg::fx::bestFor (t).isNotEmpty();
+            for (auto& w : juce::StringArray::fromTokens (text.toLowerCase(), " .,;:()\"'-", ""))
+                if (banned.contains (w)) clean = false;
+            for (auto c : text) if (c > 126) clean = false;
+        }
+        check (covered && gg::fx::tipKeys().size() == gg::fx::numTypes, "every FX type has its tip (Resources/Fx.md), name and fit");
+        check (clean, "FX tips are clean, plain ASCII");
+        const auto riserTrap = gg::fx::fitFor (T::riser, gg::Genre::edm, 6);
+        const auto scratchBoomBap = gg::fx::fitFor (T::scratch, gg::Genre::boomBap, 3);
+        const auto crackleCountry60 = gg::fx::fitFor (T::subDrop, gg::Genre::country, 0);
+        check (riserTrap.level == 2 && scratchBoomBap.level == 2 && crackleCountry60.level == 0 && crackleCountry60.why.contains ("Country"),
+               "fit: a riser in EDM today and a scratch in 90s boom bap are great, a sub drop in 60s country unusual");
+
+        // ---- bars and where it goes ----
+        check (std::abs (gg::fx::barsAt (5.454545, 88.0) - 2.0) < 0.001, "an FX's length in bars at the song's tempo");
+        {
+            const auto p = gg::fx::place (T::riser, 60.0 / 88.0 * 6.0, 0, 88.0);       // a riser 6 beats long
+            const auto h = gg::fx::place (T::impact, 2.0, 0.01, 88.0);
+            const auto w = gg::fx::place (T::whoosh, 1.0, 0.5, 120.0);                  // peaks at beat 1
+            check (std::abs (p.startBeat + 6.0 - p.downbeat) < 1.0e-6 && std::fmod (p.downbeat, 4.0) == 0 && p.startBeat >= 4.0
+                   && h.startBeat == 4.0 && h.downbeat == 4.0 && std::abs (w.startBeat + 1.0 - w.downbeat) < 1.0e-6 && std::fmod (w.downbeat, 4.0) == 0,
+                   "in time: a riser ends on a downbeat, an impact starts on one, a whoosh peaks on one");
+        }
+
+        // ---- a long riser with no name to go by is an effect, not a loop; the catalog types the library's FX ----
+        {
+            const auto dir = testRoot().getChildFile ("FX Test");
+            dir.deleteRecursively();
+            ggtest::Synth::write (dir.getChildFile ("Downloads/Untitled 21.wav"), syn.riser (14.0f), syn.sr);
+            ggtest::Synth::write (dir.getChildFile ("Risers/Up 01.wav"), syn.riser (3.0f), syn.sr);
+            ggtest::Synth::write (dir.getChildFile ("Downloads/Untitled 22.wav"), syn.tapeStop (1.2f), syn.sr);
+            juce::AudioFormatManager fm;
+            fm.registerBasicFormats();
+            auto list = std::make_shared<gg::SoundList>();
+            for (const auto& [rel, folders] : { std::pair<const char*, const char*> { "Downloads/Untitled 21.wav", "FX Test/Downloads" },
+                                                 { "Risers/Up 01.wav", "FX Test/Risers" }, { "Downloads/Untitled 22.wav", "FX Test/Downloads" } })
+            {
+                gg::SoundInfo si;
+                if (gg::analysis::analyzeFile (dir.getChildFile (rel), folders, fm, si))
+                {
+                    si.cat = gg::Cat::fx;        // (as the library has them: the catalog only looks at FX)
+                    list->push_back (si);
+                }
+            }
+            gg::SoundInfo longOne;
+            gg::analysis::analyzeFile (dir.getChildFile ("Downloads/Untitled 21.wav"), "FX Test/Downloads", fm, longOne);
+            check (longOne.cat == gg::Cat::fx, "a 14-second riser with no name is an effect, not a loop (got " + gg::catName (longOne.cat) + ")");
+            gg::fx::Catalog catalog;
+            catalog.update (list);
+            catalog.waitUntilDone (20000);
+            bool typed = list->size() == 3;
+            for (const auto& si : *list)
+            {
+                const auto item = catalog.get (si);
+                const auto want = si.path.contains ("22") ? T::tapeStop : T::riser;
+                typed = typed && item.analysed && item.type == want;
+                if (item.type != want) std::cout << "  (" << si.fileName() << " -> " << gg::fx::typeName (item.type) << ")" << std::endl;
+            }
+            catalog.setType ((*list)[0].path, T::sweep);
+            gg::fx::Catalog reread;
+            check (typed && reread.get ((*list)[0]).type == T::sweep && reread.get ((*list)[0]).byUser,
+                   "the FX catalog types the library's FX in the background, and keeps what you set by hand");
+        }
+    }
+
     void testSauceAndDaws()
     {
         section ("SAUCE and DAWs");
@@ -1633,6 +1773,7 @@ int main (int argc, char** argv)
     testDescriptions();
     testSauceAndDaws();
     testCoach();
+    testFx();
     auto sounds = scanLibrary (expected);
     testGenerator (sounds);
     testPlayer (sounds);

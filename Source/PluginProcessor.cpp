@@ -674,6 +674,111 @@ void GrooveGrabberProcessor::previewFile (const juce::String& path, gg::Cat cat)
 }
 
 //==============================================================================
+double GrooveGrabberProcessor::songBpm() const
+{
+    return options.bpm > 0 ? options.bpm : options.style().bpm;
+}
+
+void GrooveGrabberProcessor::stopPreview()
+{
+    player.playPreview (std::make_shared<juce::AudioBuffer<float>> (2, 64));     // (silence takes its place)
+}
+
+double GrooveGrabberProcessor::hearFxInTime (const juce::String& path, gg::fx::Type type)
+{
+    const double sr = player.getSampleRate() > 0 ? player.getSampleRate() : 44100.0;
+    const double bpm = songBpm();
+    auto groove = getGroove (grooveId);
+    std::optional<gg::Kit> kit;
+    if (auto* k = getActiveKit(); k != nullptr && k->isValid()) kit = *k;
+    const float swing = player.getSwing();
+    if (player.isGroovePlaying()) { player.setGroovePlaying (false); sendChangeMessage(); }
+
+    // how long it'll run (to say so at once): the file's length is near enough
+    double guess = 8.0;
+    {
+        juce::AudioFormatManager fm;
+        fm.registerBasicFormats();
+        if (std::unique_ptr<juce::AudioFormatReader> r (fm.createReaderFor (juce::File (path))); r != nullptr && r->sampleRate > 0)
+            guess = gg::fx::place (type, (double) r->lengthInSamples / r->sampleRate, 0, bpm).totalBeats * 60.0 / bpm;
+    }
+
+    runInBackground ([this, a = alive, path, type, sr, bpm, groove, kit, swing]
+    {
+        if (! a->load()) return;
+        const auto fxBuf = gg::render::sound (path, gg::Cat::fx, {}, sr);
+        if (fxBuf.getNumSamples() == 0) return;
+        // where it peaks and where it really ends (tails under -40 dB don't count)
+        int peakAt = 0, endAt = fxBuf.getNumSamples();
+        float peak = 0;
+        for (int i = 0; i < fxBuf.getNumSamples(); ++i)
+        {
+            const float v = std::abs (fxBuf.getSample (0, i));
+            if (v > peak) { peak = v; peakAt = i; }
+        }
+        while (endAt > peakAt + 1 && std::abs (fxBuf.getSample (0, endAt - 1)) < peak * 0.01f) --endAt;
+        const auto place = gg::fx::place (type, endAt / sr, peakAt / sr, bpm);
+        const double spb = 60.0 / bpm * sr;
+        const int total = (int) (place.totalBeats * spb);
+        auto mix = std::make_shared<juce::AudioBuffer<float>> (2, total);
+        mix->clear();
+
+        if (kit.has_value() && groove != nullptr)
+        {
+            // the groove, as BUILD plays it
+            gg::KitPlayer offline;
+            offline.prepare (sr, 512);
+            offline.setFollowHost (false);
+            offline.setKit (gg::buildPlayable (*kit, sr));
+            offline.setGroove (groove.get());
+            offline.setTempo (bpm);
+            offline.setSwing (swing);
+            offline.setVolume (0.75f);
+            offline.setGroovePlaying (true);
+            juce::AudioBuffer<float> block (2, 512);
+            juce::MidiBuffer none;
+            for (int pos = 0; pos < total; pos += 512)
+            {
+                const int n = juce::jmin (512, total - pos);
+                block.setSize (2, n, false, false, true);
+                block.clear();
+                offline.process (block, none, {});
+                for (int ch = 0; ch < 2; ++ch) mix->addFrom (ch, pos, block, ch, 0, n);
+            }
+        }
+        else
+        {
+            // no kits yet: a click on every beat, louder on the one
+            const int clickLen = (int) (sr * 0.03);
+            for (int beat = 0; beat < (int) place.totalBeats; ++beat)
+            {
+                const int at = (int) (beat * spb);
+                const float level = beat % 4 == 0 ? 0.35f : 0.18f;
+                for (int i = 0; i < clickLen && at + i < total; ++i)
+                {
+                    const float v = std::sin (juce::MathConstants<float>::twoPi * (beat % 4 == 0 ? 1500.0f : 1000.0f) * (float) (i / sr))
+                                  * level * (1.0f - (float) i / (float) clickLen);
+                    for (int ch = 0; ch < 2; ++ch) mix->addSample (ch, at + i, v);
+                }
+            }
+        }
+
+        // the effect, where it goes
+        const int start = (int) std::round (place.startBeat * spb);
+        for (int ch = 0; ch < 2; ++ch)
+        {
+            const int src = juce::jmin (ch, fxBuf.getNumChannels() - 1);
+            const int n = juce::jmin (fxBuf.getNumSamples(), total - start);
+            if (n > 0) mix->addFrom (ch, start, fxBuf, src, 0, n, 0.9f);
+        }
+        const int fade = juce::jmin (total, (int) (sr * 0.3));
+        mix->applyGainRamp (total - fade, fade, 1.0f, 0.0f);
+        juce::MessageManager::callAsync ([this, a, mix] { if (a->load()) player.playPreview (mix); });
+    });
+    return guess;
+}
+
+//==============================================================================
 void GrooveGrabberProcessor::getStateInformation (juce::MemoryBlock& dest)
 {
     juce::String text;

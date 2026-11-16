@@ -6,7 +6,7 @@ Groove Grabber builds four drum kits for the song you're making, using only the 
 
 This manual covers version {VERSION}. Groove Grabber runs as a plug-in in your DAW (VST3, AU on Mac) and as a standalone app. Open this manual any time with the **?** button in the header or the **F1** key.
 
-The workflow in six steps:
+The workflow in seven steps:
 
 1. **LIBRARY:** point it at your drum folders once. It listens to every sound and remembers it.
 2. **BUILD:** describe the song in your own words (genre, decade, feel, tempo, key, even an artist or song).
@@ -14,6 +14,7 @@ The workflow in six steps:
 4. **Edit:** lock the pads you love, regenerate the rest, swap in alternatives, tweak each pad.
 5. **EXPORT:** a numbered folder you drop straight onto your drum sampler's first pad, with steps for your DAW.
 6. **SAUCE:** how the drums are played in your genre, style and decade, with patterns to play, edit and drag into your DAW.
+7. **FX:** your effects by kind (risers, impacts, tape stops, scratches...), with where each fits and how it sounds in time with your beat.
 
 ## Install and first run
 
@@ -49,14 +50,14 @@ The Windows and Mac installers let you choose the parts. Pick "Plug-in + standal
 
 ## The screen at a glance
 
-Everything sits on four pages under one header bar. Hover over almost anything to see a tip.
+Everything sits on five pages under one header bar. Hover over almost anything to see a tip.
 
 **The header, left to right**
 
 | Control | What it does |
 | --- | --- |
 | Logo | Click to switch between the dark and light look |
-| BUILD / SAUCE / MY KITS / LIBRARY | The four pages |
+| BUILD / SAUCE / FX / MY KITS / LIBRARY | The five pages |
 | KEY | The song's key. The kick, 808 and toms are tuned to it. Minor keys are listed first. |
 | BPM | The song's tempo. Drag up or down, scroll, or double-click to type. |
 | KEY COMPASS | Takes the key and tempo from a Key Compass song or a song file, or uses a song sent from Song Savant |
@@ -68,6 +69,7 @@ Everything sits on four pages under one header bar. Hover over almost anything t
 
 - **BUILD:** describe the song, generate the four kits, edit pads, save and export. It's where you spend most of your time.
 - **LIBRARY:** your sound folders, scanning, Harvest Hits, and a searchable list of every analysed sound.
+- **FX:** your effects by kind, with where each fits in your genre and decade, a tip on where it goes, and HEAR IT IN TIME.
 - **MY KITS:** kits you saved, plus recent ones, filed by genre and searchable.
 - **SAUCE:** how the drums go in a genre, style and decade: the patterns (which you can edit), and how to play and program them.
 
@@ -404,6 +406,27 @@ Drag a MIDI file (.mid) onto the SAUCE page: a drum part from Song Savant, a cli
 
 Swing is given MPC-style: 50% is straight, about 54 to 58% light, 60 to 62% heavy and 66% a full triplet. The DRAG MIDI handle shows the swing the pattern plays at (for example "4 bars, 92 BPM, swing 60%"), and BUILD's swing slider covers the same range and shows its value the same way when you point at it. Swing stops at a full triplet: past that the late note lands nearer the next one than its own beat, and it sounds lopsided rather than swung. DAWs name their swing controls differently, so match the feel rather than the number.
 
+## FX: your effects
+
+The FX page gathers every effect in your library (anything LIBRARY lists as FX) and sorts it by kind:
+
+| Group | Kinds |
+| --- | --- |
+| Build-ups | Riser, reverse cymbal, swell (a reversed snare or hit) |
+| Hits | Impact, sub drop / boom |
+| Falls and moves | Downlifter, sweep, whoosh, tape stop, rewind |
+| Textures | Vinyl crackle, noise bed |
+| Accents | Scratch, zap, laser, blip, glitch, air horn / siren |
+
+- **How it knows the kind.** A file's name and folders come first ("Riser 4 Bars", "Tape Stop", "Transitions/Reverse Crash"). With no name to go by ("FX 01", "Untitled"), it listens to the whole sound: where it's loudest, whether it gets brighter or darker, whether its pitch rises, falls or wobbles, how steady and how noisy it is. The first time, it takes a moment to sort them (it says "sorting your effects..."); after that it remembers. Each effect says whether its kind came from its name, its sound, or you.
+- **Wrong kind?** Right-click it and pick "It's really a...". What you set is never changed again (marked with a star).
+- **Kinds** (left): click one to see only those; the number is how many you have. "Every effect" shows them all.
+- **The list**: name, kind, length, its length in **bars at your song's tempo** (a riser of exactly 2 bars starts 2 bars before the change), its note when it holds one, how well it **fits** your song (BUILD's genre and decade: Great fit, Fits or Unusual), and its pack. Click a column to sort, search by name, pack or kind, and press **FITS MY SONG FIRST** to put the best fits at the top.
+- **Click an effect** to hear it (the arrow keys move through the list and play each one; Space plays the one picked).
+- **The effect** (right): its sound, length, note, where it goes against the beat, its fit for your song and where it's at home ("Best in: EDM / Dance, Pop, Trap... 2000s to today"), and a tip on how it's used. The fit is only advice: use anything you like.
+- **HEAR IT IN TIME** plays it over BUILD's groove and kit, at your tempo, placed where it belongs: a build-up (riser, reverse cymbal, swell, sweep, tape stop, rewind) **ends** on a downbeat, a hit or an accent **starts** on one, a whoosh **peaks** on one, a texture runs from the downbeat. One bar of the groove plays first and two after. With no kits yet it plays over a click. Press it again (STOP) to stop.
+- **DRAG** the effect onto an audio track in your DAW (it's the original file). Line a build-up's end up with the bar line where the change comes.
+
 ## Working with Key Compass, Song Savant and Sample Snagger
 
 **Key Compass**
@@ -545,6 +568,8 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | You want to hear one part of a pattern again and again | Click the count over the steps where it starts: it plays from there. Play and Space start from that spot until you click somewhere else. |
 | You want feedback on a beat you made | SAUCE: change a pattern (or build one from BLANK, or drop your MIDI on SAUCE), pick the style it's for, and press COACH MY BEAT. |
 | You want to build a pattern from scratch | SAUCE: press **BLANK**, pick the kit with KIT 01 to 04, click the steps in and set SWING. SAVE AS MY GROOVE keeps it for every song. |
+| An effect isn't on the FX page | LIBRARY files it as something else (a loop, a perc...). Right-click it there and pick "It's really a..." > FX. |
+| You want to hear where a riser should start | FX: pick it and press HEAR IT IN TIME. It ends on the downbeat, and the BARS column says how long it runs at your tempo. |
 | You want a pattern in every song, not just this one | SAUCE: SAVE AS MY GROOVE. It's then under MY GROOVES on SAUCE, in BUILD's groove list and on the MY KITS page. |
 | One of your grooves plays on BUILD's kit, not the sounds you made it with | SAUCE: MY GROOVES, point at the groove and pick "With its original kit" (or press ORIGINAL on the KIT row). BUILD's kits stay as they are. Grooves saved before 1.0.29 get their kit the next time you SAVE them. |
 | One of your grooves changed or is gone, and you want it back | MY KITS > MY GROOVES > BACKUPS...: every version from before a save, rename or delete is there. Pick one to bring it back as a groove of its own. |
@@ -570,6 +595,8 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | Double-click a slider or knob | Reset it |
 | Click the logo | Switch dark / light |
 | Right-click a sound (LIBRARY) | Fix its type, favourite it, ban it, put it on a pad |
+| Right-click an effect (FX) | Set its kind, hear it in time, show the file |
+| Space (FX) | Play the effect you picked |
 | Drag a pad to your DAW | Use that one sound |
 | Drop a file on a pad | Replace that pad's sound |
 | Drop a .mid on SAUCE | Make it one of MY GROOVES (from Song Savant, your DAW...) |

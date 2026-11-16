@@ -2,7 +2,7 @@
 #include "StandaloneBridge.h"
 
 GrooveGrabberEditor::GrooveGrabberEditor (GrooveGrabberProcessor& p)
-    : AudioProcessorEditor (p), proc (p), header (p), build (p), library (p), kitsPage (p), sauce (p), exporter (p), help (p)
+    : AudioProcessorEditor (p), proc (p), header (p), build (p), library (p), kitsPage (p), sauce (p), fxPage (p), exporter (p), help (p)
 {
     ggui::setLight (proc.getSettings().isLightTheme());
     lnf->refreshColours();
@@ -15,6 +15,7 @@ GrooveGrabberEditor::GrooveGrabberEditor (GrooveGrabberProcessor& p)
     content.addChildComponent (library);
     content.addChildComponent (kitsPage);
     content.addChildComponent (sauce);
+    content.addChildComponent (fxPage);
     content.addChildComponent (exporter);
     content.addChildComponent (help);
 
@@ -61,15 +62,17 @@ void GrooveGrabberEditor::parentHierarchyChanged()
 
 void GrooveGrabberEditor::showTab (int t)
 {
-    tab = juce::jlimit (0, 3, t);
+    tab = juce::jlimit (0, 4, t);
     header.setTab (tab);
     build.setVisible (tab == 0);
     library.setVisible (tab == 1);
     kitsPage.setVisible (tab == 2);
     sauce.setVisible (tab == 3);
+    fxPage.setVisible (tab == 4);
     if (tab == 1) library.refresh();
     if (tab == 2) kitsPage.refresh();
     if (tab == 3) sauce.refresh();
+    if (tab == 4) fxPage.refresh();
 }
 
 void GrooveGrabberEditor::changeListenerCallback (juce::ChangeBroadcaster*)
@@ -89,6 +92,7 @@ void GrooveGrabberEditor::refreshAll()
     if (tab == 1) library.refresh();
     if (tab == 2) kitsPage.refresh();
     if (tab == 3) sauce.refresh();
+    if (tab == 4) fxPage.refresh();
 }
 
 void GrooveGrabberEditor::themeChanged()
@@ -99,6 +103,7 @@ void GrooveGrabberEditor::themeChanged()
     library.refresh();
     kitsPage.refresh();
     sauce.refresh();
+    fxPage.refresh();
     header.refresh();
     repaint();
 }
@@ -108,6 +113,11 @@ bool GrooveGrabberEditor::keyPressed (const juce::KeyPress& k)
     if (k == juce::KeyPress::spaceKey && tab == 3)
     {
         sauce.togglePlay();
+        return true;
+    }
+    if (k == juce::KeyPress::spaceKey && tab == 4)
+    {
+        fxPage.playSelected();
         return true;
     }
     if (k == juce::KeyPress::spaceKey)
@@ -159,7 +169,7 @@ void GrooveGrabberEditor::resized()
     const auto all = content.getLocalBounds();
     auto r = all;
     header.setBounds (r.removeFromTop (88));
-    for (auto* page : std::initializer_list<juce::Component*> { &build, &library, &kitsPage, &sauce })
+    for (auto* page : std::initializer_list<juce::Component*> { &build, &library, &kitsPage, &sauce, &fxPage })
         page->setBounds (r);
     exporter.setBounds (all);
     help.setBounds (all);

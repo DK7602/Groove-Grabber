@@ -25,6 +25,23 @@ namespace ggtest
         juce::AudioBuffer<float> cowbell();
         juce::AudioBuffer<float> riser (float length = 2.2f);
 
+        // effects of every kind the FX tab tells apart
+        juce::AudioBuffer<float> reverseCymbal (float length = 2.0f);
+        juce::AudioBuffer<float> swell (float length = 0.8f);
+        juce::AudioBuffer<float> impact (float length = 2.5f);
+        juce::AudioBuffer<float> subDrop (float length = 1.8f);
+        juce::AudioBuffer<float> downlifter (float length = 2.5f);
+        juce::AudioBuffer<float> whoosh (float length = 1.2f);
+        juce::AudioBuffer<float> tapeStop (float length = 1.2f);
+        juce::AudioBuffer<float> crackle (float length = 4.0f);
+        juce::AudioBuffer<float> noiseBed (float length = 4.0f);
+        juce::AudioBuffer<float> scratch (float length = 1.0f);
+        juce::AudioBuffer<float> zap (float length = 0.25f);
+        juce::AudioBuffer<float> laser (float length = 0.4f);
+        juce::AudioBuffer<float> blip (float length = 0.12f);
+        juce::AudioBuffer<float> glitch (float length = 1.2f);
+        juce::AudioBuffer<float> horn (float length = 1.4f);
+
         // dull the top end and add hiss
         void vintage (juce::AudioBuffer<float>&, float cutoffHz = 5000, float hissDb = -52);
 

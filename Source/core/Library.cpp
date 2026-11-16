@@ -10,7 +10,7 @@ namespace gg
         constexpr int cacheVersion = 4;   // 4: ringMs, pitchGlide, airFlatness (older caches are re-measured)
         // Bump when the classification rules change: cached sounds are re-sorted from their stored
         // measurements on the next start (no files are read again).
-        constexpr int rulesVersion = 3;
+        constexpr int rulesVersion = 4;   // 4: one long build that peaks late is an effect, not a loop
 
         juce::String folderPartsBetween (const juce::File& root, const juce::File& file)
         {
