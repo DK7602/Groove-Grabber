@@ -22,7 +22,7 @@ without this file.
 
 ## Checklist
 - [x] Core: SlotState, RenderParams, fit in render (render::fitTo, anchorSample), fx::fitSettings / keyTune, cache key; tests
-- [ ] Processor: retuneFx, fit into ADD / PUT, hear in time + drag render
+- [x] Processor: retuneFx (key, generate, catalog done), setFit, fit into ADD / PUT, hearFxInTime + fxFileToDrag (FX Renders)
 - [ ] FX tab: FIT control, tune line, drag a rendered file
 - [ ] BUILD pad editor: FIT for FX pads
 - [ ] Tests, manual, CLAUDE.md, THIRD_PARTY_NOTICES, version 1.0.32
