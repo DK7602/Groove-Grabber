@@ -9,6 +9,7 @@
 #include "ui/ExportPanel.h"
 #include "ui/HelpPanel.h"
 #include "ui/SaucePage.h"
+#include "ui/FxPage.h"
 
 class GrooveGrabberEditor : public juce::AudioProcessorEditor,
                             private juce::ChangeListener,
@@ -28,7 +29,13 @@ public:
     void showHelp (int page)      { help.show (page); }
     ggui::HelpPanel& getHelp()    { return help; }
     ggui::SaucePage& getSauce()   { return sauce; }
+    ggui::BuildPage& getBuild()   { return build; }
+    ggui::HeaderBar& getHeader()  { return header; }
     ggui::ExportPanel& getExporter()   { return exporter; }
+    ggui::KitsPage& getKitsPage()      { return kitsPage; }
+    ggui::FxPage& getFxPage()          { return fxPage; }
+    float getZoom() const              { return content.getTransform().getScaleFactor(); }
+    juce::Component& getContent()      { return content; }
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
@@ -37,12 +44,16 @@ private:
 
     GrooveGrabberProcessor& proc;
     juce::SharedResourcePointer<ggui::LookAndFeel> lnf;
-    juce::TooltipWindow tooltips { this, 600 };
+    // Everything on screen sits in here. A window bigger than the one it opens at zooms it (ggui::zoomFor), so the
+    // words, buttons and pads grow with the window; the pages are laid out at the window's size divided by the zoom.
+    juce::Component content;
+    juce::TooltipWindow tooltips { &content, 600 };
     ggui::HeaderBar header;
     ggui::BuildPage build;
     ggui::LibraryPage library;
     ggui::KitsPage kitsPage;
     ggui::SaucePage sauce;
+    ggui::FxPage fxPage;
     ggui::ExportPanel exporter;
     ggui::HelpPanel help;
     int tab = 0;

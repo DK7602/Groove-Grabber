@@ -2,28 +2,33 @@
 #include "StandaloneBridge.h"
 
 GrooveGrabberEditor::GrooveGrabberEditor (GrooveGrabberProcessor& p)
-    : AudioProcessorEditor (p), proc (p), header (p), build (p), library (p), kitsPage (p), sauce (p), exporter (p), help (p)
+    : AudioProcessorEditor (p), proc (p), header (p), build (p), library (p), kitsPage (p), sauce (p), fxPage (p), exporter (p), help (p)
 {
     ggui::setLight (proc.getSettings().isLightTheme());
     lnf->refreshColours();
     setLookAndFeel (&lnf.get());
     juce::LookAndFeel::setDefaultLookAndFeel (&lnf.get());
 
-    addAndMakeVisible (header);
-    addChildComponent (build);
-    addChildComponent (library);
-    addChildComponent (kitsPage);
-    addChildComponent (sauce);
-    addChildComponent (exporter);
-    addChildComponent (help);
+    addAndMakeVisible (content);
+    content.addAndMakeVisible (header);
+    content.addChildComponent (build);
+    content.addChildComponent (library);
+    content.addChildComponent (kitsPage);
+    content.addChildComponent (sauce);
+    content.addChildComponent (fxPage);
+    content.addChildComponent (exporter);
+    content.addChildComponent (help);
 
     header.onTab = [this] (int t) { showTab (t); };
     header.onThemeChanged = [this] { themeChanged(); };
     header.onHelp = [this] (int page) { help.show (page); };
     build.onExport = [this] { if (auto* k = proc.getActiveKit()) exporter.show (*k); };
+    build.onEditGroove = [this] { showTab (3); sauce.openGroove (proc.grooveId); };
     kitsPage.onExport = [this] (const gg::Kit& k) { exporter.show (k); };
     kitsPage.onLoaded = [this] { showTab (0); };
     sauce.onUseOnBuild = [this] { showTab (0); };
+    kitsPage.onOpenGroove = [this] (const juce::String& id, bool original) { showTab (3); sauce.pickMine (id, original); };
+    kitsPage.onUseGroove = [this] { showTab (0); };
 
     proc.addChangeListener (this);
     proc.library->beginWatching();      // only now: never while a DAW is just scanning plug-ins
@@ -34,7 +39,7 @@ GrooveGrabberEditor::GrooveGrabberEditor (GrooveGrabberProcessor& p)
     showTab (empty && proc.kits.empty() ? 1 : 0);
 
     setResizable (true, true);
-    setResizeLimits (1180, 780, 2600, 1700);
+    setResizeLimits (1180, 780, 7680, 4320);      // (big enough for a maximised window on any screen)
     setSize (1440, 920);
     refreshAll();
 }
@@ -48,24 +53,26 @@ GrooveGrabberEditor::~GrooveGrabberEditor()
 
 void GrooveGrabberEditor::parentHierarchyChanged()
 {
-    // the app's tiny "Options" button: our settings gear does the same job
+    // the app's window: a maximise button, and no tiny "Options" button (our settings gear does that job)
     juce::MessageManager::callAsync ([safe = juce::Component::SafePointer<GrooveGrabberEditor> (this)]
     {
-        if (safe != nullptr) gg::standalone::hideTitleBarOptionsButton (*safe);
+        if (safe != nullptr) gg::standalone::tidyTitleBar (*safe);
     });
 }
 
 void GrooveGrabberEditor::showTab (int t)
 {
-    tab = juce::jlimit (0, 3, t);
+    tab = juce::jlimit (0, 4, t);
     header.setTab (tab);
     build.setVisible (tab == 0);
     library.setVisible (tab == 1);
     kitsPage.setVisible (tab == 2);
     sauce.setVisible (tab == 3);
+    fxPage.setVisible (tab == 4);
     if (tab == 1) library.refresh();
     if (tab == 2) kitsPage.refresh();
     if (tab == 3) sauce.refresh();
+    if (tab == 4) fxPage.refresh();
 }
 
 void GrooveGrabberEditor::changeListenerCallback (juce::ChangeBroadcaster*)
@@ -85,6 +92,7 @@ void GrooveGrabberEditor::refreshAll()
     if (tab == 1) library.refresh();
     if (tab == 2) kitsPage.refresh();
     if (tab == 3) sauce.refresh();
+    if (tab == 4) fxPage.refresh();
 }
 
 void GrooveGrabberEditor::themeChanged()
@@ -95,6 +103,7 @@ void GrooveGrabberEditor::themeChanged()
     library.refresh();
     kitsPage.refresh();
     sauce.refresh();
+    fxPage.refresh();
     header.refresh();
     repaint();
 }
@@ -104,6 +113,11 @@ bool GrooveGrabberEditor::keyPressed (const juce::KeyPress& k)
     if (k == juce::KeyPress::spaceKey && tab == 3)
     {
         sauce.togglePlay();
+        return true;
+    }
+    if (k == juce::KeyPress::spaceKey && tab == 4)
+    {
+        fxPage.playSelected();
         return true;
     }
     if (k == juce::KeyPress::spaceKey)
@@ -147,10 +161,16 @@ void GrooveGrabberEditor::paint (juce::Graphics& g)
 
 void GrooveGrabberEditor::resized()
 {
-    auto r = getLocalBounds();
+    // a window bigger than the one it opens at draws everything bigger, the words too
+    const float zoom = ggui::zoomFor (getWidth(), getHeight());
+    content.setTransform (zoom > 1.0f ? juce::AffineTransform::scale (zoom) : juce::AffineTransform());
+    content.setBounds (0, 0, (int) std::ceil ((float) getWidth() / zoom), (int) std::ceil ((float) getHeight() / zoom));
+
+    const auto all = content.getLocalBounds();
+    auto r = all;
     header.setBounds (r.removeFromTop (88));
-    for (auto* page : std::initializer_list<juce::Component*> { &build, &library, &kitsPage, &sauce })
+    for (auto* page : std::initializer_list<juce::Component*> { &build, &library, &kitsPage, &sauce, &fxPage })
         page->setBounds (r);
-    exporter.setBounds (getLocalBounds());
-    help.setBounds (getLocalBounds());
+    exporter.setBounds (all);
+    help.setBounds (all);
 }

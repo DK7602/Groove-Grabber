@@ -36,12 +36,24 @@ namespace gg
         bool favorite = false;
         juce::String description;
         juce::int64 created = 0;
+        int size = defaultKitSize;   // KIT SIZE: 17, 23 or 32 sounds (which slots it shows, exports and fills)
         std::array<SlotState, numSlots> slots;
 
         SlotState& operator[] (Slot s) noexcept               { return slots[(size_t) s]; }
         const SlotState& operator[] (Slot s) const noexcept   { return slots[(size_t) s]; }
         int numFilled() const noexcept;
         bool isValid() const noexcept                         { return numFilled() > 0; }
+        const std::vector<Slot>& shownSlots() const           { return kitSlots (size); }
+        int padCount() const noexcept                         { return padCountFor (size); }
+
+        // the sound a pad plays: its own slot's, or (Snare 2 and the second toms in a kit without them) the
+        // stand-in's; `shaped` says whether the pad's own tune / gain / length apply
+        struct PadSound { Slot slot; bool shaped; };
+        PadSound padSound (const PadDef& pad) const noexcept
+        {
+            if (pad.standIn != Slot::count && (*this)[pad.slot].isEmpty()) return { pad.standIn, true };
+            return { pad.slot, pad.standIn == Slot::count };
+        }
 
         juce::var toVar() const;
         static Kit fromVar (const juce::var&);

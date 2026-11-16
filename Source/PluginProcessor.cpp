@@ -12,6 +12,12 @@ GrooveGrabberProcessor::GrooveGrabberProcessor()
     player.setTempo (options.style().bpm);
     library->addChangeListener (this);
     addChangeListener (this);       // keeps the state snapshot up to date
+
+    // the last line written when the DAW unloads the plug-in (at quit): if it hangs there, the log says so
+    struct UnloadNote { ~UnloadNote() { gg::log::write ("unloading the plug-in (the DAW is quitting or letting go of it)"); } };
+    static UnloadNote unloadNote;
+    (void) unloadNote;
+    gg::log::write ("Groove Grabber " GG_VERSION " opened" + juce::String (isStandalone() ? " (app)" : ""));
 }
 
 GrooveGrabberProcessor::~GrooveGrabberProcessor()
@@ -19,7 +25,12 @@ GrooveGrabberProcessor::~GrooveGrabberProcessor()
     alive->store (false);
     library->removeChangeListener (this);
     removeChangeListener (this);
-    worker.removeAllJobs (true, 5000);
+    // wait for background work (rendering, exporting, harvesting) to finish: a thread stopped by force can leave
+    // Windows' memory locks held, and the DAW freezes later (at quit)
+    const auto t0 = juce::Time::getMillisecondCounter();
+    const bool done = worker.removeAllJobs (true, 30000);
+    gg::log::write (done ? "closed (background work finished in " + juce::String (juce::Time::getMillisecondCounter() - t0) + " ms)"
+                         : juce::String ("closed, but background work was still running after 30 seconds"));
 }
 
 bool GrooveGrabberProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -33,8 +44,8 @@ void GrooveGrabberProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
     const bool rateChanged = std::abs (player.getSampleRate() - sampleRate) > 1.0;
     player.prepare (sampleRate, samplesPerBlock);
     monoScratch.setSize (2, juce::jmax (1, samplesPerBlock), false, false, true);
-    if (rateChanged && ! kits.empty())
-        juce::MessageManager::callAsync ([this, a = alive] { if (a->load()) renderKits(); });
+    if (rateChanged && (! kits.empty() || sauceKit != nullptr))
+        juce::MessageManager::callAsync ([this, a = alive] { if (a->load()) { renderKits(); renderSauceKit(); } });
 }
 
 void GrooveGrabberProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
@@ -75,6 +86,8 @@ juce::AudioProcessorEditor* GrooveGrabberProcessor::createEditor()
 void GrooveGrabberProcessor::notify (const juce::String& message)
 {
     if (message.isNotEmpty()) statusMessage = message;
+    // the selected pad is one the kit has (a 17-sound kit has no Kick 2)
+    if (auto* k = getActiveKit(); k != nullptr && ! gg::slotInKit (selectedSlot, k->size)) selectedSlot = gg::slotKind (selectedSlot);
     sendChangeMessage();
 }
 
@@ -181,6 +194,26 @@ void GrooveGrabberProcessor::setBpm (double bpm)
     notify();
 }
 
+void GrooveGrabberProcessor::useSongSavantSong (const gg::SongSavantSong& s)
+{
+    songName = s.name;
+    genreByHand = false;
+    applyDescription (s.description);               // the words: an artist, the feel, the character
+    if (s.era >= 0 && s.era != options.era) setEra (s.era);
+    if (s.genre >= 0) setGenre ((gg::Genre) s.genre);   // the genre and style Song Savant used win
+    gg::Genre g = options.genre;
+    int sub = 0;
+    if (s.styleId.isNotEmpty() && gg::findStyle (s.styleId, g, sub) && g == options.genre && sub != options.subStyle)
+        setStyle (sub);
+    if (s.bpm > 0) setBpm (s.bpm);
+    options.key = s.key;                            // the kick, 808 and toms are tuned to it as the kits are built
+    generate (false);
+    const auto built = statusMessage;
+    juce::String msg = "From Song Savant: " + s.name;
+    if (const auto sum = s.summary(); sum.isNotEmpty()) msg << " (" << sum << ")";
+    notify (msg + ". " + built);
+}
+
 void GrooveGrabberProcessor::setGrooveId (const juce::String& wanted)
 {
     // one of my grooves that's gone (deleted, or a song from another computer): the style's own groove
@@ -195,12 +228,13 @@ void GrooveGrabberProcessor::setGrooveId (const juce::String& wanted)
 //==============================================================================
 std::shared_ptr<const gg::Groove> GrooveGrabberProcessor::getGroove (const juce::String& id) const
 {
+    // your changes (not saved yet, for one of your grooves) come first
+    if (const auto it = grooveEdits.find (id); it != grooveEdits.end()) return it->second;
     if (gg::mygrooves::isMine (id))
     {
         if (auto mine = gg::mygrooves::find (id)) return mine;
         return getGroove (firstGroove());
     }
-    if (const auto it = grooveEdits.find (id); it != grooveEdits.end()) return it->second;
     return std::shared_ptr<const gg::Groove> (std::shared_ptr<const gg::Groove>(), &gg::grooveFor (id));   // built in: not owned
 }
 
@@ -211,23 +245,30 @@ bool GrooveGrabberProcessor::isGrooveEdited (const juce::String& id) const
 
 void GrooveGrabberProcessor::editGroove (const juce::String& id, std::vector<gg::GrooveHit> hits)
 {
-    if (gg::mygrooves::isMine (id))
-    {
-        // your own groove: the change is saved to it straight away
-        if (auto old = gg::mygrooves::update (id, std::move (hits)))
-        {
-            retireGroove (std::move (old));
-            repointPlayer (id);
-            notify();
-        }
-        return;
-    }
-    const auto& original = gg::grooveFor (id);
-    if (original.id != id) return;                       // not one of ours
+    editGroove (id, std::move (hits), getGroove (id)->swing);
+}
+
+void GrooveGrabberProcessor::setGrooveSwing (const juce::String& id, float swing)
+{
+    editGroove (id, getGroove (id)->hits, swing);
+    // whatever is playing it swings that way now (BUILD's preview, or SAUCE)
+    if (const auto* playing = player.getGroove(); playing != nullptr && playing->id == id) player.setSwing (getGroove (id)->swing);
+}
+
+void GrooveGrabberProcessor::editGroove (const juce::String& id, std::vector<gg::GrooveHit> hits, float swing)
+{
+    // what the change is made to: one of your grooves as it's saved (the change waits, with the song, until you
+    // SAVE it, so the saved groove never changes behind your back), or a built-in groove
+    std::shared_ptr<const gg::Groove> base;
+    if (gg::mygrooves::isMine (id)) base = gg::mygrooves::find (id);
+    else if (gg::grooveFor (id).id == id) base = std::shared_ptr<const gg::Groove> (std::shared_ptr<const gg::Groove>(), &gg::grooveFor (id));
+    if (base == nullptr) return;
     gg::sortHits (hits);
-    if (gg::sameHits (hits, original.hits)) { resetGroove (id); return; }
-    auto g = std::make_shared<gg::Groove> (original);
+    swing = juce::jlimit (0.0f, 0.5f, swing);
+    if (gg::sameHits (hits, base->hits) && std::abs (swing - base->swing) < 1.0e-4f) { resetGroove (id); return; }
+    auto g = std::make_shared<gg::Groove> (*base);
     g->hits = std::move (hits);
+    g->swing = swing;
     swapGroove (id, std::move (g));
 }
 
@@ -239,6 +280,7 @@ void GrooveGrabberProcessor::resetGroove (const juce::String& id)
 
 void GrooveGrabberProcessor::swapGroove (const juce::String& id, std::shared_ptr<const gg::Groove> edit)
 {
+    const float swingBefore = getGroove (id)->swing;
     if (const auto it = grooveEdits.find (id); it != grooveEdits.end())
     {
         retireGroove (it->second);
@@ -246,6 +288,9 @@ void GrooveGrabberProcessor::swapGroove (const juce::String& id, std::shared_ptr
     }
     if (edit != nullptr) grooveEdits[id] = std::move (edit);
     repointPlayer (id);
+    // a new swing (SWING on SAUCE, or UNDO / RESET of one) is heard right away; otherwise BUILD's slider stays as set
+    if (const auto* playing = player.getGroove(); playing != nullptr && playing->id == id && std::abs (playing->swing - swingBefore) > 1.0e-4f)
+        player.setSwing (playing->swing);
     notify();
 }
 
@@ -268,9 +313,60 @@ void GrooveGrabberProcessor::repointPlayer (const juce::String& id)
 
 juce::String GrooveGrabberProcessor::saveMyGroove (const juce::String& fromId, const juce::String& name, gg::Genre genre, const juce::String& styleId)
 {
-    const auto id = gg::mygrooves::save (*getGroove (fromId), name, genre, styleId);
+    const auto id = gg::mygrooves::save (*getGroove (fromId), name, genre, styleId, kitOnSauce());   // with the kit you hear it with
     notify (id.isNotEmpty() ? "Saved \"" + name.trim() + "\" to MY GROOVES" : "Couldn't save the groove in " + gg::mygrooves::folder().getFullPathName());
     return id;
+}
+
+juce::String GrooveGrabberProcessor::importMyGroove (const juce::File& file, gg::Genre genre, const juce::String& styleId, double bpm)
+{
+    juce::MemoryBlock data;
+    if (! file.loadFileAsData (data))
+    {
+        notify ("Couldn't open \"" + file.getFileName() + "\"");
+        return {};
+    }
+    auto in = gg::grooveFromMidi (data, file.getFileName());
+    if (in.why.isNotEmpty())
+    {
+        notify ("\"" + file.getFileName() + "\": " + in.why);
+        return {};
+    }
+    auto& g = in.groove;
+    if (g.bpm <= 0.0) g.bpm = bpm;
+    // a name of its own among your grooves
+    juce::StringArray names;
+    for (const auto& e : gg::mygrooves::list()) names.add (e.groove->name);
+    const auto base = g.name.substring (0, 54);
+    auto name = base;
+    for (int n = 2; names.contains (name, true); ++n) name = base + " " + juce::String (n);
+    const auto id = gg::mygrooves::save (g, name, genre, styleId, kitOnSauce());
+    if (id.isEmpty())
+    {
+        notify ("Couldn't save the groove in " + gg::mygrooves::folder().getFullPathName());
+        return {};
+    }
+    juce::String note = "Dropped \"" + name + "\" into MY GROOVES (" + juce::String (g.bars) + (g.bars == 1 ? " bar" : " bars");
+    if (g.swing > 0.0f) note << ", swing " << gg::swingPercent (g) << "%";
+    note << ")";
+    if (in.barsLeftOut > 0) note << ". Kept the first 4 bars";
+    if (in.notesLeftOut > 0) note << ". Left out " << in.notesLeftOut << (in.notesLeftOut == 1 ? " note" : " notes") << " that aren't drums";
+    notify (note);
+    return id;
+}
+
+bool GrooveGrabberProcessor::saveGrooveChanges (const juce::String& id)
+{
+    // one of your grooves: what you changed goes into it (the version before is kept in Backups)
+    const auto it = grooveEdits.find (id);
+    if (! gg::mygrooves::isMine (id) || it == grooveEdits.end()) return false;
+    auto hits = it->second->hits;
+    auto old = gg::mygrooves::update (id, std::move (hits), it->second->swing, kitOnSauce());   // (its own kit stays)
+    if (old == nullptr) return false;
+    retireGroove (std::move (old));
+    swapGroove (id, nullptr);                      // no changes waiting any more: it plays the saved groove
+    notify ("Saved your changes to \"" + getGroove (id)->name + "\"");
+    return true;
 }
 
 void GrooveGrabberProcessor::renameMyGroove (const juce::String& id, const juce::String& name)
@@ -278,16 +374,76 @@ void GrooveGrabberProcessor::renameMyGroove (const juce::String& id, const juce:
     if (auto old = gg::mygrooves::rename (id, name))
     {
         retireGroove (std::move (old));
+        // changes waiting for it keep waiting, under the new name
+        if (const auto it = grooveEdits.find (id); it != grooveEdits.end())
+            if (const auto renamed = gg::mygrooves::find (id))
+            {
+                auto g = std::make_shared<gg::Groove> (*it->second);
+                g->name = renamed->name;
+                swapGroove (id, std::move (g));
+            }
         repointPlayer (id);
         notify();
     }
 }
 
+juce::String GrooveGrabberProcessor::restoreMyGroove (const juce::File& backup)
+{
+    const auto id = gg::mygrooves::restore (backup);
+    notify (id.isNotEmpty() ? "Brought back \"" + getGroove (id)->name + "\" from Backups" : "Couldn't read that backup");
+    return id;
+}
+
+juce::StringArray GrooveGrabberProcessor::getCoachOnPurpose (const juce::String& id)
+{
+    if (gg::mygrooves::isMine (id))
+    {
+        juce::StringArray ids;
+        const auto all = juce::JSON::parse (getSettings().get ("coachOnPurpose"));     // (kept while its list is read)
+        if (auto* a = all[juce::Identifier (id)].getArray())
+            for (const auto& x : *a) ids.addIfNotAlreadyThere (x.toString());
+        return ids;
+    }
+    const auto it = coachOnPurpose.find (id);
+    return it != coachOnPurpose.end() ? it->second : juce::StringArray();
+}
+
+void GrooveGrabberProcessor::setCoachOnPurpose (const juce::String& id, const juce::StringArray& tipIds)
+{
+    if (id.isEmpty()) return;
+    if (gg::mygrooves::isMine (id))
+    {
+        auto all = juce::JSON::parse (getSettings().get ("coachOnPurpose"));
+        if (! all.isObject()) all = juce::var (new juce::DynamicObject());
+        if (auto* o = all.getDynamicObject())
+        {
+            if (tipIds.isEmpty()) o->removeProperty (id);
+            else
+            {
+                juce::Array<juce::var> a;
+                for (const auto& t : tipIds) a.add (t);
+                o->setProperty (id, a);
+            }
+        }
+        getSettings().set ("coachOnPurpose", juce::JSON::toString (all, true));
+        return;
+    }
+    if (tipIds.isEmpty()) coachOnPurpose.erase (id);
+    else coachOnPurpose[id] = tipIds;
+    notify();      // (saved with the song)
+}
+
 void GrooveGrabberProcessor::deleteMyGroove (const juce::String& id)
 {
+    setCoachOnPurpose (id, {});      // its ON PURPOSE tips go with it
     auto old = gg::mygrooves::remove (id);
     if (old == nullptr) return;
     retireGroove (std::move (old));
+    if (const auto it = grooveEdits.find (id); it != grooveEdits.end())   // changes waiting for it go with it
+    {
+        retireGroove (it->second);
+        grooveEdits.erase (it);
+    }
     if (grooveId == id) setGrooveId (firstGroove());       // BUILD's preview goes back to the style's groove
     repointPlayer (id);                                     // (SAUCE playing it: the fallback groove)
     notify();
@@ -345,8 +501,65 @@ void GrooveGrabberProcessor::setActiveKit (int index)
 {
     if (! juce::isPositiveAndBelow (index, juce::jmin ((int) kits.size(), (int) playables.size()))) return;
     activeKit = index;
-    if (playables[(size_t) index] != nullptr) player.setKit (playables[(size_t) index]);
+    updatePlayerKit();
     notify();
+}
+
+void GrooveGrabberProcessor::updatePlayerKit()
+{
+    if (sauceShowing && sauceKit != nullptr)
+    {
+        if (saucePlayable != nullptr) player.setKit (saucePlayable);      // (until it's rendered, what was playing)
+        return;
+    }
+    if (juce::isPositiveAndBelow (activeKit, (int) playables.size()) && playables[(size_t) activeKit] != nullptr)
+        player.setKit (playables[(size_t) activeKit]);
+}
+
+void GrooveGrabberProcessor::setSauceKit (std::shared_ptr<const gg::Kit> k)
+{
+    if (k != nullptr && ! k->isValid()) k = nullptr;
+    if (k == sauceKit) return;
+    sauceKit = std::move (k);
+    saucePlayable = nullptr;
+    renderSauceKit();
+    notify();
+}
+
+void GrooveGrabberProcessor::setSauceShowing (bool showing)
+{
+    if (showing == sauceShowing) return;
+    sauceShowing = showing;
+    updatePlayerKit();
+}
+
+const gg::Kit* GrooveGrabberProcessor::kitOnSauce()
+{
+    return sauceKit != nullptr ? sauceKit.get() : getActiveKit();
+}
+
+void GrooveGrabberProcessor::renderSauceKit()
+{
+    const int generation = ++sauceGeneration;
+    if (sauceKit == nullptr)
+    {
+        saucePlayable = nullptr;
+        updatePlayerKit();          // BUILD's kit again
+        return;
+    }
+    const double sr = player.getSampleRate() > 0 ? player.getSampleRate() : 44100.0;
+    runInBackground ([this, a = alive, generation, kit = sauceKit, sr]
+    {
+        if (! a->load() || sauceGeneration.load() != generation) return;
+        auto pk = gg::buildPlayable (*kit, sr);
+        juce::MessageManager::callAsync ([this, a, generation, pk]
+        {
+            if (! a->load() || sauceGeneration.load() != generation) return;
+            saucePlayable = pk;
+            updatePlayerKit();
+            sendChangeMessage();
+        });
+    });
 }
 
 gg::Kit* GrooveGrabberProcessor::getActiveKit()
@@ -375,7 +588,7 @@ void GrooveGrabberProcessor::setSlotSound (int kitIndex, gg::Slot slot, const ju
     st.locked = locked;
     if (auto info = library->find (path); info.has_value() && options.key >= 0 && kits[(size_t) kitIndex].tuneToKey)
         st.autoTune = gg::KitGenerator::autoTuneFor (*info, slot, options.key);
-    if (options.key < 0 && (slot == gg::Slot::kick || slot == gg::Slot::bass808))
+    if (options.key < 0 && (slot == gg::Slot::kick || slot == gg::Slot::kick2 || slot == gg::Slot::bass808))
         makeGenerator().tuneToKey (kits[(size_t) kitIndex], -1);     // keep the kick on the 808's note
     kitChanged (kitIndex);
 }
@@ -436,7 +649,7 @@ void GrooveGrabberProcessor::renderKits()
             {
                 if (! a->load() || renderGeneration.load() != generation) return;
                 playables[(size_t) i] = pk;
-                if (i == activeKit) player.setKit (pk);
+                if (i == activeKit) updatePlayerKit();
                 sendChangeMessage();
             });
         });
@@ -458,6 +671,111 @@ void GrooveGrabberProcessor::previewFile (const juce::String& path, gg::Cat cat)
         auto buf = std::make_shared<juce::AudioBuffer<float>> (gg::render::sound (path, cat, {}, sr));
         juce::MessageManager::callAsync ([this, a, buf] { if (a->load()) player.playPreview (buf); });
     });
+}
+
+//==============================================================================
+double GrooveGrabberProcessor::songBpm() const
+{
+    return options.bpm > 0 ? options.bpm : options.style().bpm;
+}
+
+void GrooveGrabberProcessor::stopPreview()
+{
+    player.playPreview (std::make_shared<juce::AudioBuffer<float>> (2, 64));     // (silence takes its place)
+}
+
+double GrooveGrabberProcessor::hearFxInTime (const juce::String& path, gg::fx::Type type)
+{
+    const double sr = player.getSampleRate() > 0 ? player.getSampleRate() : 44100.0;
+    const double bpm = songBpm();
+    auto groove = getGroove (grooveId);
+    std::optional<gg::Kit> kit;
+    if (auto* k = getActiveKit(); k != nullptr && k->isValid()) kit = *k;
+    const float swing = player.getSwing();
+    if (player.isGroovePlaying()) { player.setGroovePlaying (false); sendChangeMessage(); }
+
+    // how long it'll run (to say so at once): the file's length is near enough
+    double guess = 8.0;
+    {
+        juce::AudioFormatManager fm;
+        fm.registerBasicFormats();
+        if (std::unique_ptr<juce::AudioFormatReader> r (fm.createReaderFor (juce::File (path))); r != nullptr && r->sampleRate > 0)
+            guess = gg::fx::place (type, (double) r->lengthInSamples / r->sampleRate, 0, bpm).totalBeats * 60.0 / bpm;
+    }
+
+    runInBackground ([this, a = alive, path, type, sr, bpm, groove, kit, swing]
+    {
+        if (! a->load()) return;
+        const auto fxBuf = gg::render::sound (path, gg::Cat::fx, {}, sr);
+        if (fxBuf.getNumSamples() == 0) return;
+        // where it peaks and where it really ends (tails under -40 dB don't count)
+        int peakAt = 0, endAt = fxBuf.getNumSamples();
+        float peak = 0;
+        for (int i = 0; i < fxBuf.getNumSamples(); ++i)
+        {
+            const float v = std::abs (fxBuf.getSample (0, i));
+            if (v > peak) { peak = v; peakAt = i; }
+        }
+        while (endAt > peakAt + 1 && std::abs (fxBuf.getSample (0, endAt - 1)) < peak * 0.01f) --endAt;
+        const auto place = gg::fx::place (type, endAt / sr, peakAt / sr, bpm);
+        const double spb = 60.0 / bpm * sr;
+        const int total = (int) (place.totalBeats * spb);
+        auto mix = std::make_shared<juce::AudioBuffer<float>> (2, total);
+        mix->clear();
+
+        if (kit.has_value() && groove != nullptr)
+        {
+            // the groove, as BUILD plays it
+            gg::KitPlayer offline;
+            offline.prepare (sr, 512);
+            offline.setFollowHost (false);
+            offline.setKit (gg::buildPlayable (*kit, sr));
+            offline.setGroove (groove.get());
+            offline.setTempo (bpm);
+            offline.setSwing (swing);
+            offline.setVolume (0.75f);
+            offline.setGroovePlaying (true);
+            juce::AudioBuffer<float> block (2, 512);
+            juce::MidiBuffer none;
+            for (int pos = 0; pos < total; pos += 512)
+            {
+                const int n = juce::jmin (512, total - pos);
+                block.setSize (2, n, false, false, true);
+                block.clear();
+                offline.process (block, none, {});
+                for (int ch = 0; ch < 2; ++ch) mix->addFrom (ch, pos, block, ch, 0, n);
+            }
+        }
+        else
+        {
+            // no kits yet: a click on every beat, louder on the one
+            const int clickLen = (int) (sr * 0.03);
+            for (int beat = 0; beat < (int) place.totalBeats; ++beat)
+            {
+                const int at = (int) (beat * spb);
+                const float level = beat % 4 == 0 ? 0.35f : 0.18f;
+                for (int i = 0; i < clickLen && at + i < total; ++i)
+                {
+                    const float v = std::sin (juce::MathConstants<float>::twoPi * (beat % 4 == 0 ? 1500.0f : 1000.0f) * (float) (i / sr))
+                                  * level * (1.0f - (float) i / (float) clickLen);
+                    for (int ch = 0; ch < 2; ++ch) mix->addSample (ch, at + i, v);
+                }
+            }
+        }
+
+        // the effect, where it goes
+        const int start = (int) std::round (place.startBeat * spb);
+        for (int ch = 0; ch < 2; ++ch)
+        {
+            const int src = juce::jmin (ch, fxBuf.getNumChannels() - 1);
+            const int n = juce::jmin (fxBuf.getNumSamples(), total - start);
+            if (n > 0) mix->addFrom (ch, start, fxBuf, src, 0, n, 0.9f);
+        }
+        const int fade = juce::jmin (total, (int) (sr * 0.3));
+        mix->applyGainRamp (total - fade, fade, 1.0f, 0.0f);
+        juce::MessageManager::callAsync ([this, a, mix] { if (a->load()) player.playPreview (mix); });
+    });
+    return guess;
 }
 
 //==============================================================================
@@ -493,9 +811,24 @@ juce::String GrooveGrabberProcessor::makeState()
     o->setProperty ("active", activeKit);
     o->setProperty ("slot", gg::slotId (selectedSlot));
     o->setProperty ("groove", grooveId);
+    // the hits as 1.0.9 to 1.0.18 wrote them (so those versions still read a song saved here), the swing beside them
     auto* edits = new juce::DynamicObject();
-    for (const auto& [id, g] : grooveEdits) edits->setProperty (id, gg::hitsToVar (g->hits));
+    auto* swings = new juce::DynamicObject();
+    for (const auto& [id, g] : grooveEdits)
+    {
+        edits->setProperty (id, gg::hitsToVar (g->hits));
+        swings->setProperty (id, (double) g->swing);
+    }
     o->setProperty ("grooveEdits", juce::var (edits));
+    o->setProperty ("grooveSwing", juce::var (swings));
+    auto* purposed = new juce::DynamicObject();
+    for (const auto& [id, tips] : coachOnPurpose)
+    {
+        juce::Array<juce::var> a;
+        for (const auto& t : tips) a.add (t);
+        purposed->setProperty (id, a);
+    }
+    o->setProperty ("coachOnPurpose", juce::var (purposed));
     o->setProperty ("swing", player.getSwing());
     o->setProperty ("volume", player.getVolume());
     o->setProperty ("follow", player.isFollowingHost());
@@ -537,17 +870,40 @@ void GrooveGrabberProcessor::applyState (const juce::String& text)
             for (const auto& prop : edits->getProperties())
             {
                 const auto id = prop.name.toString();
-                const auto& original = gg::grooveFor (id);
-                if (original.id != id || restored.size() >= 64) continue;
+                if (restored.size() >= 64) continue;
+                // a built-in groove, or one of your grooves on this computer (changes you hadn't saved into it)
+                const auto mine = gg::mygrooves::isMine (id) ? gg::mygrooves::find (id) : nullptr;
+                if (gg::mygrooves::isMine (id) && mine == nullptr) continue;
+                const auto& original = mine != nullptr ? *mine : gg::grooveFor (id);
+                if (original.id != id) continue;
+                // the hits, and the swing beside them in "grooveSwing" (songs from before 1.0.19 have none: the original's)
                 auto hits = gg::hitsFromVar (prop.value, original);
-                if (gg::sameHits (hits, original.hits)) continue;
+                float swing = original.swing;
+                const auto sv = v["grooveSwing"][prop.name];
+                if (sv.isDouble() || sv.isInt() || sv.isInt64())
+                    if (const double d = sv; std::isfinite (d)) swing = (float) juce::jlimit (0.0, 0.5, d);
+                if (gg::sameHits (hits, original.hits) && std::abs (swing - original.swing) < 1.0e-4f) continue;
                 auto g = std::make_shared<gg::Groove> (original);
                 g->hits = std::move (hits);
+                g->swing = swing;
                 restored[id] = std::move (g);
             }
         const auto now = juce::Time::getMillisecondCounter();
         for (auto& [id, g] : grooveEdits) retiredGrooves.push_back ({ g, now });
         grooveEdits = std::move (restored);
+    }
+    {
+        // COACH MY BEAT's ON PURPOSE tips for the song's patterns (a few short ids each)
+        coachOnPurpose.clear();
+        if (auto* o = v["coachOnPurpose"].getDynamicObject())
+            for (const auto& prop : o->getProperties())
+                if (auto* a = prop.value.getArray(); a != nullptr && coachOnPurpose.size() < 256)
+                {
+                    juce::StringArray ids;
+                    for (const auto& x : *a)
+                        if (x.isString() && x.toString().length() <= 40 && ids.size() < 64) ids.addIfNotAlreadyThere (x.toString());
+                    if (! ids.isEmpty()) coachOnPurpose[prop.name.toString().substring (0, 80)] = ids;
+                }
     }
     setGrooveId (v.getProperty ("groove", "boombap1").toString());
     player.setSwing ((float) (double) v.getProperty ("swing", (double) player.getSwing()));

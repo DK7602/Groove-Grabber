@@ -68,7 +68,11 @@ namespace gg
 
     std::shared_ptr<const juce::AudioBuffer<float>> renderPad (const Kit& kit, const PadDef& pad, double sr)
     {
-        return renderCached (kit[pad.slot], slotCat (pad.slot), kit.tuneToKey, pad.tuneOffset, pad.gainDb, pad.lengthScale, sr);
+        // a pad beyond the kit's size is silent (a 17-sound kit has no Kick 2); a stand-in pad plays its stand-in
+        if (pad.note - firstPadNote >= kit.padCount()) return nullptr;
+        const auto use = kit.padSound (pad);
+        return renderCached (kit[use.slot], slotCat (use.slot), kit.tuneToKey, use.shaped ? pad.tuneOffset : 0.0f,
+                             use.shaped ? pad.gainDb : 0.0f, use.shaped ? pad.lengthScale : 1.0f, sr);
     }
 
     std::shared_ptr<const juce::AudioBuffer<float>> renderSlotPreview (const Kit& kit, Slot slot, double sr)
@@ -138,7 +142,15 @@ namespace gg
     void KitPlayer::setGroovePlaying (bool b)
     {
         if (b && ! groovePlaying) resetGroove = true;
+        if (! b) seekTo = -1.0;
         groovePlaying = b;
+    }
+
+    void KitPlayer::seekGroove (double beat)
+    {
+        beat = std::isfinite (beat) ? juce::jlimit (0.0, 1000.0, beat) : 0.0;
+        seekTo = beat;
+        displayBeat = beat;          // (the playhead moves right away)
     }
 
     void KitPlayer::timerCallback()
@@ -322,6 +334,7 @@ namespace gg
             else
             {
                 if (resetGroove.exchange (false) || (wasHostPlaying && ! hostPlay)) internalBeat = 0;
+                if (const double s = seekTo.exchange (-1.0); s >= 0) internalBeat = s;
                 const double spb = sr * 60.0 / tempo.load();
                 const double end = internalBeat + n / spb;
                 scheduleGroove (internalBeat, end, n, spb);

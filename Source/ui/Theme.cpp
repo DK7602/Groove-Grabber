@@ -1,5 +1,6 @@
 #include "Theme.h"
 #include "GGBinaryData.h"
+#include "../core/Settings.h"
 
 namespace ggui
 {
@@ -55,7 +56,10 @@ namespace ggui
             return p;
         }
 
-        struct Fonts
+        // The fonts are let go when JUCE shuts down (in a DAW: when the last Groove Grabber in the project closes) and made
+        // again if another one opens. Never keep them in a static: that releases them when the DAW unloads the plug-in at
+        // quit, after the graphics they belong to are gone, which froze Cubase on quit (1.0.13).
+        struct Fonts : private juce::DeletedAtShutdown
         {
             juce::Typeface::Ptr black, bold, med, semi, rbold;
             Fonts()
@@ -66,12 +70,13 @@ namespace ggui
                 semi  = juce::Typeface::createSystemTypefaceFor (GGBinary::RajdhaniSemiBold_ttf, GGBinary::RajdhaniSemiBold_ttfSize);
                 rbold = juce::Typeface::createSystemTypefaceFor (GGBinary::RajdhaniBold_ttf, GGBinary::RajdhaniBold_ttfSize);
             }
+            ~Fonts() override       { clearSingletonInstance(); gg::log::write ("fonts let go"); }
+            JUCE_DECLARE_SINGLETON_INLINE (Fonts, false)
         };
 
         Fonts& fonts()
         {
-            static Fonts f;
-            return f;
+            return *Fonts::getInstance();
         }
 
         juce::Font withTypeface (juce::Typeface::Ptr tf, float h)
@@ -111,6 +116,11 @@ namespace ggui
     juce::Font headFont (float h)            { return withTypeface (fonts().bold, h); }
     juce::Font uiFont (float h, bool bold)   { return withTypeface (bold ? fonts().rbold : fonts().semi, h); }
     juce::Font bodyFont (float h)            { return withTypeface (fonts().med, h); }
+
+    float zoomFor (int width, int height)
+    {
+        return juce::jlimit (1.0f, 6.0f, juce::jmin ((float) width / (float) zoomBaseWidth, (float) height / (float) zoomBaseHeight));
+    }
 
     juce::ColourGradient brandGradient (juce::Rectangle<float> r, float alpha)
     {
@@ -171,8 +181,8 @@ namespace ggui
 
     juce::Image badgeImage()
     {
-        static juce::Image img = juce::ImageCache::getFromMemory (GGBinary::badge_256_png, GGBinary::badge_256_pngSize);
-        return img;
+        // (the image cache keeps it, and lets it go when JUCE shuts down: not a static, see Fonts)
+        return juce::ImageCache::getFromMemory (GGBinary::badge_256_png, GGBinary::badge_256_pngSize);
     }
 
     //==============================================================================
@@ -338,7 +348,10 @@ namespace ggui
     {
         const auto style = b.getProperties()["style"].toString();
         if (style == "primary") return headFont (juce::jmin (16.0f, h * 0.36f)).withExtraKerningFactor (0.08f);
-        if (style == "tab") return headFont (juce::jmin (12.5f, h * 0.36f)).withExtraKerningFactor (0.1f);
+        if (style == "tab")   // the header sets its tabs' text height to fit the bar
+            return headFont (juce::jmin ((float) b.getProperties().getWithDefault ("textH", 12.5f), h * 0.45f)).withExtraKerningFactor (0.1f);
+        if (style == "segment")   // (BUILD's FEEL, LOW END and PERC switches: small boxes, so the words fill more of them)
+            return uiFont (juce::jmin (15.5f, h * 0.64f));
         return uiFont (juce::jmin (15.5f, h * 0.52f));
     }
 

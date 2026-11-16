@@ -50,11 +50,14 @@ namespace gg
         const Groove* getGroove() const noexcept   { return groove.load(); }
         void setGroovePlaying (bool);
         bool isGroovePlaying() const noexcept      { return groovePlaying.load(); }
+        // play on from this beat (SAUCE's timeline), or start there if it's about to play. While your DAW drives
+        // the groove (Follow DAW), the DAW's position leads.
+        void seekGroove (double beat);
         void setFollowHost (bool b)                { followHost = b; }
         bool isFollowingHost() const noexcept      { return followHost.load(); }
         void setTempo (double bpm)                 { tempo = juce::jlimit (40.0, 250.0, bpm); }
         double getTempo() const noexcept           { return tempo.load(); }
-        void setSwing (float s)                    { swing = juce::jlimit (0.0f, 0.7f, s); }
+        void setSwing (float s)                    { swing = std::isfinite (s) ? juce::jlimit (0.0f, maxSwing, s) : 0.0f; }   // up to a full triplet
         float getSwing() const noexcept            { return swing.load(); }
         void setVolume (float v)                   { volume = juce::jlimit (0.0f, 2.0f, v); }
         float getVolume() const noexcept           { return volume.load(); }
@@ -91,7 +94,7 @@ namespace gg
         std::atomic<float> swing { 0.0f }, volume { 0.9f };
         std::atomic<bool> groovePlaying { false }, followHost { true }, hostDriving { false }, resetGroove { false };
         std::atomic<const Groove*> groove { nullptr };
-        std::atomic<double> displayBeat { 0.0 };
+        std::atomic<double> displayBeat { 0.0 }, seekTo { -1.0 };
         double internalBeat = 0;
         bool wasHostPlaying = false;
 

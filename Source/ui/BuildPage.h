@@ -5,7 +5,7 @@
 
 namespace ggui
 {
-    class SongPanel : public juce::Component
+    class SongPanel : public juce::Component, private juce::Timer
     {
     public:
         explicit SongPanel (GrooveGrabberProcessor&);
@@ -13,22 +13,28 @@ namespace ggui
         void paint (juce::Graphics&) override;
         void resized() override;
         std::function<void()> onGenerate;
+        void checkSongSavant();                 // a song Song Savant just sent: offer it (also the tests)
+        bool isOfferingSongSavant() const       { return waiting.has_value(); }
 
     private:
+        void timerCallback() override           { checkSongSavant(); }
         void pushOptions();
         void syncDescription();
         GrooveGrabberProcessor& proc;
+        std::optional<gg::SongSavantSong> waiting;
+        juce::TextButton useSongSavant, skipSongSavant { "X" };
         juce::TextEditor description;
         juce::ComboBox genre, styleBox, era;
         gg::Genre stylesShownFor = gg::Genre::count;
         juce::OwnedArray<juce::Slider> traits;
         Segmented feel { { "AUTO", "LIVE", "HYBRID", "PROG" } }, lowEnd { { "AUTO", "KICK", "KICK + 808" } },
-                  perc { { "AUTO", "0", "1", "2", "3" } };
+                  perc { { "AUTO", "0", "1", "2", "3" } }, kitSize { { "17", "23", "32" } };
         juce::ToggleButton fx { "FX / sound effects" }, tuneKey { "Tune kick, 808, toms to key" };
         juce::OwnedArray<juce::ToggleButton> sources;
         juce::TextButton generate { "GENERATE KITS" };
         IconButton surprise { "surprise", Icon::dice };
         juce::Rectangle<int> traitsArea, optionsArea, sourcesArea, understoodArea;
+        int optRowH = 26, optGap = 4, optToggleH = 22;   // the OPTIONS rows (tighter on a short window)
         bool updating = false;
     };
 
@@ -40,12 +46,16 @@ namespace ggui
         void paint (juce::Graphics&) override;
         void resized() override;
         Toast toast;
+        std::function<void()> onEditGroove;     // EDIT IN SAUCE: the groove playing here, open on SAUCE
+        juce::Slider& getSwingSlider() noexcept { return swing; }     // (for the tests)
 
     private:
         void timerCallback() override;
+        juce::String swingTip() const;
         GrooveGrabberProcessor& proc;
         IconButton play { "play", Icon::play, Icon::stop, true };
         juce::ComboBox groove;
+        juce::TextButton editGroove { "EDIT IN SAUCE" };
         juce::Slider swing, volume;
         juce::ToggleButton follow { "Follow DAW" };
         double lastBeat = -1;
@@ -62,6 +72,8 @@ namespace ggui
         void paint (juce::Graphics&) override;
         void resized() override;
         std::function<void()> onExport;
+        std::function<void()> onEditGroove;     // open BUILD's groove on SAUCE
+        TransportBar& getTransport() noexcept   { return transport; }     // (for the tests)
 
     private:
         GrooveGrabberProcessor& proc;

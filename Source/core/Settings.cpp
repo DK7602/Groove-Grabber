@@ -1,4 +1,7 @@
 #include "Settings.h"
+#include <cstdio>
+#include <cstring>
+#include <ctime>
 
 namespace gg
 {
@@ -54,6 +57,16 @@ namespace gg
                      .getChildFile ("KeyCompass").getChildFile ("Songs");
         }
 
+        juce::File songSavantSongs()
+        {
+           #if GG_TEST_RUNNER
+            if (auto env = juce::SystemStats::getEnvironmentVariable ("GG_TEST_HOME", {}); env.isNotEmpty())
+                return juce::File (env).getChildFile ("Song Savant").getChildFile ("Songs");
+           #endif
+            return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
+                     .getChildFile ("Song Savant").getChildFile ("Songs");
+        }
+
         juce::String safeFileName (const juce::String& name, int maxLen)
         {
             auto s = juce::File::createLegalFileName (name.trim())
@@ -61,6 +74,61 @@ namespace gg
                        .trim();
             if (s.isEmpty()) s = "Kit";
             return s.substring (0, maxLen).trim();
+        }
+    }
+
+    //==============================================================================
+    namespace log
+    {
+        namespace
+        {
+            // plain memory, set once: still there while the plug-in is being unloaded
+           #if JUCE_WINDOWS
+            wchar_t logPath[2048] = {};
+           #else
+            char logPath[4096] = {};
+           #endif
+
+            void preparePath()
+            {
+                if (logPath[0] != 0) return;
+                const auto f = paths::documentsDir().getChildFile ("Groove Grabber log.txt");
+                f.getParentDirectory().createDirectory();
+                if (f.getSize() > 64 * 1024) f.deleteFile();          // keep it short
+               #if JUCE_WINDOWS
+                std::wcsncpy (logPath, f.getFullPathName().toWideCharPointer(), 2047);
+               #else
+                std::strncpy (logPath, f.getFullPathName().toRawUTF8(), 4095);
+               #endif
+            }
+        }
+
+        void write (const char* message)
+        {
+            if (logPath[0] == 0) return;
+           #if JUCE_WINDOWS
+            FILE* f = _wfopen (logPath, L"a");
+           #else
+            FILE* f = std::fopen (logPath, "a");
+           #endif
+            if (f == nullptr) return;
+            char stamp[32] = {};
+            const std::time_t t = std::time (nullptr);
+            std::tm tm {};
+           #if JUCE_WINDOWS
+            localtime_s (&tm, &t);
+           #else
+            localtime_r (&t, &tm);
+           #endif
+            std::strftime (stamp, sizeof (stamp), "%Y-%m-%d %H:%M:%S", &tm);
+            std::fprintf (f, "%s  %s\n", stamp, message);
+            std::fclose (f);
+        }
+
+        void write (const juce::String& message)
+        {
+            preparePath();
+            write (message.toRawUTF8());
         }
     }
 

@@ -165,6 +165,21 @@ namespace gg
             case Slot::perc3:     return "Perc 3";
             case Slot::fx1:       return "FX 1";
             case Slot::fx2:       return "FX 2";
+            case Slot::kick2:      return "Kick 2";
+            case Slot::bass808_2:  return "808 2";
+            case Slot::snare2:     return "Snare 2";
+            case Slot::clap2:      return "Clap 2";
+            case Slot::rim2:       return "Rim 2";
+            case Slot::closedHat2: return "Closed Hat 2";
+            case Slot::openHat2:   return "Open Hat 2";
+            case Slot::crash2:     return "Crash 2";
+            case Slot::ride2:      return "Ride 2";
+            case Slot::tomLow2:    return "Tom Low 2";
+            case Slot::tomMid2:    return "Tom Mid 2";
+            case Slot::tomHigh2:   return "Tom High 2";
+            case Slot::perc4:      return "Perc 4";
+            case Slot::fx3:        return "FX 3";
+            case Slot::fx4:        return "FX 4";
             case Slot::count:     break;
         }
         return {};
@@ -183,8 +198,84 @@ namespace gg
         return Slot::count;
     }
 
+    Slot slotKind (Slot s) noexcept
+    {
+        switch (s)
+        {
+            case Slot::kick2:      return Slot::kick;
+            case Slot::bass808_2:  return Slot::bass808;
+            case Slot::snare2:     return Slot::snare;
+            case Slot::clap2:      return Slot::clap;
+            case Slot::rim2:       return Slot::rim;
+            case Slot::closedHat2: return Slot::closedHat;
+            case Slot::openHat2:   return Slot::openHat;
+            case Slot::crash2:     return Slot::crash;
+            case Slot::ride2:      return Slot::ride;
+            case Slot::tomLow2:    return Slot::tomLow;
+            case Slot::tomMid2:    return Slot::tomMid;
+            case Slot::tomHigh2:   return Slot::tomHigh;
+            case Slot::perc2: case Slot::perc3: case Slot::perc4: return Slot::perc1;
+            case Slot::fx2: case Slot::fx3: case Slot::fx4:       return Slot::fx1;
+            default:               return s;
+        }
+    }
+
+    bool isSecondSound (Slot s) noexcept
+    {
+        return (int) s >= (int) Slot::kick2 && (int) s <= (int) Slot::tomHigh2;
+    }
+
+    int validKitSize (int n) noexcept
+    {
+        return n == 23 || n == 32 ? n : defaultKitSize;
+    }
+
+    const std::vector<Slot>& kitSlots (int kitSize)
+    {
+        using S = Slot;
+        static const std::vector<Slot> k17 { S::kick, S::bass808, S::snare, S::clap, S::rim, S::closedHat, S::openHat, S::crash, S::ride,
+                                             S::tomLow, S::tomMid, S::tomHigh, S::perc1, S::perc2, S::perc3, S::fx1, S::fx2 };
+        static const std::vector<Slot> k23 { S::kick, S::kick2, S::bass808, S::bass808_2, S::snare, S::snare2, S::clap, S::rim,
+                                             S::closedHat, S::closedHat2, S::openHat, S::openHat2, S::crash, S::ride, S::tomLow, S::tomMid,
+                                             S::tomHigh, S::perc1, S::perc2, S::perc3, S::fx1, S::fx2, S::fx3 };
+        static const std::vector<Slot> k32 { S::kick, S::kick2, S::bass808, S::bass808_2, S::snare, S::snare2, S::clap, S::clap2,
+                                             S::rim, S::rim2, S::closedHat, S::closedHat2, S::openHat, S::openHat2, S::crash, S::crash2,
+                                             S::ride, S::ride2, S::tomLow, S::tomLow2, S::tomMid, S::tomMid2, S::tomHigh, S::tomHigh2,
+                                             S::perc1, S::perc2, S::perc3, S::perc4, S::fx1, S::fx2, S::fx3, S::fx4 };
+        switch (validKitSize (kitSize))
+        {
+            case 23: return k23;
+            case 32: return k32;
+            default: return k17;
+        }
+    }
+
+    bool slotInKit (Slot s, int kitSize) noexcept
+    {
+        for (auto x : kitSlots (kitSize)) if (x == s) return true;
+        return false;
+    }
+
+    int slotRank (Slot s) noexcept
+    {
+        const auto& all = kitSlots (32);
+        for (size_t i = 0; i < all.size(); ++i) if (all[i] == s) return (int) i;
+        return (int) all.size();
+    }
+
+    int padCountFor (int kitSize) noexcept
+    {
+        switch (validKitSize (kitSize))
+        {
+            case 23: return 27;     // 36..62
+            case 32: return 33;     // 36..68
+            default: return 22;     // 36..57
+        }
+    }
+
     Cat slotCat (Slot s) noexcept
     {
+        s = slotKind (s);
         switch (s)
         {
             case Slot::kick:      return Cat::kick;
@@ -205,42 +296,56 @@ namespace gg
             case Slot::fx1:
             case Slot::fx2:       return Cat::fx;
             case Slot::count:     break;
+            default:              break;
         }
         return Cat::unknown;
     }
 
     bool slotIsOptional (Slot s) noexcept
     {
-        return s == Slot::bass808 || s == Slot::perc1 || s == Slot::perc2 || s == Slot::perc3
-            || s == Slot::fx1 || s == Slot::fx2;
+        const auto k = slotKind (s);
+        return k == Slot::bass808 || k == Slot::perc1 || k == Slot::fx1;
     }
 
     //==============================================================================
     const std::array<PadDef, numPads>& padLayout()
     {
         static const std::array<PadDef, numPads> pads {{
-            { 36, Slot::kick,      0.0f,  0.0f, 1.0f,  "Kick",        0 },
-            { 37, Slot::rim,       0.0f,  0.0f, 1.0f,  "Rim",         0 },
-            { 38, Slot::snare,     0.0f,  0.0f, 1.0f,  "Snare",       0 },
-            { 39, Slot::clap,      0.0f,  0.0f, 1.0f,  "Clap",        0 },
-            { 40, Slot::snare,     0.0f, -1.5f, 1.0f,  "Snare 2",     0 },
-            { 41, Slot::tomLow,   -3.0f,  0.0f, 1.0f,  "Floor Tom 2", 0 },
-            { 42, Slot::closedHat, 0.0f,  0.0f, 1.0f,  "Closed Hat",  1 },
-            { 43, Slot::tomLow,    0.0f,  0.0f, 1.0f,  "Floor Tom",   0 },
-            { 44, Slot::closedHat, 0.0f, -5.0f, 0.45f, "Pedal Hat",   1 },
-            { 45, Slot::tomMid,   -2.0f,  0.0f, 1.0f,  "Low Tom",     0 },
-            { 46, Slot::openHat,   0.0f,  0.0f, 1.0f,  "Open Hat",    1 },
-            { 47, Slot::tomMid,    0.0f,  0.0f, 1.0f,  "Mid Tom",     0 },
-            { 48, Slot::tomHigh,  -2.0f,  0.0f, 1.0f,  "Hi-Mid Tom",  0 },
-            { 49, Slot::crash,     0.0f,  0.0f, 1.0f,  "Crash",       0 },
-            { 50, Slot::tomHigh,   0.0f,  0.0f, 1.0f,  "High Tom",    0 },
-            { 51, Slot::ride,      0.0f,  0.0f, 1.0f,  "Ride",        0 },
-            { 52, Slot::bass808,   0.0f,  0.0f, 1.0f,  "808",         0 },
-            { 53, Slot::perc1,     0.0f,  0.0f, 1.0f,  "Perc 1",      0 },
-            { 54, Slot::perc2,     0.0f,  0.0f, 1.0f,  "Perc 2",      0 },
-            { 55, Slot::perc3,     0.0f,  0.0f, 1.0f,  "Perc 3",      0 },
-            { 56, Slot::fx1,       0.0f,  0.0f, 1.0f,  "FX 1",        0 },
-            { 57, Slot::fx2,       0.0f,  0.0f, 1.0f,  "FX 2",        0 },
+            { 36, Slot::kick,       0.0f,  0.0f, 1.0f,  "Kick",         0 },
+            { 37, Slot::rim,        0.0f,  0.0f, 1.0f,  "Rim",          0 },
+            { 38, Slot::snare,      0.0f,  0.0f, 1.0f,  "Snare",        0 },
+            { 39, Slot::clap,       0.0f,  0.0f, 1.0f,  "Clap",         0 },
+            { 40, Slot::snare2,     0.0f, -1.5f, 1.0f,  "Snare 2",      0, Slot::snare },
+            { 41, Slot::tomLow2,   -3.0f,  0.0f, 1.0f,  "Floor Tom 2",  0, Slot::tomLow },
+            { 42, Slot::closedHat,  0.0f,  0.0f, 1.0f,  "Closed Hat",   1 },
+            { 43, Slot::tomLow,     0.0f,  0.0f, 1.0f,  "Floor Tom",    0 },
+            { 44, Slot::closedHat,  0.0f, -5.0f, 0.45f, "Pedal Hat",    1 },
+            { 45, Slot::tomMid2,   -2.0f,  0.0f, 1.0f,  "Low Tom",      0, Slot::tomMid },
+            { 46, Slot::openHat,    0.0f,  0.0f, 1.0f,  "Open Hat",     1 },
+            { 47, Slot::tomMid,     0.0f,  0.0f, 1.0f,  "Mid Tom",      0 },
+            { 48, Slot::tomHigh2,  -2.0f,  0.0f, 1.0f,  "Hi-Mid Tom",   0, Slot::tomHigh },
+            { 49, Slot::crash,      0.0f,  0.0f, 1.0f,  "Crash",        0 },
+            { 50, Slot::tomHigh,    0.0f,  0.0f, 1.0f,  "High Tom",     0 },
+            { 51, Slot::ride,       0.0f,  0.0f, 1.0f,  "Ride",         0 },
+            { 52, Slot::bass808,    0.0f,  0.0f, 1.0f,  "808",          0 },
+            { 53, Slot::perc1,      0.0f,  0.0f, 1.0f,  "Perc 1",       0 },
+            { 54, Slot::perc2,      0.0f,  0.0f, 1.0f,  "Perc 2",       0 },
+            { 55, Slot::perc3,      0.0f,  0.0f, 1.0f,  "Perc 3",       0 },
+            { 56, Slot::fx1,        0.0f,  0.0f, 1.0f,  "FX 1",         0 },
+            { 57, Slot::fx2,        0.0f,  0.0f, 1.0f,  "FX 2",         0 },
+            // the 23-sound kit's
+            { 58, Slot::kick2,      0.0f,  0.0f, 1.0f,  "Kick 2",       0 },
+            { 59, Slot::bass808_2,  0.0f,  0.0f, 1.0f,  "808 2",        0 },
+            { 60, Slot::closedHat2, 0.0f,  0.0f, 1.0f,  "Closed Hat 2", 1 },
+            { 61, Slot::openHat2,   0.0f,  0.0f, 1.0f,  "Open Hat 2",   1 },
+            { 62, Slot::fx3,        0.0f,  0.0f, 1.0f,  "FX 3",         0 },
+            // the 32-sound kit's
+            { 63, Slot::clap2,      0.0f,  0.0f, 1.0f,  "Clap 2",       0 },
+            { 64, Slot::rim2,       0.0f,  0.0f, 1.0f,  "Rim 2",        0 },
+            { 65, Slot::crash2,     0.0f,  0.0f, 1.0f,  "Crash 2",      0 },
+            { 66, Slot::ride2,      0.0f,  0.0f, 1.0f,  "Ride 2",       0 },
+            { 67, Slot::perc4,      0.0f,  0.0f, 1.0f,  "Perc 4",       0 },
+            { 68, Slot::fx4,        0.0f,  0.0f, 1.0f,  "FX 4",         0 },
         }};
         return pads;
     }

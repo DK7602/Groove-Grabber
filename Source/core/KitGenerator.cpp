@@ -119,16 +119,19 @@ namespace gg
 
     bool KitGenerator::slotWanted (Slot s, const Direction& dir) const
     {
+        if (! slotInKit (s, opts.kitSize)) return false;     // KIT SIZE: a 17-sound kit has no Kick 2
         switch (s)
         {
             case Slot::bass808:
+            case Slot::bass808_2:
                 if (opts.lowEnd >= 0) return opts.lowEnd == 1;
                 return dir.use808 >= 0 ? dir.use808 == 1 : style.use808;
             case Slot::perc1: return opts.wantedPerc() >= 1;
             case Slot::perc2: return opts.wantedPerc() >= 2;
             case Slot::perc3: return opts.wantedPerc() >= 3;
-            case Slot::fx1:
-            case Slot::fx2:   return opts.fx;
+            case Slot::perc4: return opts.wantedPerc() >= 4;
+            case Slot::fx1: case Slot::fx2: case Slot::fx3: case Slot::fx4:
+                return opts.fx;
             default:          return true;
         }
     }
@@ -165,7 +168,7 @@ namespace gg
         if (s.leadSilenceMs > 40.0f) score -= 0.03f;
 
         const bool with808 = opts.wants808();
-        switch (slot)
+        switch (slotKind (slot))      // (a second kick, 808 or tom is picked the way the first is)
         {
             case Slot::kick:
                 // with an 808 the kick has to get out of its way: short, not much ring, not much sub
@@ -179,7 +182,7 @@ namespace gg
             case Slot::tomLow: case Slot::tomMid: case Slot::tomHigh:
                 score += 0.08f * s.pitchConf;
                 break;
-            case Slot::perc1: case Slot::perc2: case Slot::perc3:
+            case Slot::perc1:
             {
                 const auto& prefs = style.percPrefs;
                 for (size_t i = 0; i < prefs.size(); ++i)
@@ -215,31 +218,43 @@ namespace gg
             }
         }
 
-        switch (slot)
+        // a second sound of a kind (KIT SIZE 23 / 32) brings something of its own: not a near twin of the first
+        // from the same pack
+        const auto kind = slotKind (slot);
+        if (isSecondSound (slot))
+            if (auto* first = snd (kind))
+            {
+                float d = 0;
+                for (int i = 0; i < Traits::num; ++i) d += std::abs (first->traits[i] - s.traits[i]);
+                if (first->pack == s.pack && d < 0.35f) score -= 0.08f;
+            }
+
+        switch (kind)
         {
             case Slot::snare:
             case Slot::clap:
                 if (auto* k = snd (Slot::kick); k != nullptr && k->pack == s.pack) score += 0.03f;
-                if (slot == Slot::clap)
+                if (kind == Slot::clap)
                     if (auto* sn = snd (Slot::snare); sn != nullptr && sn->pack == s.pack) score += 0.03f;
                 break;
             case Slot::openHat:
-                if (auto* ch = snd (Slot::closedHat))
+                // Open Hat 2 goes with Closed Hat 2 when there is one
+                if (auto* ch = snd (slot == Slot::openHat2 && ! kit[Slot::closedHat2].isEmpty() ? Slot::closedHat2 : Slot::closedHat))
                 {
                     if (ch->pack == s.pack) score += 0.12f;
                     score += 0.06f * (1.0f - clamp01 (std::abs (ch->traits.bright - s.traits.bright) * 3.0f));
                 }
                 break;
             case Slot::closedHat:
-                if (auto* oh = snd (Slot::openHat); oh != nullptr && oh->pack == s.pack) score += 0.12f;
+                if (auto* oh = snd (slot == Slot::closedHat2 ? Slot::openHat2 : Slot::openHat); oh != nullptr && oh->pack == s.pack) score += 0.12f;
                 break;
             case Slot::crash:
             case Slot::ride:
-                if (auto* other = snd (slot == Slot::crash ? Slot::ride : Slot::crash); other != nullptr && other->pack == s.pack) score += 0.06f;
+                if (auto* other = snd (kind == Slot::crash ? Slot::ride : Slot::crash); other != nullptr && other->pack == s.pack) score += 0.06f;
                 if (auto* ch = snd (Slot::closedHat); ch != nullptr && ch->pack == s.pack) score += 0.04f;
                 break;
             case Slot::tomLow: case Slot::tomMid: case Slot::tomHigh:
-                for (auto sl : { Slot::tomLow, Slot::tomMid, Slot::tomHigh })
+                for (auto sl : { Slot::tomLow, Slot::tomMid, Slot::tomHigh, Slot::tomLow2, Slot::tomMid2, Slot::tomHigh2 })
                     if (sl != slot)
                         if (auto* t = snd (sl))
                         {
@@ -247,8 +262,8 @@ namespace gg
                             if (t->hasPitch() && s.hasPitch() && std::abs (t->midiPitch() - s.midiPitch()) < 2.0f) score -= 0.15f;
                         }
                 break;
-            case Slot::perc1: case Slot::perc2: case Slot::perc3:
-                for (auto sl : { Slot::perc1, Slot::perc2, Slot::perc3 })
+            case Slot::perc1:
+                for (auto sl : { Slot::perc1, Slot::perc2, Slot::perc3, Slot::perc4 })
                     if (sl != slot)
                         if (auto* p = snd (sl); p != nullptr && p->percKind == s.percKind) score -= 0.2f;
                 break;
@@ -258,8 +273,11 @@ namespace gg
             case Slot::bass808:
                 if (auto* k = snd (Slot::kick)) score -= 0.06f * rise (k->decayMs, 210, 490);
                 break;
-            case Slot::fx2:
-                if (auto* f = snd (Slot::fx1); f != nullptr && fxKindOf (*f) == fxKindOf (s)) score -= 0.15f;
+            case Slot::fx1:
+                // the kit's FX are different kinds (a riser, an impact, a texture...)
+                for (auto sl : { Slot::fx1, Slot::fx2, Slot::fx3, Slot::fx4 })
+                    if (sl != slot)
+                        if (auto* f = snd (sl); f != nullptr && fxKindOf (*f) == fxKindOf (s)) score -= 0.15f;
                 break;
             default: break;
         }
@@ -321,20 +339,31 @@ namespace gg
         kit.bpm = opts.bpm > 0 ? opts.bpm : style.bpm;
         kit.tuneToKey = opts.tuneToKey;
         kit.created = juce::Time::currentTimeMillis();
+        kit.size = validKitSize (opts.kitSize);
 
         if (previous != nullptr)
         {
             kit.name = previous->name.isNotEmpty() ? previous->name : kit.name;
             for (int i = 0; i < numSlots; ++i)
-                if (previous->slots[(size_t) i].locked)
+                if (previous->slots[(size_t) i].locked && slotInKit ((Slot) i, kit.size))   // (not beyond the kit's size)
                     kit.slots[(size_t) i] = previous->slots[(size_t) i];
         }
 
+        // the main sounds first, then the second sounds of the bigger kits (each picked knowing its first)
         static const Slot order[] = { Slot::kick, Slot::snare, Slot::closedHat, Slot::bass808, Slot::clap, Slot::openHat,
                                       Slot::rim, Slot::crash, Slot::ride, Slot::tomLow, Slot::tomMid, Slot::tomHigh,
-                                      Slot::perc1, Slot::perc2, Slot::perc3, Slot::fx1, Slot::fx2 };
+                                      Slot::perc1, Slot::perc2, Slot::perc3, Slot::fx1, Slot::fx2,
+                                      Slot::kick2, Slot::snare2, Slot::closedHat2, Slot::bass808_2, Slot::openHat2, Slot::clap2,
+                                      Slot::rim2, Slot::crash2, Slot::ride2, Slot::tomLow2, Slot::tomMid2, Slot::tomHigh2,
+                                      Slot::perc4, Slot::fx3, Slot::fx4 };
+        static_assert (sizeof (order) / sizeof (order[0]) == (size_t) numSlots, "every slot has its turn");
+
+        // the kit's toms from the lowest note up: (Tom Low 2,) Tom Low, (Tom Mid 2,) Tom Mid, (Tom High 2,) Tom High
+        std::vector<Slot> tomSlots;
+        for (auto sl : { Slot::tomLow2, Slot::tomLow, Slot::tomMid2, Slot::tomMid, Slot::tomHigh2, Slot::tomHigh })
+            if (slotInKit (sl, kit.size)) tomSlots.push_back (sl);
         bool tomsLocked = false;
-        for (auto sl : { Slot::tomLow, Slot::tomMid, Slot::tomHigh })
+        for (auto sl : tomSlots)
             tomsLocked = tomsLocked || kit[sl].locked;
 
         for (auto slot : order)
@@ -346,23 +375,33 @@ namespace gg
             if (idx >= 0) kit[slot].path = (*sounds)[(size_t) idx].path;
         }
 
-        // toms low -> high by pitch (only when none was locked in place)
-        if (! tomsLocked)
+        // toms low -> high by pitch (only when none was locked in place), spread over the kit's tom pads:
+        // two of three: low + high; one: the middle
+        if (! tomsLocked && ! tomSlots.empty())
         {
             std::vector<std::pair<float, juce::String>> toms;
-            for (auto sl : { Slot::tomLow, Slot::tomMid, Slot::tomHigh })
+            for (auto sl : tomSlots)
                 if (! kit[sl].isEmpty())
                     if (auto* s = find (kit[sl].path))
                         toms.emplace_back (s->hasPitch() ? s->midiPitch() : 12.0f * std::log2 (juce::jmax (40.0f, s->centroidHz) / 440.0f) + 69.0f, s->path);
             std::sort (toms.begin(), toms.end());
-            Slot slots3[3] = { Slot::tomLow, Slot::tomMid, Slot::tomHigh };
-            // two toms: low + high; one: mid
-            std::vector<Slot> targets;
-            if (toms.size() == 3) targets = { Slot::tomLow, Slot::tomMid, Slot::tomHigh };
-            else if (toms.size() == 2) targets = { Slot::tomLow, Slot::tomHigh };
-            else if (toms.size() == 1) targets = { Slot::tomMid };
-            for (auto sl : slots3) kit[sl] = {};
-            for (size_t i = 0; i < toms.size(); ++i) kit[targets[i]].path = toms[i].second;
+            for (auto sl : tomSlots) kit[sl] = {};
+            // the three main toms first (General MIDI grooves use them most): three: low, mid, high; two: low +
+            // high; one: mid. More (a 32-sound kit): the second toms too, from the lowest up, all in pitch order.
+            std::vector<Slot> mains, targets;
+            for (auto sl : tomSlots) if (! isSecondSound (sl)) mains.push_back (sl);
+            const size_t n = toms.size();
+            if (n == mains.size())  targets = mains;
+            else if (n == 2)        targets = { mains.front(), mains.back() };
+            else if (n == 1)        targets = { mains[mains.size() / 2] };
+            else if (n > mains.size())
+            {
+                targets = mains;
+                for (auto sl : { Slot::tomLow2, Slot::tomMid2, Slot::tomHigh2 })
+                    if (targets.size() < n && slotInKit (sl, kit.size)) targets.push_back (sl);
+                std::sort (targets.begin(), targets.end(), [] (Slot a, Slot b) { return mainNoteForSlot (a) < mainNoteForSlot (b); });
+            }
+            for (size_t i = 0; i < juce::jmin (n, targets.size()); ++i) kit[targets[i]].path = toms[i].second;
         }
 
         tuneToKey (kit, opts.key);    // (no key: the kick to the 808)
@@ -409,7 +448,7 @@ namespace gg
         static const std::vector<int> minorScale { 0, 2, 3, 5, 7, 8, 10 }, majorScale { 0, 2, 4, 5, 7, 9, 11 };
         const auto& scale = key >= 12 ? minorScale : majorScale;
         int target = -1000;
-        switch (slot)
+        switch (slotKind (slot))
         {
             case Slot::bass808:
                 target = scaleNearest (midi, key, 6.5f, { 0 });
@@ -455,10 +494,12 @@ namespace gg
                 st.autoTune = autoTuneFor (*s, (Slot) i, key);
         }
 
-        // no key: the kick is still tuned to the 808, so the low end agrees with itself
-        if (key < 0 && ! kit[Slot::kick].isEmpty() && ! kit[Slot::bass808].isEmpty())
-            if (auto* k = find (kit[Slot::kick].path))
-                if (auto* b = find (kit[Slot::bass808].path))
-                    kit[Slot::kick].autoTune = kickTo808 (*k, *b);
+        // no key: the kicks are still tuned to the 808, so the low end agrees with itself
+        if (key < 0 && ! kit[Slot::bass808].isEmpty())
+            if (auto* b = find (kit[Slot::bass808].path))
+                for (auto ks : { Slot::kick, Slot::kick2 })
+                    if (! kit[ks].isEmpty())
+                        if (auto* k = find (kit[ks].path))
+                            kit[ks].autoTune = kickTo808 (*k, *b);
     }
 }

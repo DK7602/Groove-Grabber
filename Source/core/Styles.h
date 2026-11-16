@@ -66,8 +66,9 @@ namespace gg
         Traits character;                    // the slider values (0..1)
         int feel = 0;                        // 0 auto, 1 live, 2 hybrid, 3 programmed
         int lowEnd = -1;                     // -1 style default, 0 kick only, 1 kick + 808
-        int percCount = -1;                  // -1 style default, else 0..3
+        int percCount = -1;                  // -1 style default (a 23-sound kit: 3, a 32-sound kit: 4), else 0..3
         bool fx = false;
+        int kitSize = defaultKitSize;        // KIT SIZE: 17, 23 or 32 sounds
         bool tuneToKey = true;
         int key = -1;
         double bpm = 0;

@@ -230,6 +230,184 @@ namespace ggtest
         return b;
     }
 
+    //==============================================================================
+    // effects
+    namespace
+    {
+        // a sine whose frequency follows f (t in 0..1), with an envelope
+        template <typename F, typename E>
+        juce::AudioBuffer<float> tone (double sr, float length, F freq, E env, float harmonics = 0.0f)
+        {
+            auto b = make (sr, length);
+            float phase = 0;
+            for (int i = 0; i < b.getNumSamples(); ++i)
+            {
+                const float pos = (float) i / (float) b.getNumSamples();
+                phase += twoPi * freq (pos) / (float) sr;
+                float v = std::sin (phase);
+                if (harmonics > 0) v += harmonics * (std::sin (2 * phase) / 2 + std::sin (3 * phase) / 3 + std::sin (4 * phase) / 4);
+                b.setSample (0, i, v * env (pos) * 0.8f);
+            }
+            toStereo (b);
+            return b;
+        }
+    }
+
+    juce::AudioBuffer<float> Synth::reverseCymbal (float length)
+    {
+        auto c = crash (length / 2.2f);
+        juce::AudioBuffer<float> b (2, c.getNumSamples());
+        for (int ch = 0; ch < 2; ++ch)
+            for (int i = 0; i < c.getNumSamples(); ++i) b.setSample (ch, i, c.getSample (ch, c.getNumSamples() - 1 - i));
+        return b;
+    }
+
+    juce::AudioBuffer<float> Synth::swell (float length)
+    {
+        auto c = snare (190, length / 3.0f, 0.8f);
+        const int n = juce::jmin (c.getNumSamples(), (int) (sr * length));
+        juce::AudioBuffer<float> b (2, n);
+        for (int ch = 0; ch < 2; ++ch)
+            for (int i = 0; i < n; ++i) b.setSample (ch, i, c.getSample (ch, n - 1 - i));
+        return b;
+    }
+
+    juce::AudioBuffer<float> Synth::impact (float length)
+    {
+        auto b = make (sr, length);
+        LP lp (900, sr);
+        float phase = 0;
+        for (int i = 0; i < b.getNumSamples(); ++i)
+        {
+            const float t = (float) (i / sr);
+            phase += twoPi * (48.0f + 30.0f * std::exp (-t / 0.05f)) / (float) sr;
+            const float boom = std::sin (phase) * std::exp (-t / (length * 0.35f));
+            const float crack = lp (rng.nextFloat() * 2 - 1) * std::exp (-t / 0.12f) * 1.5f;
+            b.setSample (0, i, std::tanh ((boom + crack) * 1.2f) * 0.85f * juce::jmin (1.0f, t / 0.002f));
+        }
+        toStereo (b);
+        return b;
+    }
+
+    juce::AudioBuffer<float> Synth::subDrop (float length)
+    {
+        return tone (sr, length, [] (float p) { return 70.0f * std::pow (0.45f, p); },
+                     [] (float p) { return juce::jmin (1.0f, p * 200.0f) * std::exp (-p * 2.5f); });
+    }
+
+    juce::AudioBuffer<float> Synth::downlifter (float length)
+    {
+        auto b = make (sr, length);
+        float z = 0, phase = 0;
+        for (int i = 0; i < b.getNumSamples(); ++i)
+        {
+            const float pos = (float) i / (float) b.getNumSamples();
+            const float fc = 6000.0f * std::pow (0.04f, pos);
+            const float a = std::exp (-twoPi * fc / (float) sr);
+            z = (rng.nextFloat() * 2 - 1) * (1 - a) + z * a;
+            phase += twoPi * (900.0f * std::pow (0.12f, pos)) / (float) sr;
+            const float env = juce::jmin (1.0f, pos * 100.0f) * (1.0f - pos) * (1.0f - pos * 0.5f);
+            b.setSample (0, i, (z * 1.6f + 0.35f * std::sin (phase)) * env * 0.8f);
+        }
+        toStereo (b);
+        return b;
+    }
+
+    juce::AudioBuffer<float> Synth::whoosh (float length)
+    {
+        auto b = make (sr, length);
+        float z = 0;
+        for (int i = 0; i < b.getNumSamples(); ++i)
+        {
+            const float pos = (float) i / (float) b.getNumSamples();
+            const float fc = 800.0f + 3000.0f * std::sin (juce::MathConstants<float>::pi * pos);
+            const float a = std::exp (-twoPi * fc / (float) sr);
+            z = (rng.nextFloat() * 2 - 1) * (1 - a) + z * a;
+            const float env = std::pow (std::sin (juce::MathConstants<float>::pi * pos), 3.0f);
+            b.setSample (0, i, z * env * 2.2f);
+        }
+        toStereo (b);
+        return b;
+    }
+
+    juce::AudioBuffer<float> Synth::tapeStop (float length)
+    {
+        return tone (sr, length, [] (float p) { return 330.0f * std::pow (1.0f - p, 1.6f) + 1.0f; },
+                     [] (float p) { return juce::jmin (1.0f, p * 100.0f) * (p > 0.92f ? (1.0f - p) / 0.08f : 1.0f); }, 0.6f);
+    }
+
+    juce::AudioBuffer<float> Synth::crackle (float length)
+    {
+        auto b = make (sr, length);
+        LP lp (3000, sr);
+        for (int i = 0; i < b.getNumSamples(); ++i)
+        {
+            float v = lp (rng.nextFloat() * 2 - 1) * 0.04f;
+            if (rng.nextFloat() < 12.0f / (float) sr) v += (rng.nextBool() ? 1.0f : -1.0f) * (0.4f + 0.5f * rng.nextFloat());
+            b.setSample (0, i, v);
+        }
+        toStereo (b);
+        return b;
+    }
+
+    juce::AudioBuffer<float> Synth::noiseBed (float length)
+    {
+        auto b = make (sr, length);
+        LP lp (4000, sr);
+        for (int i = 0; i < b.getNumSamples(); ++i)
+        {
+            const float pos = (float) i / (float) b.getNumSamples();
+            const float env = juce::jmin (1.0f, pos * 20.0f, (1.0f - pos) * 20.0f);
+            b.setSample (0, i, lp (rng.nextFloat() * 2 - 1) * 0.25f * env);
+        }
+        toStereo (b);
+        return b;
+    }
+
+    juce::AudioBuffer<float> Synth::scratch (float length)
+    {
+        // a tone pushed back and forth: pitch swinging up and down six times a second
+        return tone (sr, length, [length] (float p) { return 400.0f * std::pow (2.0f, 1.2f * std::sin (twoPi * 6.0f * p * length)); },
+                     [] (float p) { return juce::jmin (1.0f, p * 60.0f, (1.0f - p) * 30.0f); }, 0.8f);
+    }
+
+    juce::AudioBuffer<float> Synth::zap (float length)
+    {
+        return tone (sr, length, [] (float p) { return 300.0f * std::pow (8.0f, p); },
+                     [] (float p) { return juce::jmin (1.0f, p * 50.0f) * (1.0f - p); });
+    }
+
+    juce::AudioBuffer<float> Synth::laser (float length)
+    {
+        return tone (sr, length, [] (float p) { return 2400.0f * std::pow (0.08f, p); },
+                     [] (float p) { return juce::jmin (1.0f, p * 80.0f) * (1.0f - p * 0.7f); });
+    }
+
+    juce::AudioBuffer<float> Synth::blip (float length)
+    {
+        return tone (sr, length, [] (float) { return 1046.5f; }, [] (float p) { return juce::jmin (1.0f, p * 30.0f) * (1.0f - p); });
+    }
+
+    juce::AudioBuffer<float> Synth::glitch (float length)
+    {
+        // a buzzy tone chopped on and off, faster and faster
+        auto b = tone (sr, length, [] (float p) { return 220.0f + 440.0f * (float) ((int) (p * 9) % 3); }, [] (float) { return 1.0f; }, 1.0f);
+        for (int i = 0; i < b.getNumSamples(); ++i)
+        {
+            const float t = (float) (i / sr);
+            const float rate = 8.0f + 10.0f * t;
+            const bool on = std::fmod (t * rate, 1.0f) < 0.5f;
+            for (int ch = 0; ch < 2; ++ch) b.setSample (ch, i, on ? b.getSample (ch, i) : 0.0f);
+        }
+        return b;
+    }
+
+    juce::AudioBuffer<float> Synth::horn (float length)
+    {
+        return tone (sr, length, [] (float p) { return 466.0f * (1.0f + 0.01f * std::sin (twoPi * 5.0f * p)); },
+                     [] (float p) { return juce::jmin (1.0f, p * 40.0f, (1.0f - p) * 20.0f); }, 2.0f);
+    }
+
     void Synth::vintage (juce::AudioBuffer<float>& b, float cutoff, float hissDb)
     {
         const float hiss = juce::Decibels::decibelsToGain (hissDb);

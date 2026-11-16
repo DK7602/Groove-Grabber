@@ -35,6 +35,9 @@ namespace ggui
         std::function<void (int)> onTab;
         std::function<void()> onThemeChanged;
         std::function<void (int)> onHelp;              // 0 = the manual, 1 = About
+        const juce::TextButton& getTabButton (int page) const   { return *tabs[page]; }   // (for the tests)
+        juce::Rectangle<int> getLogoArea() const noexcept        { return logoArea; }
+        int getControlsLeft() const noexcept                     { return keyLabel.getX(); }   // where KEY starts
         void paint (juce::Graphics&) override;
         void resized() override;
         void mouseUp (const juce::MouseEvent&) override;
@@ -45,13 +48,15 @@ namespace ggui
         void showKeyCompassMenu();
         void showSettingsMenu();
         GrooveGrabberProcessor& proc;
-        juce::OwnedArray<juce::TextButton> tabs;
+        juce::OwnedArray<juce::TextButton> tabs;                      // by page: BUILD, LIBRARY, MY KITS, SAUCE, FX
+        static constexpr int tabOrder[] = { 0, 3, 4, 2, 1 };           // left to right: BUILD, SAUCE, FX, MY KITS, LIBRARY
         juce::ComboBox key;
         DragNumber bpm;
         IconButton keyCompass { "Key Compass", Icon::compass }, theme { "theme", Icon::moon }, gear { "settings", Icon::gear },
                    help { "manual", Icon::help };
         std::unique_ptr<juce::FileChooser> chooser;
         juce::Rectangle<int> logoArea, keyLabel, bpmLabel;
+        float titleH = 46.0f, grabberH = 20.0f;                       // GROOVE and GRABBER (font heights)
         int tab = 0;
     };
 }

@@ -3,6 +3,7 @@
 //   GGTests --engine     engine tests only
 //   GGTests --shots DIR  also write screenshots to DIR (default: build folder)
 //   GGTests --host <.vst3> load the built plug-in like a DAW would (scan, play, state, window, close)
+//   GGTests --tutorial DIR the video tutorial's pictures and beat (tools/tutorial/make.sh)
 #include <set>
 #include "TestSounds.h"
 #include "core/Analyzer.h"
@@ -16,8 +17,10 @@
 #include "core/SongAnalysis.h"
 #include "core/MpcTemplate.h"
 #include "core/Sauce.h"
+#include "core/Coach.h"
 #include "core/Daws.h"
 #include "core/MyGrooves.h"
+#include "core/Fx.h"
 #include <juce_events/juce_events.h>
 #include <cmath>
 #include <iostream>
@@ -207,7 +210,12 @@ namespace
                 { "80s pop rock", gg::Genre::pop, "pop.rock", 2 },
                 { "80s pop", gg::Genre::pop, "pop.synth", 2 },
                 { "uk drill 142 bpm", gg::Genre::trap, "trap.ukdrill", -1 },
-                { "modern country rap with 808s", gg::Genre::country, "country.rap", -1 },
+                { "modern country rap with 808s", gg::Genre::country, "country.rap", 6 },
+                { "modern rap", gg::Genre::boomBap, nullptr, 6 },
+                { "new country", gg::Genre::country, nullptr, 6 },
+                { "a modern take on 90s boom bap", gg::Genre::boomBap, "hiphop.east", 3 },
+                { "new york boom bap", gg::Genre::boomBap, "hiphop.east", -1 },
+                { "new jack swing", gg::Genre::rnb, "rnb.newjack", -1 },
                 { "70s classic rock", gg::Genre::rock, "rock.classic", 1 },
                 { "dark 90s boom bap, punchy but warm", gg::Genre::boomBap, "hiphop.east", 3 },
                 { "memphis phonk with cowbells", gg::Genre::boomBap, "hiphop.memphis", -1 },
@@ -221,9 +229,9 @@ namespace
             {
                 auto q = gg::parseDescription (c.text);
                 const auto& st = gg::styleFor (q.genre, juce::jmax (0, q.subStyle));
-                check (q.genre == c.genre && st.id == c.style && q.era == c.era,
+                check (q.genre == c.genre && (c.style == nullptr || st.id == c.style) && q.era == c.era,
                        juce::String ("\"") + c.text + "\" -> " + gg::genreName (q.genre) + " / " + st.id + " / era " + juce::String (q.era)
-                       + " (wanted " + c.style + ", era " + juce::String (c.era) + ")");
+                       + " (wanted " + (c.style != nullptr ? c.style : "any style") + ", era " + juce::String (c.era) + ")");
             }
             auto g = gg::parseDescription ("90s g-funk");
             check (g.secondaryGenre < 0, "g-funk isn't also R&B (funk)");
@@ -331,6 +339,29 @@ namespace
             check (songs[0].name == "My Song" && std::abs (songs[0].bpm - 94) < 0.1, "song name and BPM");
             check (songs[0].key == 14, "key from chords Dm Bb F C -> D minor, got " + gg::keyName (songs[0].key));
             check (songs[0].sections.size() == 2, "two sections");
+        }
+
+        // a song sent from Song Savant
+        auto ss = testRoot().getChildFile ("ss/Back Roads.sssong");
+        ss.getParentDirectory().createDirectory();
+        ss.replaceWithText (R"({"app": "Song Savant", "format": 1, "version": "0.10.0", "name": "Back Roads",
+            "description": "modern country like Morgan Wallen, warm", "genre": "country", "style": "country.modern", "era": 6,
+            "key": 21, "bpm": 92, "sections": [{"name": "Intro", "bars": 4}, {"name": "Verse", "bars": 8}, {"name": "Chorus", "bars": 8}],
+            "drums": "Nashville Kit", "sent": "2026-11-02T10:00:00.000Z"})");
+        ss.getSiblingFile ("older.sssong").replaceWithText (R"({"app": "Song Savant", "name": "Older", "genre": "boombap", "key": 99, "bpm": 9000,
+            "sent": "2026-10-01T10:00:00.000Z"})");
+        ss.getSiblingFile ("not ours.sssong").replaceWithText (R"({"app": "Something Else", "name": "Nope"})");
+        const auto ssSongs = gg::listSongSavantSongs (ss.getParentDirectory());
+        check (ssSongs.size() == 2, "two Song Savant songs (one file isn't Song Savant's), got " + juce::String ((int) ssSongs.size()));
+        if (ssSongs.size() == 2)
+        {
+            const auto& b = ssSongs[0];
+            check (b.name == "Back Roads", "newest Song Savant song first");
+            check (b.genre == (int) gg::Genre::country && b.styleId == "country.modern" && b.era == 6, "genre, style and era");
+            check (b.key == 21 && std::abs (b.bpm - 92) < 0.1, "key and BPM");
+            check (b.sections.size() == 3 && b.sections[1] == "Verse (8 bars)", "sections");
+            check (b.summary() == "Country - Modern Nashville, A Minor, 92 BPM", "summary: " + b.summary());
+            check (ssSongs[1].genre == (int) gg::Genre::boomBap && ssSongs[1].key == -1 && ssSongs[1].bpm == 0, "a bad key and tempo are ignored");
         }
     }
 
@@ -601,6 +632,132 @@ namespace
         check (v.name == kits[2].name && v[gg::Slot::snare].path == kits[2][gg::Slot::snare].path
                 && v[gg::Slot::bass808].autoTune == kits[2][gg::Slot::bass808].autoTune, "kit saves and loads");
 
+        // KIT SIZE: 23 and 32 sounds (a second sound of each kind, more percussion and FX)
+        {
+            check (gg::kitSlots (17).size() == 17 && gg::kitSlots (23).size() == 23 && gg::kitSlots (32).size() == 32
+                   && gg::padCountFor (17) == 22 && gg::padCountFor (23) == 27 && gg::padCountFor (32) == 33 && gg::validKitSize (20) == 17,
+                   "kit sizes: 17, 23 and 32 sounds on 22, 27 and 33 pads");
+            bool layout = (int) gg::padLayout().size() == gg::numPads;
+            for (int i = 0; i < gg::numPads; ++i) layout = layout && gg::padLayout()[(size_t) i].note == gg::firstPadNote + i;
+            for (int size : { 17, 23, 32 })
+                for (auto sl : gg::kitSlots (size))
+                    layout = layout && gg::mainNoteForSlot (sl) >= gg::firstPadNote && gg::mainNoteForSlot (sl) - gg::firstPadNote < gg::padCountFor (size);
+            juce::StringArray ids;
+            for (int i = 0; i < gg::numSlots; ++i)
+            {
+                ids.addIfNotAlreadyThere (gg::slotId ((gg::Slot) i));
+                layout = layout && gg::slotFromId (gg::slotId ((gg::Slot) i)) == (gg::Slot) i;
+            }
+            check (layout && ids.size() == gg::numSlots, "every size's sounds have a pad inside its files; slot ids unique");
+            check (gg::mainNoteForSlot (gg::Slot::snare2) == 40 && gg::mainNoteForSlot (gg::Slot::tomLow2) == 41 && gg::mainNoteForSlot (gg::Slot::tomHigh2) == 48
+                   && gg::mainNoteForSlot (gg::Slot::kick2) == 58 && gg::mainNoteForSlot (gg::Slot::fx3) == 62 && gg::mainNoteForSlot (gg::Slot::fx4) == 68
+                   && gg::mainNoteForSlot (gg::Slot::snare) == 38 && gg::mainNoteForSlot (gg::Slot::tomLow) == 43,
+                   "Snare 2 and the second toms on General MIDI's own pads, the rest from note 58 up");
+            {
+                gg::KitOptions ko;
+                check (ko.kitSize == 17 && gg::KitOptions::fromVar (ko.toVar()).kitSize == 17, "KIT SIZE: 17 by default");
+                ko.kitSize = 32;
+                check (gg::KitOptions::fromVar (ko.toVar()).kitSize == 32 && ko.wantedPerc() == 4, "KIT SIZE 32: saved; AUTO percussion fills 4 pads");
+                ko.kitSize = 23;
+                check (ko.wantedPerc() == 3, "KIT SIZE 23: AUTO percussion fills 3 pads");
+                ko.percCount = 1;
+                check (ko.wantedPerc() == 1, "PERC still caps a bigger kit's percussion");
+            }
+
+            for (int size : { 23, 32 })
+            {
+                auto bo = o;                // boom bap, with 808, FX on
+                bo.kitSize = size;
+                bo.percCount = -1;
+                gg::KitGenerator bg (sounds, bo);
+                auto bk = bg.generateAll (11);
+                const auto tag = "KIT SIZE " + juce::String (size) + ": ";
+                bool sized = true, inside = true, once = true, kinds = true, seconds = true, extras = true, toms = true;
+                for (auto& k : bk)
+                {
+                    sized = sized && k.size == size;
+                    juce::StringArray used;
+                    for (int i = 0; i < gg::numSlots; ++i)
+                    {
+                        const auto sl = (gg::Slot) i;
+                        if (k[sl].isEmpty()) continue;
+                        inside = inside && gg::slotInKit (sl, size);
+                        once = once && ! used.contains (k[sl].path);
+                        used.add (k[sl].path);
+                        kinds = kinds && bg.find (k[sl].path)->cat == gg::slotCat (sl);
+                    }
+                    // a second sound wherever the library has two of the kind (the toms spread over their pads instead)
+                    for (auto sl : gg::kitSlots (size))
+                        if (gg::isSecondSound (sl) && gg::slotCat (sl) != gg::Cat::tom && ! k[gg::slotKind (sl)].isEmpty()
+                            && bg.usableCount (gg::slotCat (sl)) >= 2)
+                            seconds = seconds && ! k[sl].isEmpty();
+                    if (bg.usableCount (gg::Cat::fx) >= (size == 32 ? 4 : 3))
+                        extras = extras && ! k[size == 32 ? gg::Slot::fx4 : gg::Slot::fx3].isEmpty();
+                    if (size == 32 && bg.usableCount (gg::Cat::perc) >= 4)
+                        extras = extras && ! k[gg::Slot::perc4].isEmpty();
+                    // the main toms fill first (General MIDI grooves use them most), the second toms only after
+                    int mainToms = 0, allToms = 0;
+                    for (auto sl : { gg::Slot::tomLow, gg::Slot::tomMid, gg::Slot::tomHigh, gg::Slot::tomLow2, gg::Slot::tomMid2, gg::Slot::tomHigh2 })
+                        if (! k[sl].isEmpty()) { ++allToms; if (! gg::isSecondSound (sl)) ++mainToms; }
+                    toms = toms && mainToms == juce::jmin (3, allToms);
+                    // the kit's toms rise in pitch from the lowest pad up
+                    float last = -1000;
+                    for (auto sl : { gg::Slot::tomLow2, gg::Slot::tomLow, gg::Slot::tomMid2, gg::Slot::tomMid, gg::Slot::tomHigh2, gg::Slot::tomHigh })
+                        if (gg::slotInKit (sl, size) && ! k[sl].isEmpty())
+                            if (auto* t = bg.find (k[sl].path); t != nullptr && t->hasPitch())
+                            {
+                                toms = toms && t->midiPitch() >= last - 0.01f;
+                                last = t->midiPitch();
+                            }
+                }
+                std::cout << "  " << bk[0].name << " (" << size << "): kick 2 = " << juce::File (bk[0][gg::Slot::kick2].path).getFileNameWithoutExtension()
+                          << ", snare 2 = " << juce::File (bk[0][gg::Slot::snare2].path).getFileNameWithoutExtension() << ", " << bk[0].numFilled() << " sounds" << std::endl;
+                check (sized && inside, tag + "kits of that size, nothing outside it");
+                check (once && kinds, tag + "every sound once, the right kind on every pad");
+                check (seconds, tag + "a second kick, 808, snare, hat... wherever the library has two");
+                check (extras, tag + "its extra FX and percussion pads filled");
+                check (toms, tag + "the main toms first, all of them low to high across the tom pads");
+
+                // saved and opened again: the size and the second sounds come back
+                const auto back = gg::Kit::fromVar (juce::JSON::parse (juce::JSON::toString (bk[0].toVar())));
+                check (back.size == size && back[gg::Slot::kick2].path == bk[0][gg::Slot::kick2].path && back.numFilled() == bk[0].numFilled(),
+                       tag + "saved and loaded with its size and second sounds");
+
+                // the player: the kit's own pads play, a smaller kit's don't
+                auto pk = gg::buildPlayable (bk[0], 44100.0);
+                check (pk->pads[(size_t) (gg::mainNoteForSlot (gg::Slot::kick2) - gg::firstPadNote)] != nullptr || bk[0][gg::Slot::kick2].isEmpty(),
+                       tag + "Kick 2 plays on note 58");
+
+                // a kit regenerated at 17: no leftovers on the pads it doesn't have, even locked ones
+                auto lockedBig = bk[0];
+                for (auto& st : lockedBig.slots) st.locked = ! st.isEmpty();
+                auto so = bo;
+                so.kitSize = 17;
+                gg::KitGenerator sg (sounds, so);
+                const auto small = sg.generate (0, 5, 0.0f, &lockedBig, {});
+                bool leftovers = false;
+                for (int i = 0; i < gg::numSlots; ++i)
+                    if (! gg::slotInKit ((gg::Slot) i, 17) && ! small.slots[(size_t) i].isEmpty()) leftovers = true;
+                check (small.size == 17 && ! leftovers && small[gg::Slot::kick].path == lockedBig[gg::Slot::kick].path,
+                       tag + "made 17 again: locked sounds kept, nothing beyond its pads");
+            }
+            {
+                // an older kit (no size) is a 17-sound kit; a stray second sound in its file is left out
+                auto old = kits[0].toVar();
+                if (auto* ob = old.getDynamicObject())
+                {
+                    ob->removeProperty ("size");
+                    if (auto* sl = ob->getProperty ("slots").getDynamicObject()) sl->setProperty ("kick2", kits[0][gg::Slot::kick].toVar());
+                }
+                const auto ok = gg::Kit::fromVar (old);
+                check (ok.size == 17 && ok[gg::Slot::kick2].isEmpty() && ok.numFilled() == kits[0].numFilled(), "an older kit opens as 17 sounds");
+                // a 17-sound kit: Snare 2's pad plays the snare, a little quieter; nothing on note 58
+                auto pk = gg::buildPlayable (kits[0], 44100.0);
+                check (pk->pads[4] != nullptr && pk->pads[(size_t) (58 - gg::firstPadNote)] == nullptr && kits[0].padSound (gg::padLayout()[4]).slot == gg::Slot::snare,
+                       "17 sounds: Snare 2's pad plays the snare, note 58 is silent");
+            }
+        }
+
         // ---- export ----
         section ("Export");
         gg::ExportOptions eo;
@@ -608,7 +765,7 @@ namespace
         eo.grooveId = "boombap1";
         auto res = gg::exportKit (kits[0], eo);
         check (res.ok, "export ok " + res.error);
-        check (res.padFiles.size() == gg::numPads, "22 pad files");
+        check (res.padFiles.size() == 22 && kits[0].padCount() == 22, "22 pad files (a 17-sound kit)");
         for (int i = 0; i < res.padFiles.size(); ++i)
             check (res.padFiles[i].getFileName().startsWith (juce::String (i + 1).paddedLeft ('0', 2) + " "), "file " + juce::String (i + 1) + " numbered");
         check (res.padFiles[0].getFileName() == "01 Kick.wav" && res.padFiles[2].getFileName() == "03 Snare.wav", "kick first, snare third");
@@ -641,7 +798,7 @@ namespace
             const auto flInfo = flRes.infoFile.loadFileAsString();
             const auto suffix = " - " + flRes.folder.getFileName() + ".wav";
             check (flInfo.contains ("\nC3   36   01 Kick" + suffix) && flInfo.contains ("FPC"), "kit info for FL Studio: note 36 is C3, FPC steps");
-            bool allNamed = flRes.padFiles.size() == gg::numPads;
+            bool allNamed = flRes.padFiles.size() == 22;
             for (int i = 0; i < flRes.padFiles.size(); ++i)
                 if (! flRes.padFiles[i].getFileName().startsWith (juce::String (i + 1).paddedLeft ('0', 2) + " ") || ! flRes.padFiles[i].getFileName().endsWith (suffix))
                     allNamed = false;
@@ -652,8 +809,50 @@ namespace
             forCubase.daw = "cubase";
             forCubase.destination = testRoot().getChildFile ("ExportsCubase");
             const auto gaInfo = gg::exportKit (kits[0], forCubase).infoFile.loadFileAsString();
-            check (gaInfo.contains ("LOAD INTO GROOVE AGENT SE") && gaInfo.contains ("lowest") && gaInfo.contains ("pad group 3"),
-                   "kit info for Cubase: Groove Agent, the lowest drop icon, pad group 3");
+            check (gaInfo.contains ("LOAD INTO GROOVE AGENT SE") && gaInfo.contains ("lowest") && gaInfo.contains ("pad group 3")
+                   && gaInfo.contains ("Files 13 to 22 land in pad group 4 (C2 to A2).") && ! gaInfo.contains ("Closed Hat 2"),
+                   "kit info for Cubase: Groove Agent, the lowest drop icon, pad group 3, files 13 to 22 in group 4");
+
+            // the bigger kits: every pad a file, the steps count them
+            for (int size : { 23, 32 })
+            {
+                auto bo = gg::KitOptions();
+                bo.genre = gg::Genre::boomBap;
+                bo.character = gg::genreCenter (bo.genre);
+                bo.lowEnd = 1;
+                bo.fx = true;
+                bo.kitSize = size;
+                gg::KitGenerator bg (sounds, bo);
+                const auto big = bg.generate (0, 21, 0.0f, nullptr, {});
+                auto ce = forCubase;
+                ce.destination = testRoot().getChildFile ("ExportsBig" + juce::String (size));
+                const auto br = gg::exportKit (big, ce);
+                const auto info = br.infoFile.loadFileAsString();
+                const int n = gg::padCountFor (size);
+                bool numbered = br.padFiles.size() == n;
+                for (int i = 0; i < br.padFiles.size(); ++i)
+                    numbered = numbered && br.padFiles[i].getFileName().startsWith (juce::String (i + 1).paddedLeft ('0', 2) + " ");
+                // (an empty pad's file says so: the test library has only two FX)
+                const auto lastSlot = size == 32 ? gg::Slot::fx4 : gg::Slot::fx3;
+                const auto lastName = juce::String (n) + (big[lastSlot].isEmpty() ? " Empty.wav" : " " + gg::slotName (lastSlot) + ".wav");
+                const bool names = br.padFiles.size() == n && ! big[gg::Slot::kick2].isEmpty() && br.padFiles[22].getFileName() == "23 Kick 2.wav"
+                                   && br.padFiles[n - 1].getFileName() == lastName && br.padFiles[4].getFileName() == "05 Snare 2.wav";
+                const bool steps = info.contains ("Drag all " + juce::String (n) + " files") && info.contains ("Closed Hat 2")
+                                   && (size == 32 ? info.contains ("Files 13 to 28 land in pad group 4 (C2 to D#3) and files 29 to 33 in pad group 5 (E3 to G#3).")
+                                                  : info.contains ("Files 13 to 27 land in pad group 4 (C2 to D3)."));
+                juce::MemoryBlock mb;
+                br.programFile.loadFileAsData (mb);
+                const auto* d = static_cast<const juce::uint8*> (mb.getData());
+                const bool mpc = mb.getSize() == (size_t) gg::mpc::templateSize && juce::String::fromUTF8 ((const char*) d + 24 + 22 * 164, 9) == "23 Kick 2"
+                                 && d[24 + 64 * 164 + 22] == 58 && d[24 + 64 * 164 + 33] == 69 && d[24 + 64 * 164 + 64 + 58] == 22;
+                check (br.ok && numbered && names, "KIT SIZE " + juce::String (size) + ": " + juce::String (n) + " files, 23 Kick 2 ... " + br.padFiles.getLast().getFileName());
+                check (steps, "KIT SIZE " + juce::String (size) + ": Groove Agent's steps count the files and the second hats");
+                check (mpc, "KIT SIZE " + juce::String (size) + ": the MPC program has the second sounds (23 Kick 2 on note 58)");
+            }
+            const auto& impact = gg::dawGuide ("studioone");
+            check (gg::guideSteps (impact, 22, "22 FX 2").joinIntoString (" ").contains ("files 17 to 22 are in bank B")
+                   && gg::guideSteps (impact, 33, "33 FX 4").joinIntoString (" ").contains ("files 17 to 32 are in bank B and file 33 in bank C"),
+                   "Impact's banks follow the file count");
         }
         check (res.folder.getParentDirectory() == eo.destination.getChildFile (gg::genreFolderName (kits[0].genre)),
                "export lands in its genre folder (" + res.folder.getParentDirectory().getFileName() + ")");
@@ -702,6 +901,350 @@ namespace
             fm.registerBasicFormats();
             std::unique_ptr<juce::AudioFormatReader> rd (fm.createReaderFor (res.padFiles[0]));
             check (rd != nullptr && rd->bitsPerSample == 24 && (int) rd->sampleRate == 44100 && rd->lengthInSamples > 1000, "kick WAV 24-bit 44.1k");
+        }
+    }
+
+    void testCoach()
+    {
+        section ("Coach my beat");
+        namespace co = gg::coach;
+        // a style's own grooves: next to nothing to fix
+        juce::StringArray noisy;
+        int styles = 0, refFixes = 0;
+        for (int gi = 0; gi < gg::numGenres; ++gi)
+            for (int si = 0; si < (int) gg::stylesOf ((gg::Genre) gi).size(); ++si)
+            {
+                const auto& st = gg::stylesOf ((gg::Genre) gi)[(size_t) si];
+                for (const auto* ref : gg::sauceGrooves (st))
+                {
+                    ++styles;
+                    const auto rep = co::coachBeat (*ref, { (gg::Genre) gi, si, -1, st.bpm });
+                    for (const auto& t : rep.fixes)
+                    {
+                        ++refFixes;
+                        if (std::getenv ("GG_COACH_DEBUG") != nullptr) std::cout << "    " << st.id << " / " << ref->id << ": " << t.id << "  " << t.title << std::endl;
+                        if (t.weight >= 20) noisy.add (st.id + "/" + ref->id + ":" + t.id);
+                    }
+                }
+            }
+        std::cout << "  " << refFixes << " tips over " << styles << " of the styles' own grooves" << std::endl;
+        check (noisy.isEmpty(), "the styles' own grooves get no big fixes: " + noisy.joinIntoString (", "));
+
+        const auto east = gg::styleIndex (gg::Genre::boomBap, "hiphop.east");
+        const co::Context bbCtx { gg::Genre::boomBap, east, 3, 92 };
+        const auto has = [] (const co::Report& r, const juce::String& id) -> const co::Tip*
+        {
+            for (auto& t : r.fixes) if (t.id == id) return &t;
+            return nullptr;
+        };
+        const auto applied = [] (const gg::Groove& g, const co::Tip& t)
+        {
+            auto out = g;
+            out.hits = t.fixHits;
+            if (t.fixSwing >= 0) out.swing = t.fixSwing;
+            return out;
+        };
+        const auto without = [] (gg::Groove g, std::initializer_list<gg::Slot> slots)
+        {
+            g.hits.erase (std::remove_if (g.hits.begin(), g.hits.end(), [&] (const gg::GrooveHit& h)
+                          { return std::find (slots.begin(), slots.end(), h.slot) != slots.end(); }), g.hits.end());
+            return g;
+        };
+
+        // a blank pad: lay down the style's skeleton
+        {
+            const auto blank = gg::grooveFor ("blank");
+            const auto r = co::coachBeat (blank, bbCtx);
+            const auto* t = has (r, "skeleton");
+            check (t != nullptr && t->hasFix && r.ratings.size() == 4 && r.ratings[0].word == "Empty", "BLANK: start with the kick and the snare, with a TRY IT");
+            if (t != nullptr)
+            {
+                const auto r2 = co::coachBeat (applied (blank, *t), bbCtx);
+                check (has (r2, "skeleton") == nullptr && has (r2, "backbeat") == nullptr && has (r2, "kick.one") == nullptr,
+                       "BLANK + TRY IT: a beat to build on (" + juce::String ((int) r2.fixes.size()) + " tips left)");
+            }
+        }
+        // the snare off 2 and 4
+        {
+            auto g = without (gg::grooveFor ("boombap1"), { gg::Slot::snare, gg::Slot::clap });
+            g.hits.push_back ({ 1.5, gg::Slot::snare, 1.0f });
+            g.hits.push_back ({ 3.5, gg::Slot::snare, 1.0f });
+            const auto r = co::coachBeat (g, bbCtx);
+            const auto* t = has (r, "backbeat");
+            check (t != nullptr && t->title == "Put the snare on 2 and 4." && t->why.contains ("steps 5 and 13") && t->hasFix,
+                   "boom bap, snare off the backbeat: put it on 2 and 4 (and why)");
+            if (t != nullptr) check (has (co::coachBeat (applied (g, *t), bbCtx), "backbeat") == nullptr, "TRY IT puts the snare on 2 and 4");
+        }
+        // trap: the clap on 2 and 4 instead of 3
+        {
+            const auto atl = gg::styleIndex (gg::Genre::trap, "trap.atlanta");
+            const co::Context trapCtx { gg::Genre::trap, atl, 6, 140 };
+            auto g = without (gg::grooveFor ("trap1"), { gg::Slot::snare, gg::Slot::clap });
+            for (double b : { 1.0, 3.0, 5.0, 7.0 }) g.hits.push_back ({ b, gg::Slot::clap, 1.0f });
+            const auto r = co::coachBeat (g, trapCtx);
+            const auto* t = has (r, "halftime");
+            check (t != nullptr && t->title.startsWith ("Move the clap to beat 3") && t->why.containsIgnoreCase ("half-time"), "trap, clap on 2 and 4: move it to beat 3");
+            if (t != nullptr) check (has (co::coachBeat (applied (g, *t), trapCtx), "halftime") == nullptr, "TRY IT moves the clap to beat 3");
+            auto swung = gg::grooveFor ("trap1");
+            swung.swing = gg::maxSwing;
+            const auto sr = co::coachBeat (swung, trapCtx);
+            const auto* s = has (sr, "swing.less");
+            check (s != nullptr && s->fixSwing >= 0 && gg::swingToPercent (s->fixSwing) <= 52, "trap at 66% swing: straighten it");
+        }
+        // boom bap played straight: swing it, into the SAUCE table's range
+        {
+            auto g = gg::grooveFor ("boombap1");
+            g.swing = 0.0f;
+            const auto sr = co::coachBeat (g, bbCtx);
+            const auto* t = has (sr, "swing.more");
+            const auto table = gg::sauceTable (gg::styleFor (gg::Genre::boomBap, east));
+            check (t != nullptr && t->fixSwing > 0 && gg::swingToPercent (t->fixSwing) >= table.swingLo && gg::swingToPercent (t->fixSwing) <= table.swingHi
+                   && t->why.contains (juce::String (table.swingLo) + " to " + juce::String (table.swingHi) + "%"),
+                   "boom bap played straight: swing it into " + juce::String (table.swingLo) + "-" + juce::String (table.swingHi) + "% (from SAUCE's table)");
+        }
+        // bar 2 a copy of bar 1
+        {
+            auto g = gg::grooveFor ("boombap1");
+            std::vector<gg::GrooveHit> hits;
+            for (auto& h : g.hits) if (h.beat < 4.0) { hits.push_back (h); hits.push_back ({ h.beat + 4.0, h.slot, h.velocity }); }
+            g.hits = hits;
+            const auto br = co::coachBeat (g, bbCtx);
+            const auto* t = has (br, "bar2");
+            check (t != nullptr && t->hasFix, "the same two bars: change something in bar 2");
+            if (t != nullptr) check (has (co::coachBeat (applied (g, *t), bbCtx), "bar2") == nullptr, "TRY IT changes bar 2");
+        }
+        // house: the kick on every beat
+        {
+            const auto house = gg::styleIndex (gg::Genre::edm, "edm.house");
+            const co::Context hCtx { gg::Genre::edm, house, -1, 124 };
+            const auto* ref = gg::sauceGrooves (gg::styleFor (gg::Genre::edm, house)).front();
+            auto g = *ref;
+            g.hits = gg::withStep (g, gg::Slot::kick, 4, 0, 0);
+            const auto hr = co::coachBeat (g, hCtx);
+            const auto* t = has (hr, "kick.floor");
+            check (house > 0 && t != nullptr && t->steps.size() >= 1 && t->steps[0].step == 4, "house, a kick missing: keep the kick on every beat (step 5 lit)");
+        }
+        // ON PURPOSE: the tip stays away, and doesn't count against the rating
+        {
+            auto g = gg::grooveFor ("boombap1");
+            g.swing = 0.0f;
+            const auto before = co::coachBeat (g, bbCtx);
+            const auto after = co::coachBeat (g, bbCtx, { "swing.more" });
+            check (has (after, "swing.more") == nullptr && after.onPurpose == 1 && after.ratings[1].score > before.ratings[1].score,
+                   "ON PURPOSE: the swing tip is gone, and Feel goes up (" + juce::String (before.ratings[1].score) + " -> " + juce::String (after.ratings[1].score) + ")");
+        }
+
+        if (std::getenv ("GG_COACH_DEBUG") != nullptr)
+        {
+            const auto show = [] (const co::Report& r)
+            {
+                std::cout << "  -- " << r.coachedAs << std::endl;
+                for (auto& rt : r.ratings) std::cout << "     " << rt.name << ": " << rt.score << " " << rt.word << std::endl;
+                for (auto& t : r.fixes) std::cout << "     * " << t.title << (t.hasFix ? "  [TRY IT]" : "") << "\n       " << t.why << std::endl;
+                for (auto& t : r.working) std::cout << "     + " << t.title << "\n       " << t.why << std::endl;
+            };
+            auto g = without (gg::grooveFor ("boombap1"), { gg::Slot::snare });
+            g.swing = 0;
+            g.hits.push_back ({ 1.25, gg::Slot::snare, 1.0f });
+            show (co::coachBeat (g, bbCtx));
+            const auto atl = gg::styleIndex (gg::Genre::trap, "trap.atlanta");
+            auto t = without (gg::grooveFor ("trap1"), { gg::Slot::bass808 });
+            for (auto& h : t.hits) if (h.slot == gg::Slot::closedHat) h.velocity = 1.0f;
+            show (co::coachBeat (t, { gg::Genre::trap, atl, 6, 100 }));
+            auto c = gg::grooveFor ("country1");
+            for (int st = 0; st < 32; st += 2) c.hits = gg::withStep (c, gg::Slot::kick, st, 1, 1.0f);
+            show (co::coachBeat (c, { gg::Genre::country, gg::styleIndex (gg::Genre::country, "country.modern"), 6, 112 }));
+        }
+
+        // every style's grooves, broken the usual ways: every TRY IT fixes its own tip, and every tip reads right
+        {
+            juce::StringArray notFixed, badText;
+            int tried = 0;
+            const auto hatsFlat = [] (gg::Groove g) { for (auto& h : g.hits) if (h.slot == gg::Slot::closedHat) h.velocity = 1.0f; return g; };
+            const auto busyKick = [] (gg::Groove g) { for (int st = 0; st < g.bars * 16; st += 2) g.hits = gg::withStep (g, gg::Slot::kick, st, 1, 1.0f); return g; };
+            const auto sameBars = [] (gg::Groove g)
+            {
+                std::vector<gg::GrooveHit> hits;
+                for (auto& h : g.hits) if (h.beat < 4.0) for (int b = 0; b < g.bars; ++b) hits.push_back ({ h.beat + 4.0 * b, h.slot, h.velocity });
+                g.hits = hits;
+                return g;
+            };
+            const auto offKick808 = [] (gg::Groove g) { for (int st = 1; st < g.bars * 16; st += 4) g.hits = gg::withStep (g, gg::Slot::bass808, st, 1, 1.0f); return g; };
+            for (int gi = 0; gi < gg::numGenres; ++gi)
+                for (int si = 0; si < (int) gg::stylesOf ((gg::Genre) gi).size(); ++si)
+                {
+                    const auto& st = gg::stylesOf ((gg::Genre) gi)[(size_t) si];
+                    const co::Context ctx { (gg::Genre) gi, si, -1, st.bpm };
+                    for (const auto* ref : gg::sauceGrooves (st))
+                    {
+                        auto straight = *ref; straight.swing = 0.0f;
+                        auto swung = *ref; swung.swing = gg::maxSwing;
+                        std::vector<gg::Groove> broken { without (*ref, { gg::Slot::snare, gg::Slot::clap, gg::Slot::rim }),
+                                                         without (*ref, { gg::Slot::closedHat }), without (*ref, { gg::Slot::kick }),
+                                                         hatsFlat (*ref), busyKick (*ref), sameBars (*ref), offKick808 (*ref), straight, swung,
+                                                         gg::grooveFor ("blank") };
+                        for (const auto& b : broken)
+                        {
+                            const auto r = co::coachBeat (b, ctx);
+                            for (const auto* list : { &r.fixes, &r.working })
+                                for (const auto& t : *list)
+                                {
+                                    bool clean = t.title.isNotEmpty() && t.why.isNotEmpty() && t.title.endsWithChar ('.') && t.why.endsWithChar ('.');
+                                    for (auto c : t.title + t.why) if (c > 126 || c < 32) clean = false;
+                                    for (auto* w : { "damn", "hell ", "shit", "fuck", "gang", "kill" }) if ((t.title + t.why).containsIgnoreCase (w)) clean = false;
+                                    if (! clean) badText.addIfNotAlreadyThere (st.id + ":" + t.id + " \"" + t.title + "\"");
+                                }
+                            for (const auto& t : r.fixes)
+                            {
+                                if (! t.hasFix) continue;
+                                ++tried;
+                                if (has (co::coachBeat (applied (b, t), ctx), t.id) != nullptr) notFixed.addIfNotAlreadyThere (st.id + "/" + ref->id + ":" + t.id);
+                            }
+                        }
+                    }
+                }
+            std::cout << "  " << tried << " TRY ITs tried" << std::endl;
+            check (notFixed.isEmpty(), "every TRY IT fixes its own tip: " + notFixed.joinIntoString (", "));
+            check (badText.isEmpty(), "every tip: a direct line and why, plain and clean: " + badText.joinIntoString (", "));
+        }
+    }
+
+    //==============================================================================
+    void testFx()
+    {
+        section ("FX");
+        using T = gg::fx::Type;
+        // ---- names ----
+        struct N { const char* file; const char* folders; T want; };
+        const N names[] = {
+            { "Riser 4 Bars 128", "FX Pack/Risers", T::riser }, { "Long Uplifter 02", "", T::riser },
+            { "Rev Cymbal 1", "", T::reverseCymbal }, { "Reverse Crash Long", "Transitions", T::reverseCymbal },
+            { "Reversed Snare", "", T::swell }, { "Snare Swell", "", T::swell },
+            { "Cinematic Impact 3", "", T::impact }, { "Sub Drop G", "", T::subDrop }, { "808 Boom", "FX", T::subDrop },
+            { "Downlifter White", "", T::downlifter }, { "Noise Sweep Up", "", T::riser }, { "Filter Sweep", "", T::sweep },
+            { "Whoosh Fast", "", T::whoosh }, { "Tape Stop 02", "", T::tapeStop }, { "Vinyl Stop", "", T::tapeStop },
+            { "DJ Rewind", "", T::rewind }, { "Spinback 1", "", T::rewind }, { "Vinyl Crackle Loop", "", T::crackle },
+            { "Dust", "Textures", T::crackle }, { "Room Tone", "", T::noise }, { "Scratch Chirp 3", "", T::scratch },
+            { "Zap 01", "", T::zap }, { "Laser Pew", "", T::laser }, { "UI Blip", "", T::blip }, { "Glitch Stutter 4", "", T::glitch },
+            { "Air Horn", "", T::horn }, { "Dub Siren", "", T::horn }, { "Untitled 4", "Downloads", T::count },
+            { "FX 12", "Transitions", T::count }, { "01", "Risers", T::riser },
+        };
+        int nameRight = 0;
+        for (const auto& n : names)
+        {
+            const auto got = gg::fx::fromName (n.file, n.folders);
+            if (got == n.want) ++nameRight;
+            else std::cout << "  (name \"" << n.file << "\" -> " << (got == T::count ? juce::String ("none") : gg::fx::typeName (got))
+                           << ", wanted " << (n.want == T::count ? juce::String ("none") : gg::fx::typeName (n.want)) << ")" << std::endl;
+        }
+        check (nameRight == (int) (sizeof (names) / sizeof (names[0])), "FX types from names (" + juce::String (nameRight) + " right)");
+
+        // ---- the sound alone ----
+        ggtest::Synth syn;
+        struct A { const char* what; juce::AudioBuffer<float> audio; T want; };
+        std::vector<A> sounds;
+        sounds.push_back ({ "riser", syn.riser (3.0f), T::riser });
+        sounds.push_back ({ "long riser", syn.riser (8.0f), T::riser });
+        sounds.push_back ({ "reverse cymbal", syn.reverseCymbal (2.0f), T::reverseCymbal });
+        sounds.push_back ({ "swell", syn.swell (0.8f), T::swell });
+        sounds.push_back ({ "impact", syn.impact (2.5f), T::impact });
+        sounds.push_back ({ "sub drop", syn.subDrop (1.8f), T::subDrop });
+        sounds.push_back ({ "downlifter", syn.downlifter (2.5f), T::downlifter });
+        sounds.push_back ({ "whoosh", syn.whoosh (1.2f), T::whoosh });
+        sounds.push_back ({ "tape stop", syn.tapeStop (1.2f), T::tapeStop });
+        sounds.push_back ({ "crackle", syn.crackle (4.0f), T::crackle });
+        sounds.push_back ({ "noise bed", syn.noiseBed (4.0f), T::noise });
+        sounds.push_back ({ "scratch", syn.scratch (1.0f), T::scratch });
+        sounds.push_back ({ "zap", syn.zap (0.25f), T::zap });
+        sounds.push_back ({ "laser", syn.laser (0.4f), T::laser });
+        sounds.push_back ({ "blip", syn.blip (0.12f), T::blip });
+        sounds.push_back ({ "glitch", syn.glitch (1.2f), T::glitch });
+        sounds.push_back ({ "horn", syn.horn (1.4f), T::horn });
+        int audioRight = 0;
+        for (auto& a : sounds)
+        {
+            const auto sh = gg::fx::measureShape (a.audio.getReadPointer (0), a.audio.getNumSamples(), syn.sr);
+            const auto got = gg::fx::fromShape (sh, {});
+            if (got == a.want) { ++audioRight; continue; }
+            std::cout << "  (" << a.what << " -> " << gg::fx::typeName (got) << ": dur " << sh.duration << " peak " << sh.peakPos
+                      << " start " << sh.startRelDb << " end " << sh.endRelDb << " hold " << sh.holdPos << " bright " << sh.brightTrend
+                      << " (" << (int) sh.brightHz << " Hz) pitch " << sh.pitchShare << " " << (int) sh.pitchHz << " Hz " << sh.pitchTrend
+                      << " st, wobble " << sh.wobble << " clicks " << sh.clicks << " gaps " << sh.gaps << " steady " << sh.steadyDb
+                      << " low " << sh.lowShare << ")" << std::endl;
+        }
+        std::cout << "  " << audioRight << " / " << sounds.size() << " FX told apart by their sound" << std::endl;
+        check (audioRight >= (int) sounds.size() - 1, "FX types from the sound alone (at most one wrong)");
+
+        // ---- every type: a name, a tip, a fit; clean, plain words ----
+        bool covered = true, clean = true;
+        const juce::StringArray banned { "damn", "hell", "shit", "fuck", "bitch", "ass" };
+        for (int i = 0; i < gg::fx::numTypes; ++i)
+        {
+            const auto t = (T) i;
+            const auto text = gg::fx::tip (t);
+            covered = covered && gg::fx::typeName (t).isNotEmpty() && text.length() > 80 && gg::fx::typeFromId (gg::fx::typeId (t)) == t
+                      && gg::fx::bestFor (t).isNotEmpty();
+            for (auto& w : juce::StringArray::fromTokens (text.toLowerCase(), " .,;:()\"'-", ""))
+                if (banned.contains (w)) clean = false;
+            for (auto c : text) if (c > 126) clean = false;
+        }
+        check (covered && gg::fx::tipKeys().size() == gg::fx::numTypes, "every FX type has its tip (Resources/Fx.md), name and fit");
+        check (clean, "FX tips are clean, plain ASCII");
+        const auto riserTrap = gg::fx::fitFor (T::riser, gg::Genre::edm, 6);
+        const auto scratchBoomBap = gg::fx::fitFor (T::scratch, gg::Genre::boomBap, 3);
+        const auto crackleCountry60 = gg::fx::fitFor (T::subDrop, gg::Genre::country, 0);
+        check (riserTrap.level == 2 && scratchBoomBap.level == 2 && crackleCountry60.level == 0 && crackleCountry60.why.contains ("Country"),
+               "fit: a riser in EDM today and a scratch in 90s boom bap are great, a sub drop in 60s country unusual");
+
+        // ---- bars and where it goes ----
+        check (std::abs (gg::fx::barsAt (5.454545, 88.0) - 2.0) < 0.001, "an FX's length in bars at the song's tempo");
+        {
+            const auto p = gg::fx::place (T::riser, 60.0 / 88.0 * 6.0, 0, 88.0);       // a riser 6 beats long
+            const auto h = gg::fx::place (T::impact, 2.0, 0.01, 88.0);
+            const auto w = gg::fx::place (T::whoosh, 1.0, 0.5, 120.0);                  // peaks at beat 1
+            check (std::abs (p.startBeat + 6.0 - p.downbeat) < 1.0e-6 && std::fmod (p.downbeat, 4.0) == 0 && p.startBeat >= 4.0
+                   && h.startBeat == 4.0 && h.downbeat == 4.0 && std::abs (w.startBeat + 1.0 - w.downbeat) < 1.0e-6 && std::fmod (w.downbeat, 4.0) == 0,
+                   "in time: a riser ends on a downbeat, an impact starts on one, a whoosh peaks on one");
+        }
+
+        // ---- a long riser with no name to go by is an effect, not a loop; the catalog types the library's FX ----
+        {
+            const auto dir = testRoot().getChildFile ("FX Test");
+            dir.deleteRecursively();
+            ggtest::Synth::write (dir.getChildFile ("Downloads/Untitled 21.wav"), syn.riser (14.0f), syn.sr);
+            ggtest::Synth::write (dir.getChildFile ("Risers/Up 01.wav"), syn.riser (3.0f), syn.sr);
+            ggtest::Synth::write (dir.getChildFile ("Downloads/Untitled 22.wav"), syn.tapeStop (1.2f), syn.sr);
+            juce::AudioFormatManager fm;
+            fm.registerBasicFormats();
+            auto list = std::make_shared<gg::SoundList>();
+            for (const auto& [rel, folders] : { std::pair<const char*, const char*> { "Downloads/Untitled 21.wav", "FX Test/Downloads" },
+                                                 { "Risers/Up 01.wav", "FX Test/Risers" }, { "Downloads/Untitled 22.wav", "FX Test/Downloads" } })
+            {
+                gg::SoundInfo si;
+                if (gg::analysis::analyzeFile (dir.getChildFile (rel), folders, fm, si))
+                {
+                    si.cat = gg::Cat::fx;        // (as the library has them: the catalog only looks at FX)
+                    list->push_back (si);
+                }
+            }
+            gg::SoundInfo longOne;
+            gg::analysis::analyzeFile (dir.getChildFile ("Downloads/Untitled 21.wav"), "FX Test/Downloads", fm, longOne);
+            check (longOne.cat == gg::Cat::fx, "a 14-second riser with no name is an effect, not a loop (got " + gg::catName (longOne.cat) + ")");
+            gg::fx::Catalog catalog;
+            catalog.update (list);
+            catalog.waitUntilDone (20000);
+            bool typed = list->size() == 3;
+            for (const auto& si : *list)
+            {
+                const auto item = catalog.get (si);
+                const auto want = si.path.contains ("22") ? T::tapeStop : T::riser;
+                typed = typed && item.analysed && item.type == want;
+                if (item.type != want) std::cout << "  (" << si.fileName() << " -> " << gg::fx::typeName (item.type) << ")" << std::endl;
+            }
+            catalog.setType ((*list)[0].path, T::sweep);
+            gg::fx::Catalog reread;
+            check (typed && reread.get ((*list)[0]).type == T::sweep && reread.get ((*list)[0]).byUser,
+                   "the FX catalog types the library's FX in the background, and keeps what you set by hand");
         }
     }
 
@@ -782,6 +1325,17 @@ namespace
                && std::abs (gg::swungBeat (0.25, 0.5f, false) - (0.25 + 0.5 / 6.0)) < 1.0e-9 && std::abs (gg::swungBeat (1.0, 0.5f, true) - 1.0) < 1.0e-9,
                "swing: 8ths for a shuffle, 16ths otherwise");
         check (gg::grooveFor ("country2").swingEighths && ! gg::grooveFor ("boombap1").swingEighths, "the Shuffle groove swings its 8ths");
+        {
+            bool roundTrip = true, inRange = true;
+            for (int p = 50; p <= 66; ++p) roundTrip = roundTrip && gg::swingToPercent (gg::swingFromPercent (p)) == p;
+            for (const auto& gr : gg::allGrooves()) inRange = inRange && gr.swing >= 0.0f && gr.swing <= gg::maxSwing;
+            check (roundTrip && gg::swingFromPercent (50) == 0.0f && gg::swingFromPercent (66) == gg::maxSwing && gg::swingToPercent (gg::maxSwing) == 66
+                   && gg::swingToPercent (0.7f) == 66 && gg::swingFromPercent (90) == gg::maxSwing && gg::swingToPercent (-1.0f) == 50,
+                   "swing: 50% (straight) to 66% (a full triplet), both ways");
+            check (inRange, "every groove swings between straight and a full triplet");
+        }
+        check (gg::grooveFor ("blank").id == "blank" && gg::grooveFor ("blank").hits.empty() && gg::grooveFor ("blank").bars == 2
+               && gg::grooveFor ("blank").swing == 0.0f, "BLANK: two empty bars, straight");
         check (gg::swingPercent (gg::grooveFor ("boombap1")) == 60 && gg::swingPercent (gg::grooveFor ("boombap2")) == 62
                && gg::swingPercent (gg::grooveFor ("lofi1")) == 62 && gg::swingPercent (gg::grooveFor ("newjack1")) == 65
                && gg::swingPercent (gg::grooveFor ("country2")) == 62 && gg::swingPercent (gg::grooveFor ("trap1")) == 50,
@@ -832,6 +1386,121 @@ namespace
             check (junk.size() == 2 && junk[0].slot == gg::Slot::snare && std::abs (junk[0].velocity - 1.0f) < 1.0e-6f, "saved hits are checked: junk left out");
         }
 
+        // a MIDI pattern dropped on SAUCE (from Song Savant, a DAW, or SAUCE's own drag) becomes a groove
+        {
+            // SAUCE's own drag, dropped back: every groove comes back the same (hits, swing, length, name)
+            juce::StringArray differ;
+            for (const auto& g : gg::allGrooves())
+            {
+                if (g.hits.empty()) continue;
+                const auto back = gg::grooveFromMidi (gg::grooveToMidi (g, g.bpm, g.swing, 2), "whatever.mid");
+                const auto& b = back.groove;
+                // (a swing with no hit on a late place can't be heard, or found)
+                bool swingShows = false;
+                for (const auto& h : g.hits) if (gg::swungBeat (h.beat, g.swing, g.swingEighths) - h.beat > 1.0e-6) swingShows = true;
+                const float wantSwing = swingShows ? g.swing : 0.0f;
+                bool same = back.why.isEmpty() && b.bars == g.bars && b.name == g.name && b.hits.size() == g.hits.size()
+                            && std::abs (b.swing - wantSwing) < 0.008f && (wantSwing < 0.01f || b.swingEighths == g.swingEighths)
+                            && std::abs (b.bpm - g.bpm) < 0.5 && back.notesLeftOut == 0;
+                if (same)
+                {
+                    auto x = g.hits, y = b.hits;
+                    gg::sortHits (x);
+                    gg::sortHits (y);
+                    for (size_t i = 0; i < x.size() && same; ++i)
+                        same = std::abs (x[i].beat - y[i].beat) < 1.0e-6 && x[i].slot == y[i].slot && std::abs (x[i].velocity - y[i].velocity) < 0.006f;
+                }
+                if (! same) differ.add (g.id + " (swing " + juce::String (g.swing, 2) + " -> " + juce::String (b.swing, 2) + ", hits "
+                                        + juce::String ((int) g.hits.size()) + " -> " + juce::String ((int) b.hits.size()) + ")");
+            }
+            check (differ.isEmpty(), "SAUCE's drag dropped back on SAUCE: every groove the same: " + differ.joinIntoString (", "));
+            {
+                const auto mb = gg::grooveToMidi (gg::grooveFor ("trap1"), 140, 0, 1);
+                const std::string want = "drums: Groove Grabber's pads";
+                const auto* bytes = static_cast<const char*> (mb.getData());
+                check (std::search (bytes, bytes + mb.getSize(), want.begin(), want.end()) != bytes + mb.getSize(),
+                       "SAUCE's drag says it's on Groove Grabber's pads (for Song Savant)");
+            }
+
+            // a file made by hand: notes at these beats
+            struct N { double beat; int note; int vel; };
+            auto midi = [] (const std::vector<N>& notes, const juce::String& text, double bpm)
+            {
+                juce::MidiMessageSequence seq;
+                if (text.isNotEmpty()) seq.addEvent (juce::MidiMessage::textMetaEvent (1, text), 0);
+                if (bpm > 0) seq.addEvent (juce::MidiMessage::tempoMetaEvent ((int) std::round (60000000.0 / bpm)), 0);
+                for (const auto& n : notes)
+                {
+                    seq.addEvent (juce::MidiMessage::noteOn (1, n.note, (juce::uint8) n.vel), n.beat * 480.0);
+                    seq.addEvent (juce::MidiMessage::noteOff (1, n.note), n.beat * 480.0 + 60.0);
+                }
+                seq.updateMatchedPairs();
+                juce::MidiFile mf;
+                mf.setTicksPerQuarterNote (480);
+                mf.addTrack (seq);
+                juce::MemoryOutputStream out;
+                mf.writeTo (out);
+                return out.getMemoryBlock();
+            };
+            auto slotAt = [] (const gg::Groove& g, double beat, gg::Slot slot)
+            {
+                for (const auto& h : g.hits) if (h.slot == slot && std::abs (h.beat - beat) < 1.0e-6) return true;
+                return false;
+            };
+
+            // General MIDI (a DAW, or Song Savant with a Groove Agent kit): 52 is a cymbal, 54 a tambourine, 70 maracas
+            const auto gm = gg::grooveFromMidi (midi ({ { 0, 36, 120 }, { 1, 38, 110 }, { 0, 42, 90 }, { 1.5, 46, 80 }, { 0, 49, 100 }, { 2, 51, 90 },
+                                                         { 3, 45, 90 }, { 2.5, 54, 80 }, { 3.5, 70, 70 }, { 3.75, 56, 70 }, { 4, 52, 90 }, { 2, 44, 60 },
+                                                         { 6, 100, 90 }, { 7, 37, 80 } }, "drums: General MIDI", 92), "Verse Beat 92 BPM.mid").groove;
+            check (slotAt (gm, 0, gg::Slot::kick) && slotAt (gm, 1, gg::Slot::snare) && slotAt (gm, 0, gg::Slot::closedHat) && slotAt (gm, 1.5, gg::Slot::openHat)
+                   && slotAt (gm, 0, gg::Slot::crash) && slotAt (gm, 2, gg::Slot::ride) && slotAt (gm, 3, gg::Slot::tomMid) && slotAt (gm, 2.5, gg::Slot::perc1)
+                   && slotAt (gm, 3.5, gg::Slot::perc2) && slotAt (gm, 3.75, gg::Slot::perc3) && slotAt (gm, 4, gg::Slot::crash)
+                   && slotAt (gm, 2, gg::Slot::closedHat) && slotAt (gm, 7, gg::Slot::rim) && gm.hits.size() == 13,
+                   "a General MIDI pattern: each note on its drum (the pedal hat on the closed hat)");
+            const auto gmIn = gg::grooveFromMidi (midi ({ { 0, 36, 120 }, { 6, 100, 90 } }, "drums: General MIDI", 92), "Verse Beat 92 BPM.mid");
+            check (gmIn.notesLeftOut == 1 && gm.bars == 2 && std::abs (gm.bpm - 92.0) < 0.01 && gm.name == "Verse Beat" && gm.swing == 0.0f,
+                   "a General MIDI pattern: a note that isn't a drum left out; its tempo, bars and name (without the BPM)");
+
+            // Groove Grabber's pads (Song Savant with a Groove Grabber kit): the 808 on 52, perc on 53..55, FX on 56
+            const auto ours = gg::grooveFromMidi (midi ({ { 0, 36, 124 }, { 0, 52, 110 }, { 1, 53, 90 }, { 2, 54, 90 }, { 3, 56, 90 }, { 3.5, 43, 90 } },
+                                                        "drums: Groove Grabber's pads", 0), "Drums (Chorus).mid").groove;
+            check (slotAt (ours, 0, gg::Slot::bass808) && slotAt (ours, 1, gg::Slot::perc1) && slotAt (ours, 2, gg::Slot::perc2) && slotAt (ours, 3, gg::Slot::fx1)
+                   && slotAt (ours, 3.5, gg::Slot::tomLow) && ours.bpm == 0.0 && ours.name == "Drums (Chorus)" && ours.bars == 1
+                   && std::abs (ours.hits.front().velocity - 1.0f) < 0.01f,
+                   "Groove Grabber's pads: the 808, the percussion and the FX on their own pads; no tempo in the file: none");
+
+            // from bar 3 of a DAW's clip, 8 bars long: from its first bar, the first 4 bars kept; a 32nd roll, an early hit
+            std::vector<N> long8;
+            for (int b = 0; b < 8; ++b) long8.push_back ({ 8.0 + b * 4.0, 36, 110 });
+            long8.push_back ({ 9.0, 42, 100 });
+            long8.push_back ({ 9.125, 42, 70 });
+            long8.push_back ({ 9.97, 38, 100 });                   // a hair early for beat 3
+            const auto clip = gg::grooveFromMidi (midi (long8, {}, 0), "clip.mid");
+            check (clip.groove.bars == 4 && clip.barsLeftOut == 4 && slotAt (clip.groove, 0, gg::Slot::kick) && slotAt (clip.groove, 12, gg::Slot::kick)
+                   && slotAt (clip.groove, 1, gg::Slot::closedHat) && slotAt (clip.groove, 1.125, gg::Slot::closedHat) && slotAt (clip.groove, 2, gg::Slot::snare)
+                   && gg::stepHits (clip.groove, gg::Slot::closedHat, 4).count == 2 && clip.groove.hits.size() == 7,
+                   "a long clip: from its first bar, 4 bars kept; a 32nd roll stays a quick double; a slightly early hit on its beat");
+
+            // a DAW's swung hats (16ths at 62%) and a shuffle (8ths at 62%) come in with their swing
+            std::vector<N> swung, shuffle;
+            for (int i = 0; i < 32; ++i) swung.push_back ({ i * 0.25 + (i % 2 == 1 ? 0.36 / 6.0 : 0.0), 42, 90 });
+            for (int i = 0; i < 16; ++i) shuffle.push_back ({ i * 0.5 + (i % 2 == 1 ? 0.36 / 3.0 : 0.0), 51, 90 });
+            const auto sw = gg::grooveFromMidi (midi (swung, {}, 0), "swung.mid").groove;
+            const auto sh = gg::grooveFromMidi (midi (shuffle, {}, 0), "shuffle.mid").groove;
+            check (std::abs (sw.swing - 0.36f) < 0.011f && ! sw.swingEighths && sw.hits.size() == 32 && slotAt (sw, 0.25, gg::Slot::closedHat)
+                   && std::abs (sh.swing - 0.36f) < 0.011f && sh.swingEighths && sh.hits.size() == 16 && slotAt (sh, 0.5, gg::Slot::ride),
+                   "swung 16ths and a shuffle come in with their swing, on the grid");
+            // a loose straight beat (a few hits a little late) stays straight
+            const auto loose = gg::grooveFromMidi (midi ({ { 0, 36, 100 }, { 0.27, 42, 90 }, { 1, 38, 100 }, { 2.52, 42, 90 } }, {}, 0), "loose.mid").groove;
+            check (loose.swing == 0.0f && slotAt (loose, 0.25, gg::Slot::closedHat) && slotAt (loose, 2.5, gg::Slot::closedHat),
+                   "a loose straight beat stays straight");
+            // what can't be read says why
+            check (gg::grooveFromMidi (juce::MemoryBlock ("not midi", 8), "x.mid").why.isNotEmpty()
+                   && gg::grooveFromMidi (midi ({}, "drums: General MIDI", 120), "x.mid").why.isNotEmpty()
+                   && gg::grooveFromMidi (midi ({ { 0, 100, 90 } }, {}, 0), "x.mid").why.isNotEmpty(),
+                   "not MIDI, no notes, no drums: a reason, no groove");
+        }
+
         // my grooves: saved on this computer, for every song
         {
             namespace mg = gg::mygrooves;
@@ -845,7 +1514,7 @@ namespace
             const auto* e = mg::entry (id);
             check (mg::isMine (id) && e != nullptr && e->file.existsAsFile() && e->groove->name == "Late Kick Bounce" && e->from == "boombap1"
                    && e->styleId == "hiphop.east" && mg::list().size() == before + 1, "SAVE AS MY GROOVE: a file under your name");
-            const auto old = mg::update (id, gg::withStep (*mg::find (id), gg::Slot::snare, 7, 1, gg::softHit));
+            const auto old = mg::update (id, gg::withStep (*mg::find (id), gg::Slot::snare, 7, 1, gg::softHit), 0.2f);
             check (old != nullptr && old->hits.size() == start.hits.size() && mg::find (id)->hits.size() == start.hits.size() + 1,
                    "editing my groove: a new version, the old one handed back");
             check (mg::rename (id, "Bounce Two") != nullptr && mg::find (id)->name == "Bounce Two" && mg::entry (id)->file.getFileName() == "Bounce Two.gggroove",
@@ -855,8 +1524,16 @@ namespace
             check (back != nullptr && back->name == "Bounce Two" && gg::sameHits (back->hits, old->hits) == false && back->hits.size() == start.hits.size() + 1
                    && std::abs (back->bpm - start.bpm) < 0.01 && mg::list().size() == before + 1,
                    "my groove reads back from disk (junk files and non-'my.' ids left out)");
+            const auto backupsBefore = mg::backups().size();
             const auto gone = mg::remove (id);
-            check (gone != nullptr && mg::find (id) == nullptr && ! mg::folder().getChildFile ("Bounce Two.gggroove").exists(), "deleting my groove deletes its file");
+            check (gone != nullptr && mg::find (id) == nullptr && ! mg::folder().getChildFile ("Bounce Two.gggroove").exists()
+                   && mg::backups().size() == backupsBefore + 1 && mg::backups().front().name == "Bounce Two" && mg::backups().front().why == "deleted",
+                   "deleting my groove keeps a copy in Backups");
+            check (mg::backups().size() >= 3, "saving over and renaming keep copies in Backups too");
+            const auto restoredId = mg::restore (mg::backups().front().file);
+            check (mg::isMine (restoredId) && restoredId != id && mg::find (restoredId) != nullptr && mg::find (restoredId)->name == "Bounce Two"
+                   && mg::find (restoredId)->hits.size() == start.hits.size() + 1, "a backup comes back as a groove of its own");
+            mg::remove (restoredId);
             check (mg::find ("boombap1") == nullptr && ! mg::isMine ("boombap1"), "built-in grooves aren't mine");
             mg::folder().getChildFile ("junk.gggroove").deleteFile();
             mg::folder().getChildFile ("not mine.gggroove").deleteFile();
@@ -926,6 +1603,26 @@ namespace
         player.process (out, midi, host);
         check (player.isHostDriving(), "host drives the groove while playing");
         check (out.getMagnitude (0, 0, 512) > 0.01f, "the downbeat (bar 2) plays on time");
+
+        // SAUCE's timeline: the playhead jumps to the beat you click, and the groove plays on from there
+        player.allNotesOff();
+        player.seekGroove (4.0);
+        check (std::abs (player.getGrooveBeat() - 4.0) < 1.0e-9, "the playhead moves as soon as you click the timeline");
+        player.process (out, midi, {});
+        check (std::abs (player.getGrooveBeat() - (4.0 + 512.0 * 140.0 / (48000.0 * 60.0))) < 1.0e-6 && out.getMagnitude (0, 0, 512) > 0.01f,
+               "the groove plays on from the beat you clicked, starting with the hit on it");
+        player.seekGroove (std::numeric_limits<double>::quiet_NaN());
+        player.process (out, midi, {});
+        check (std::isfinite (player.getGrooveBeat()) && player.getGrooveBeat() < 0.1, "a damaged position plays from the top");
+        player.seekGroove (6.0);
+        player.setGroovePlaying (false);
+        player.setGroovePlaying (true);
+        player.process (out, midi, {});
+        check (player.getGrooveBeat() < 0.1, "stopping drops a position that was waiting");
+        player.setSwing (0.7f);
+        check (player.getSwing() == gg::maxSwing, "the player swings no further than a full triplet");
+        player.setSwing (std::numeric_limits<float>::quiet_NaN());
+        check (player.getSwing() == 0.0f, "a damaged swing plays straight");
 
         // level matching: two different kicks render at about the same loudness
         auto a = gg::render::sound (testRoot().getChildFile ("Library/Trap Essentials/Kicks/Kick Hard 01.wav").getFullPathName(), gg::Cat::kick, {}, 44100);
@@ -1044,6 +1741,7 @@ namespace
 //==============================================================================
 int runHostScan (const juce::File&);
 int runClassify (const juce::File&);
+int runTutorial (const juce::File&);      // TestTutorial.cpp
 
 int main (int argc, char** argv)
 {
@@ -1056,6 +1754,9 @@ int main (int argc, char** argv)
         return runHostScan (juce::File (args[h + 1])) == 0 ? 0 : 1;
     if (const int c = args.indexOf ("--classify"); c >= 0 && c + 1 < args.size())
         return runClassify (juce::File (args[c + 1]));
+    // GGTests --tutorial <dir>: the video tutorial's pictures (run with HOME set to a throwaway folder)
+    if (const int t = args.indexOf ("--tutorial"); t >= 0 && t + 1 < args.size())
+        return runTutorial (juce::File (args[t + 1]));
 
     // keep the tests out of the real settings / library
     const auto home = testRoot().getChildFile ("Home");
@@ -1071,6 +1772,8 @@ int main (int argc, char** argv)
     testNames();
     testDescriptions();
     testSauceAndDaws();
+    testCoach();
+    testFx();
     auto sounds = scanLibrary (expected);
     testGenerator (sounds);
     testPlayer (sounds);

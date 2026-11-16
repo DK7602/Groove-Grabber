@@ -53,8 +53,11 @@ namespace ggui
 
         feel.setTooltips ({ "Let the genre decide", "Real, acoustic drums", "A mix of both", "Drum machines and programmed sounds" });
         lowEnd.setTooltips ({ "Let the genre decide", "Just a kick", "A kick and an 808" });
-        perc.setTooltips ({ "Let the genre decide", "No percussion", "One percussion sound", "Two", "Three" });
-        for (auto* s : { &feel, &lowEnd, &perc })
+        perc.setTooltips ({ "Let the genre decide (a 23-sound kit fills its 3 percussion pads, a 32-sound kit its 4)", "No percussion", "One percussion sound", "Two", "Three" });
+        kitSize.setTooltips ({ "17 sounds, one of each (the usual kit)",
+                               "23 sounds: two kicks, 808s, snares, closed and open hats, and three FX",
+                               "32 sounds: two of everything, four percussion and four FX" });
+        for (auto* s : { &kitSize, &feel, &lowEnd, &perc })
         {
             s->onChange = [this] (int) { pushOptions(); };
             addAndMakeVisible (*s);
@@ -64,7 +67,7 @@ namespace ggui
             t->onClick = [this] { pushOptions(); };
             addAndMakeVisible (*t);
         }
-        fx.setTooltip ("Add two FX pads: risers, impacts, sweeps...");
+        fx.setTooltip ("Fill the FX pads (two, three or four, by the kit size): risers, impacts, sweeps...");
         tuneKey.setTooltip ("Tune the kick and 808 to the song's root and the toms to its scale (needs a key)");
 
         for (int i = 0; i < (int) gg::Source::count; ++i)
@@ -83,6 +86,57 @@ namespace ggui
         surprise.setAccent (pal().purple);
         surprise.onClick = [this] { syncDescription(); proc.generate (true); };
         addAndMakeVisible (surprise);
+
+        // a song sent from Song Savant (its SEND TO GROOVE GRABBER button): one click sets it all and builds the kits
+        useSongSavant.getProperties().set ("style", "accent");
+        useSongSavant.onClick = [this]
+        {
+            if (! waiting) return;
+            const auto s = *waiting;
+            proc.getSettings().set ("songSavantSeen", s.sent.toISO8601 (true));
+            checkSongSavant();
+            proc.useSongSavantSong (s);
+        };
+        addChildComponent (useSongSavant);
+        skipSongSavant.getProperties().set ("style", "ghost");
+        skipSongSavant.setTooltip ("Not now (it stays in the KEY COMPASS menu)");
+        skipSongSavant.onClick = [this]
+        {
+            if (waiting) proc.getSettings().set ("songSavantSeen", waiting->sent.toISO8601 (true));
+            checkSongSavant();
+        };
+        addChildComponent (skipSongSavant);
+        checkSongSavant();
+        startTimer (2000);
+    }
+
+    void SongPanel::checkSongSavant()
+    {
+        auto s = gg::newestSongSavantSong (gg::paths::songSavantSongs());
+        const auto seen = juce::Time::fromISO8601 (proc.getSettings().get ("songSavantSeen"));
+        const bool fresh = s.has_value() && s->sent > seen
+                             && (juce::Time::getCurrentTime() - s->sent).inHours() < 24.0;
+        const bool wasShown = waiting.has_value();
+        if (fresh)
+        {
+            if (! waiting || waiting->file != s->file || waiting->sent != s->sent)
+            {
+                waiting = s;
+                useSongSavant.setButtonText ("Song Savant sent \"" + s->name + "\": USE IT");
+                const auto sum = s->summary();
+                useSongSavant.setTooltip ("Sets the genre, style, key and tempo" + (sum.isNotEmpty() ? " (" + sum + ")" : juce::String())
+                                          + " and builds four kits for it, with the kick, 808 and toms tuned to the key");
+            }
+        }
+        else
+            waiting.reset();
+        if (waiting.has_value() != wasShown)
+        {
+            useSongSavant.setVisible (waiting.has_value());
+            skipSongSavant.setVisible (waiting.has_value());
+            resized();
+            repaint();
+        }
     }
 
     void SongPanel::syncDescription()
@@ -101,6 +155,7 @@ namespace ggui
         o.lowEnd = lowEnd.getSelected() - 1;
         o.percCount = perc.getSelected() - 1;
         o.fx = fx.getToggleState();
+        o.kitSize = kitSize.getSelected() == 2 ? 32 : kitSize.getSelected() == 1 ? 23 : 17;   // (GENERATE KITS makes them this size)
         for (int i = 0; i < sources.size(); ++i) o.sources[(size_t) i] = sources[i]->getToggleState();
         if (o.tuneToKey != tuneKey.getToggleState())
         {
@@ -144,6 +199,7 @@ namespace ggui
         lowEnd.setSelected (o.lowEnd + 1);
         perc.setSelected (o.percCount + 1);
         fx.setToggleState (o.fx, juce::dontSendNotification);
+        kitSize.setSelected (o.kitSize == 32 ? 2 : o.kitSize == 23 ? 1 : 0);
         tuneKey.setToggleState (o.tuneToKey, juce::dontSendNotification);
         tuneKey.setEnabled (o.key >= 0);
         const auto counts = [&]
@@ -167,7 +223,13 @@ namespace ggui
         auto r = getLocalBounds().reduced (14, 12);
         r.removeFromTop (24);
         description.setBounds (r.removeFromTop (getHeight() < 760 ? 62 : 86));
-        understoodArea = r.removeFromTop (24);
+        understoodArea = r.removeFromTop (waiting ? 32 : 24);
+        {
+            auto row = understoodArea.reduced (0, 1);
+            skipSongSavant.setBounds (row.removeFromRight (26));
+            row.removeFromRight (4);
+            useSongSavant.setBounds (row);
+        }
         r.removeFromTop (4);
         {
             auto row = r.removeFromTop (30);
@@ -196,14 +258,19 @@ namespace ggui
         }
         r.removeFromBottom (8);
 
-        optionsArea = r.removeFromBottom (22 + 3 * 30 + 2 * 26);
+        // the options' rows a little tighter when KIT CHARACTER would otherwise get squeezed (a short window)
+        const auto optionsHeight = [this] { return 22 + 4 * (optRowH + optGap) + 2 * (optToggleH + optGap); };
+        optRowH = 26; optGap = 4; optToggleH = 22;
+        if (r.getHeight() - optionsHeight() < 22 + gg::Traits::num * 20 + 6) { optRowH = 22; optGap = 2; optToggleH = 20; }
+        optionsArea = r.removeFromBottom (optionsHeight());
         auto oa = optionsArea.withTrimmedTop (22);
-        auto row = [&oa] (int h) { auto x = oa.removeFromTop (h); oa.removeFromTop (4); return x; };
-        auto feelRow = row (26);   feelRow.removeFromLeft (64);   feel.setBounds (feelRow);
-        auto lowRow = row (26);    lowRow.removeFromLeft (64);    lowEnd.setBounds (lowRow);
-        auto percRow = row (26);   percRow.removeFromLeft (64);   perc.setBounds (percRow);
-        fx.setBounds (row (22));
-        tuneKey.setBounds (oa.removeFromTop (22));
+        auto row = [&oa, this] (int h) { auto x = oa.removeFromTop (h); oa.removeFromTop (optGap); return x; };
+        auto sizeRow = row (optRowH);   sizeRow.removeFromLeft (64);   kitSize.setBounds (sizeRow);
+        auto feelRow = row (optRowH);   feelRow.removeFromLeft (64);   feel.setBounds (feelRow);
+        auto lowRow = row (optRowH);    lowRow.removeFromLeft (64);    lowEnd.setBounds (lowRow);
+        auto percRow = row (optRowH);   percRow.removeFromLeft (64);   perc.setBounds (percRow);
+        fx.setBounds (row (optToggleH));
+        tuneKey.setBounds (oa.removeFromTop (optToggleH));
 
         traitsArea = r.withTrimmedBottom (6);
         auto ta = traitsArea.withTrimmedTop (22);
@@ -224,7 +291,8 @@ namespace ggui
         auto r = getLocalBounds().reduced (14, 12);
         drawSectionTitle (g, r.removeFromTop (20), "Your song", p.orange);
 
-        // what the description was understood as
+        // what the description was understood as (unless a song from Song Savant is offered there)
+        if (! waiting)
         {
             juce::String u;
             if (proc.understood.understood.size() > 0) u = proc.understood.understood.joinIntoString ("  -  ");
@@ -255,10 +323,10 @@ namespace ggui
             auto oa = optionsArea.withTrimmedTop (22);
             g.setColour (p.dim);
             g.setFont (uiFont (14.0f));
-            for (auto* label : { "FEEL", "LOW END", "PERC" })
+            for (auto* label : { "KIT SIZE", "FEEL", "LOW END", "PERC" })
             {
-                g.drawText (label, oa.removeFromTop (26).removeFromLeft (64), juce::Justification::centredLeft);
-                oa.removeFromTop (4);
+                g.drawText (label, oa.removeFromTop (optRowH).removeFromLeft (64), juce::Justification::centredLeft);
+                oa.removeFromTop (optGap);
             }
         }
         drawSectionTitle (g, sourcesArea.withHeight (20), "Use sounds from", p.green);
@@ -290,17 +358,23 @@ namespace ggui
             const int i = sel - 1;
             if (juce::isPositiveAndBelow (i, (int) gg::allGrooves().size())) proc.setGrooveId (gg::allGrooves()[(size_t) i].id);
         };
-        groove.setTooltip ("Preview groove (plays at the song's BPM). Edit it on SAUCE.");
+        groove.setTooltip ("Preview groove (plays at the song's BPM). EDIT IN SAUCE changes it.");
         addAndMakeVisible (groove);
+        editGroove.getProperties().set ("style", "ghost");
+        editGroove.setTooltip ("Open this groove on SAUCE to change it, save it as your own or drag it into your DAW");
+        editGroove.onClick = [this] { if (onEditGroove) onEditGroove(); };
+        addAndMakeVisible (editGroove);
 
         swing.setSliderStyle (juce::Slider::LinearHorizontal);
         swing.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
-        swing.setRange (0.0, 70.0, 1.0);
+        // the same as SAUCE's: 50% (straight) to 66% (a full triplet)
+        swing.setRange (50.0, 66.0, 1.0);
+        swing.setDoubleClickReturnValue (true, 50.0);
         swing.setTooltip ("Swing");
         swing.onValueChange = [this]
         {
-            proc.player.setSwing ((float) swing.getValue() / 100.0f);
-            swing.setTooltip ("Swing: " + juce::String (juce::roundToInt (50.0 + swing.getValue() / 3.0)) + "% (50% = straight, 66% = a full triplet feel)");
+            proc.player.setSwing (gg::swingFromPercent ((int) swing.getValue()));
+            swing.setTooltip (swingTip());
         };
         swing.getProperties().set ("accent", pal().purple.toString());
         addAndMakeVisible (swing);
@@ -342,6 +416,11 @@ namespace ggui
         }
     }
 
+    juce::String TransportBar::swingTip() const
+    {
+        return "Swing: " + juce::String (gg::swingToPercent (proc.player.getSwing())) + "% (50% = straight, 66% = a full triplet). Double-click for straight.";
+    }
+
     void TransportBar::refresh()
     {
         fillGrooves();
@@ -355,8 +434,8 @@ namespace ggui
             if (groove.getItemText ((int) i) != text) groove.changeItemText ((int) i + 1, text);
             if (gr.id == proc.grooveId) groove.setSelectedId ((int) i + 1, juce::dontSendNotification);
         }
-        swing.setValue (proc.player.getSwing() * 100.0, juce::dontSendNotification);
-        swing.setTooltip ("Swing: " + juce::String (juce::roundToInt (50.0 + proc.player.getSwing() * 100.0 / 3.0)) + "% (50% = straight, 66% = a full triplet feel)");
+        swing.setValue (gg::swingToPercent (proc.player.getSwing()), juce::dontSendNotification);
+        swing.setTooltip (swingTip());
         volume.setValue (proc.player.getVolume() * 100.0, juce::dontSendNotification);
         follow.setToggleState (proc.player.isFollowingHost(), juce::dontSendNotification);
         swing.getProperties().set ("accent", pal().purple.toString());
@@ -378,7 +457,9 @@ namespace ggui
         r.removeFromLeft (12);
         const bool narrow = getWidth() < 1000;
         groove.setBounds (r.removeFromLeft (narrow ? 170 : 200).withSizeKeepingCentre (narrow ? 170 : 200, 30));
-        r.removeFromLeft (16);
+        r.removeFromLeft (6);
+        editGroove.setBounds (r.removeFromLeft (narrow ? 104 : 118).withSizeKeepingCentre (narrow ? 104 : 118, 30));
+        r.removeFromLeft (14);
         auto sw = r.removeFromLeft (narrow ? 140 : 170);
         sw.removeFromLeft (52);
         swing.setBounds (sw);
@@ -461,6 +542,7 @@ namespace ggui
             }
         };
         exportKit.onClick = [this] { if (onExport) onExport(); };
+        transport.onEditGroove = [this] { if (onEditGroove) onEditGroove(); };
     }
 
     void BuildPage::refresh()

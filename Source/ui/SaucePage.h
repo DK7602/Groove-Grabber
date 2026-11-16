@@ -4,6 +4,7 @@
 #pragma once
 
 #include "HelpPanel.h"
+#include "CoachPanel.h"
 #include "core/Sauce.h"
 #include <map>
 
@@ -12,14 +13,18 @@ namespace ggui
     //==============================================================================
     // A groove as a step grid you can edit: one lane per drum, 16 steps a bar, rolls split their step.
     // Click a step to add or take away a hit (drag along the lane to do several), right-click for hard /
-    // medium / soft, Ctrl-click (Alt on a Mac) for a roll.
-    class PatternGrid : public juce::Component, public juce::SettableTooltipClient
+    // medium / soft, Ctrl-click (Alt on a Mac) for a roll. Click the count above the steps (the timeline) to move
+    // the playhead there and play from there; drag along it to scrub.
+    class PatternGrid : public juce::Component, public juce::TooltipClient
     {
     public:
         PatternGrid();
         void setGroove (std::shared_ptr<const gg::Groove>, std::vector<gg::Slot> lanes);
-        void setPlayhead (double beat);          // -1 = none
+        void setPlayhead (double beat);          // while playing; -1 = stopped (the playhead rests at the cue)
+        void setCue (double beat);               // where play starts: the last place you clicked on the timeline
+        double getCue() const noexcept           { return cue; }
         void setNoteNamer (std::function<juce::String (int)> f)   { noteNamer = std::move (f); repaint(); }
+        void setHighlights (std::vector<gg::coach::StepRef> h)   { highlights = std::move (h); repaint(); }   // COACH MY BEAT's steps
         int numLanes() const noexcept            { return (int) lanes.size(); }
         void paint (juce::Graphics&) override;
         void mouseDown (const juce::MouseEvent&) override;
@@ -27,27 +32,41 @@ namespace ggui
         void mouseUp (const juce::MouseEvent&) override;
         void mouseMove (const juce::MouseEvent&) override;
         void mouseExit (const juce::MouseEvent&) override;
+        void mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails&) override;
+        void scrollRows (float by);                                      // (the wheel, and the tests)
+        bool rowsScroll() const   { const auto g = geometry(); return g.area.getHeight() > g.view.getHeight() + 0.5f; }
 
         std::function<void()> onEditStart;                             // before the first change of a click or drag
         std::function<void (std::vector<gg::GrooveHit>)> onEdit;       // the groove's new hits
+        std::function<void (gg::Slot, float velocity)> onAudition;     // play one sound (a drum's name tapped, a hit added)
+        void auditionLane (int lane);                                  // tap a drum's name: hear it
+        std::function<void (double beat)> onSeek;                      // the timeline clicked: play from there
+        void clickTimeline (int step);                                 // (the mouse, and the tests)
+        juce::String getTooltip() override;
 
         // what a click on a lane's step does (the mouse, and the tests)
         void clickStep (int lane, int step, const juce::ModifierKeys&);
+        juce::Rectangle<float> cellBounds (int lane, int step) const;   // where a step is drawn (the tests, the tutorial)
 
     private:
-        struct Geometry { juce::Rectangle<float> header, area; float labelW = 0, gridX = 0, stepW = 0, laneH = 0; int steps = 0; };
+        // header: the timeline; view: where the rows show; area: all the rows' cells (taller than view when they scroll)
+        struct Geometry { juce::Rectangle<float> header, view, area; float labelW = 0, gridX = 0, stepW = 0, laneH = 0; int steps = 0; };
         Geometry geometry() const;
         bool cellAt (juce::Point<float>, int& lane, int& step) const;
         std::shared_ptr<const gg::Groove> groove;
         std::vector<gg::Slot> lanes;
-        double playhead = -1;
+        double playhead = -1, cue = 0;
+        float scrollY = 0;                       // how far the rows are scrolled (more rows than fit)
+        std::vector<gg::coach::StepRef> highlights;
+        bool timelineAt (juce::Point<float>, int& step) const;
         std::function<juce::String (int)> noteNamer;
         bool painting = false, paintAdd = true;
-        int paintLane = -1, lastStep = -1, hoverLane = -1, hoverStep = -1;
+        int paintLane = -1, lastStep = -1, hoverLane = -1, hoverStep = -1, hoverLabel = -1, pressedLabel = -1;
+        int seekStep = -1, hoverTimeline = -1;            // dragging along the timeline / the step under the mouse there
     };
 
     //==============================================================================
-    class SaucePage : public juce::Component, public juce::TooltipClient, private juce::Timer
+    class SaucePage : public juce::Component, public juce::TooltipClient, public juce::FileDragAndDropTarget, private juce::Timer
     {
     public:
         explicit SaucePage (GrooveGrabberProcessor&);
@@ -61,20 +80,48 @@ namespace ggui
         void visibilityChanged() override;
         void lookAndFeelChanged() override;
         juce::String getTooltip() override;
+        void paintOverChildren (juce::Graphics&) override;
         std::function<void()> onUseOnBuild;           // after BUILD was set to this style
+
+        // A MIDI pattern dropped on the page (from Song Savant, the DAW, or a SAUCE drag): it becomes one of MY GROOVES,
+        // saved with this genre and style, and shows on the grid. False (with a message) when it can't be read.
+        bool dropMidi (const juce::File&);
+        bool isInterestedInFileDrag (const juce::StringArray&) override;
+        void fileDragEnter (const juce::StringArray&, int, int) override   { dropHover = true; repaint(); }
+        void fileDragExit (const juce::StringArray&) override              { dropHover = false; repaint(); }
+        void filesDropped (const juce::StringArray&, int, int) override;
 
         // (for the tests)
         void choose (gg::Genre, int subStyle, int era);
         bool isFollowingBuild() const;
         PatternGrid& getGrid() noexcept               { return grid; }
         juce::String getGrooveId() const              { return currentId(); }
-        void pickMine (const juce::String& id);       // show one of my grooves
-        void startNaming();                           // SAVE AS MY GROOVE / RENAME: the name box
-        void finishNaming (bool save, const juce::String& name = {});
+        // show one of my grooves, played with BUILD's kit, or with its original kit (the kit it was saved with: on
+        // SAUCE only, BUILD's four kits stay as they are)
+        void pickMine (const juce::String& id, bool withOriginalKit = false);
+        void useOriginalKit (bool);                   // the kit row's ORIGINAL (the groove's own kit) or BUILD's 01..04
+        bool playsOriginalKit() const;                // SAUCE plays the groove's original kit
+        bool hasOriginalKit() const;                  // the groove shown is one of mine with its kit kept
+        void setSwingPercent (int percent);           // SWING (50 = straight .. 66 = a full triplet)
+        void playFrom (double beat);                  // the timeline: the playhead goes there and plays from there
+        void coachMyBeat();                           // COACH MY BEAT: the report in the bottom panel
+        bool canCoach() const;                        // a pattern you changed, BLANK, or one of MY GROOVES
+        bool isCoaching() const noexcept              { return coaching; }
+        CoachPanel& getCoach() noexcept               { return coach; }
+        bool isPlaying() const noexcept               { return playingHere; }
+        void openGroove (const juce::String& id);     // show this groove (BUILD's EDIT IN SAUCE): mine, the style's, or any other
+        void startNaming (bool rename = false);       // SAVE AS MY GROOVE / SAVE AS COPY (or RENAME): the name box
+        // save (a new groove: the original pattern goes back to how it was), and with replaceOnBuild BUILD plays
+        // yours in its place
+        void finishNaming (bool save, const juce::String& name = {}, bool replaceOnBuild = false);
         int getDocHeight() const noexcept             { return doc.getHeight(); }
+        juce::Rectangle<int> getDragArea() const noexcept   { return dragArea; }   // DRAG MIDI (the tutorial)
 
     private:
         void timerCallback() override;
+        void closeCoach();
+        void updateCoachButtons();
+        void applyCoachTip (const gg::coach::Tip&);
         void showChoice();
         void fillBoxes();
         void layoutDoc();
@@ -87,6 +134,7 @@ namespace ggui
         bool showingMine() const;
         juce::String currentId() const;
         std::vector<gg::Slot> lanesFor (const juce::String& id) const;
+        const std::vector<gg::Slot>& addableSlots() const;   // what + ADD DRUM offers: the picked kit's drums
         juce::String dropHint() const;               // where to drop the MIDI in your DAW
         void stopPreview();
         double previewTempo() const;                 // what the pattern plays and exports at
@@ -100,7 +148,8 @@ namespace ggui
         int lastBuildGenre = -99, lastBuildStyle = -99, lastBuildEra = -99;
         juce::StringArray grooveIds;
         juce::String myShown;                         // one of my grooves, when it's the one shown
-        std::map<juce::String, std::vector<std::vector<gg::GrooveHit>>> undoSteps;   // this session's, per groove
+        struct Snapshot { std::vector<gg::GrooveHit> hits; float swing = 0; };
+        std::map<juce::String, std::vector<Snapshot>> undoSteps;                      // this session's, per groove
         std::map<juce::String, std::vector<gg::Slot>> addedLanes;                     // drums added with + ADD DRUM
 
         bool playingHere = false;
@@ -113,13 +162,31 @@ namespace ggui
         juce::OwnedArray<juce::TextButton> grooveChips;
         IconButton play { "play", Icon::play, Icon::stop, true };
         juce::TextButton addDrum { "+ ADD DRUM" }, undo { "UNDO" }, reset { "RESET" }, saveMine { "SAVE AS MY GROOVE" },
-                         myChip { "MY GROOVES" }, nameOk { "SAVE" }, nameCancel { "CANCEL" };
+                         myChip { "MY GROOVES" }, nameOk { "SAVE" }, nameReplace { "SAVE & REPLACE ON BUILD" },
+                         nameCancel { "CANCEL" };
+        juce::TextButton saveChanges { "SAVE" }, renameMine { "RENAME" };
+        CoachPanel coach;
+        juce::TextButton coachBtn { "COACH MY BEAT" }, backToSauce { "THE SAUCE" };
+        bool coaching = false;
+        juce::String coachedId;                           // what the report is about: the groove, as it was, in this style
+        std::vector<gg::GrooveHit> coachedHits;
+        float coachedSwing = 0;
+        int coachedGenre = -1, coachedStyle = -1, coachedEra = -2;
+        bool manyRows = false;                                  // the pattern has a lot of rows: it gets more of the page
+        juce::OwnedArray<juce::TextButton> kitButtons;   // 01..04: which of BUILD's kits plays the pattern
+        juce::TextButton originalKit { "ORIGINAL" };     // one of my grooves' own kit (the kit it was saved with)
+        juce::TextButton blankChip { "BLANK" };          // an empty pattern to build from scratch
+        juce::Slider swingSlider;                        // the pattern's swing, 50% (straight) .. 66% (triplet)
+        juce::Rectangle<int> swingArea;
+        juce::Rectangle<int> kitArea;
+        void updateKitButtons();
+        OneShotTimer disarmDelete;
         juce::TextEditor nameEdit;
         bool naming = false, renaming = false, deleteArmed = false;
         PatternGrid grid;
         DocView doc;
         juce::Viewport docView;
         juce::Rectangle<int> leftArea, factsArea, legendArea, buildItArea, followArea, patternArea, patternHeader, editBar, dragArea, sauceArea, sauceTitle;
-        bool updating = false, dragging = false;
+        bool updating = false, dragging = false, dropHover = false;
     };
 }

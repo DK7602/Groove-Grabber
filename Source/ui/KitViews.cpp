@@ -126,12 +126,13 @@ namespace ggui
 
         // the kit at a glance: one bar per pad, coloured by kind, height by how hard it hits
         auto strip = in.removeFromBottom (38).withTrimmedRight (46).reduced (0, 4).toFloat();
-        const int shown = gg::numSlots;
+        const auto& slots = k.shownSlots();         // 17, 23 or 32 pads
+        const int shown = (int) slots.size();
         const float w = strip.getWidth() / (float) shown;
         auto pk = proc.getPlayable (index);
         for (int i = 0; i < shown; ++i)
         {
-            const auto slot = (gg::Slot) i;
+            const auto slot = slots[(size_t) i];
             auto cell = juce::Rectangle<float> (strip.getX() + (float) i * w, strip.getY(), w - 2.0f, strip.getHeight());
             if (k[slot].isEmpty())
             {
@@ -181,7 +182,10 @@ namespace ggui
         wave.setColour (slotColour (slot));
         const auto pk = proc.getPlayable (proc.activeKit);
         const int padIndex = gg::mainNoteForSlot (slot) - gg::firstPadNote;
-        wave.setAudio (pk != nullptr ? pk->pads[(size_t) padIndex] : nullptr);
+        // (an empty Snare 2 or second tom pad plays its stand-in: the tile still shows it empty)
+        const auto* kit = proc.getActiveKit();
+        const bool has = kit != nullptr && ! (*kit)[slot].isEmpty();
+        wave.setAudio (pk != nullptr && has ? pk->pads[(size_t) padIndex] : nullptr);
         repaint();
     }
 
@@ -193,11 +197,17 @@ namespace ggui
         return true;
     }
 
+    bool PadTile::compact() const noexcept
+    {
+        // a short pad (the 32-sound kit's four rows): the sound's name and its tuning share one line
+        return getHeight() < 110;
+    }
+
     void PadTile::resized()
     {
         auto r = getLocalBounds().reduced (8, 6);
-        r.removeFromTop (20);
-        r.removeFromBottom (32);
+        r.removeFromTop (compact() ? 18 : 20);
+        r.removeFromBottom (compact() ? 18 : 32);
         wave.setBounds (r);
     }
 
@@ -238,7 +248,7 @@ namespace ggui
         if (! st.isEmpty())
             drawIcon (g, st.locked ? Icon::lock : Icon::unlock, lockArea().toFloat().reduced (2.0f), st.locked ? p.orange : p.faint);
 
-        auto bottom = in.removeFromBottom (30);
+        auto bottom = in.removeFromBottom (compact() ? 16 : 30);
         if (st.isEmpty())
         {
             const bool optionalOff = gg::slotIsOptional (slot);
@@ -247,16 +257,27 @@ namespace ggui
             g.drawFittedText (optionalOff ? "Off - drop a sound" : "Empty - drop a sound", wave.getBounds(), juce::Justification::centred, 2);
             return;
         }
-        g.setColour (p.text);
-        g.setFont (uiFont (13.5f, false));
-        g.drawFittedText (shortName (st.path), bottom.removeFromTop (16), juce::Justification::centredLeft, 1, 0.7f);
         juce::String tag;
         const float tune = st.tune (kit->tuneToKey);
         if (std::abs (st.autoTune) > 0.01f && kit->tuneToKey)
             tag << (kit->key >= 0 ? "KEY " : "TO 808 ") << (st.autoTune > 0 ? "+" : "") << juce::String (st.autoTune, 1);
         if (std::abs (st.userTune) > 0.01f) tag << (tag.isEmpty() ? "" : "  ") << (tune > 0 ? "+" : "") << juce::String (tune, 1) << " st";
         if (st.reverse) tag << (tag.isEmpty() ? "" : "  ") << "REV";
-        if (tag.isNotEmpty())
+        // the sound's name, and its tuning under it (or beside it, on a short pad)
+        auto nameRow = compact() ? bottom : bottom.removeFromTop (16);
+        if (tag.isNotEmpty() && compact())
+        {
+            const auto tagFont = uiFont (12.0f);
+            const int w = juce::jmin (nameRow.getWidth() / 2, (int) std::ceil (juce::GlyphArrangement::getStringWidth (tagFont, tag)) + 2);
+            g.setColour (p.purple.brighter (p.light ? 0.0f : 0.3f));
+            g.setFont (tagFont);
+            g.drawText (tag, nameRow.removeFromRight (w), juce::Justification::centredRight, true);
+            nameRow.removeFromRight (4);
+        }
+        g.setColour (p.text);
+        g.setFont (uiFont (13.5f, false));
+        g.drawFittedText (shortName (st.path), nameRow, juce::Justification::centredLeft, 1, 0.7f);
+        if (tag.isNotEmpty() && ! compact())
         {
             g.setColour (p.purple.brighter (p.light ? 0.0f : 0.3f));
             g.setFont (uiFont (12.0f));
@@ -351,36 +372,50 @@ namespace ggui
         startTimerHz (30);
     }
 
+    int PadGrid::kitSize() const
+    {
+        // the kit you're editing; before there are kits, the size BUILD will make
+        if (auto* k = proc.getActiveKit()) return k->size;
+        return gg::validKitSize (proc.options.kitSize);
+    }
+
     void PadGrid::refresh()
     {
+        if (kitSize() != shownSize) resized();
         for (auto* t : tiles) t->refresh();
     }
 
     void PadGrid::resized()
     {
-        // two rows: the kit, then toms / percussion / FX
-        auto r = getLocalBounds();
-        const int rowH = r.getHeight() / 2;
-        auto row1 = r.removeFromTop (rowH);
-        auto row2 = r;
-        const int perRow = 9;
-        const int w = row1.getWidth() / perRow;
-        for (int i = 0; i < tiles.size(); ++i)
+        // 17 pads: two rows (the kit, then toms / percussion / FX); 23 and 32: rows of 8, each sound's second
+        // beside it (Kick, Kick 2, 808, 808 2...)
+        shownSize = kitSize();
+        const auto& shown = gg::kitSlots (shownSize);
+        const int perRow = shownSize == 17 ? 9 : 8;
+        const int rows = ((int) shown.size() + perRow - 1) / perRow;
+        const auto r = getLocalBounds();
+        const int w = r.getWidth() / perRow, h = r.getHeight() / juce::jmax (1, rows);
+        for (auto* t : tiles) t->setVisible (false);
+        for (int i = 0; i < (int) shown.size(); ++i)
         {
-            auto& row = i < perRow ? row1 : row2;
-            tiles[i]->setBounds (row.removeFromLeft (w).reduced (3));
+            auto* t = tiles[(int) shown[(size_t) i]];
+            t->setBounds (juce::Rectangle<int> (r.getX() + (i % perRow) * w, r.getY() + (i / perRow) * h, w, h).reduced (3));
+            t->setVisible (true);
         }
     }
 
     void PadGrid::timerCallback()
     {
+        const auto* kit = proc.getActiveKit();
         for (int pad = 0; pad < gg::numPads; ++pad)
         {
             const auto f = proc.player.getPadFlash (pad);
             if (f != lastFlash[(size_t) pad])
             {
                 lastFlash[(size_t) pad] = f;
-                const auto slot = gg::padLayout()[(size_t) pad].slot;
+                // the tile of the sound that played (Snare 2's pad plays the snare in a kit without a Snare 2)
+                const auto& def = gg::padLayout()[(size_t) pad];
+                const auto slot = kit != nullptr ? kit->padSound (def).slot : def.slot;
                 tiles[(int) slot]->flash();
             }
         }

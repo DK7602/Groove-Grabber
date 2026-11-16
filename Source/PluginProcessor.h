@@ -6,6 +6,7 @@
 #include "core/KitPlayer.h"
 #include "core/SongContext.h"
 #include "core/Exporter.h"
+#include "core/Fx.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <map>
 
@@ -50,6 +51,8 @@ public:
     void setKey (int key);
     void setBpm (double bpm);
     juce::String firstGroove() const;              // kit 1's preview groove
+    // A song Song Savant sent: its description, genre, style, era, key and tempo, then four kits for it
+    void useSongSavantSong (const gg::SongSavantSong&);
 
     // ---- the four kits ----
     std::vector<gg::Kit> kits;
@@ -66,6 +69,14 @@ public:
     void loadKit (const gg::Kit&, int intoIndex);
     juce::String getStatusMessage() const          { return statusMessage; }
 
+    // ---- SAUCE's kit: one of MY GROOVES can play with the kit it was saved with ("its original kit"), on SAUCE only.
+    // BUILD's four kits, and the one picked there, stay as they are, and BUILD always plays BUILD's kit. ----
+    void setSauceKit (std::shared_ptr<const gg::Kit>);     // nullptr: SAUCE plays BUILD's kit again
+    std::shared_ptr<const gg::Kit> getSauceKit() const noexcept   { return sauceKit; }
+    const gg::Kit* kitOnSauce();                           // what SAUCE plays: its own kit, or BUILD's (nullptr: none yet)
+    void setSauceShowing (bool);                           // SAUCE on screen: its kit plays (its pads, your DAW's notes)
+    gg::PlayableKit::Ptr getSaucePlayable() const          { return saucePlayable; }
+
     // ---- listening ----
     gg::KitPlayer player;
     juce::String grooveId = "boombap1";
@@ -74,17 +85,39 @@ public:
     // ---- grooves: the built-in ones, or your edit of one (from SAUCE, kept with the song) ----
     std::shared_ptr<const gg::Groove> getGroove (const juce::String& id) const;
     bool isGrooveEdited (const juce::String& id) const;
-    void editGroove (const juce::String& id, std::vector<gg::GrooveHit> hits);   // the original's hits reset it
+    // changes wait (with the song) until saved: a built-in groove keeps them as your edit for this song; one of
+    // your grooves keeps them until SAVE (saveGrooveChanges) or SAVE AS COPY. The saved hits again clear them.
+    void editGroove (const juce::String& id, std::vector<gg::GrooveHit> hits);
+    void editGroove (const juce::String& id, std::vector<gg::GrooveHit> hits, float swing);
+    void setGrooveSwing (const juce::String& id, float swing);   // 0 = straight .. 0.5 = a full triplet (SAUCE's SWING)
     void resetGroove (const juce::String& id);
 
     // ---- my grooves: patterns you saved as your own, for every song (core/MyGrooves) ----
     juce::String saveMyGroove (const juce::String& fromId, const juce::String& name, gg::Genre, const juce::String& styleId);
     void renameMyGroove (const juce::String& id, const juce::String& name);
+    bool saveGrooveChanges (const juce::String& id);   // your changes go into one of your grooves (SAVE)
+    juce::String restoreMyGroove (const juce::File& backup);   // a groove back from My Grooves/Backups
+    // A MIDI pattern dropped on SAUCE, saved as one of your grooves (with this genre and style; `bpm` when the file
+    // has no tempo). Returns its id, or empty (with a message saying why).
+    juce::String importMyGroove (const juce::File& midi, gg::Genre, const juce::String& styleId, double bpm);
     void deleteMyGroove (const juce::String& id);
+
+    // COACH MY BEAT's ON PURPOSE tips, kept after the app closes: one of MY GROOVES keeps them in the settings
+    // (so they follow it into every song), any other pattern (an edit, BLANK) with the song
+    juce::StringArray getCoachOnPurpose (const juce::String& grooveId);
+    void setCoachOnPurpose (const juce::String& grooveId, const juce::StringArray& tipIds);
     void auditionSlot (gg::Slot);
     void previewFile (const juce::String& path, gg::Cat);
     gg::PlayableKit::Ptr getPlayable (int kitIndex) const;
     bool isStandalone() const noexcept             { return wrapperType == wrapperType_Standalone; }
+
+    // ---- FX: your effects, typed (core/Fx), and heard in time with the groove ----
+    juce::SharedResourcePointer<gg::fx::Catalog> fxCatalog;
+    double songBpm() const;                        // the song's tempo (or its style's)
+    // Plays the effect over BUILD's groove and kit, placed where it goes: a build-up ends on a downbeat, a hit starts
+    // on one, a whoosh peaks on one. With no kits yet, over a click. Returns how long it plays (seconds).
+    double hearFxInTime (const juce::String& path, gg::fx::Type);
+    void stopPreview();                            // a sound playing on its own (a library sound, an FX) stops
 
     // ---- library & settings ----
     juce::SharedResourcePointer<gg::Library> library;
@@ -94,6 +127,13 @@ public:
     void runInBackground (std::function<void()> job);
 
 private:
+    std::map<juce::String, juce::StringArray> coachOnPurpose;     // the song's patterns' ON PURPOSE tips
+    std::shared_ptr<const gg::Kit> sauceKit;                       // a groove's original kit, playing on SAUCE
+    gg::PlayableKit::Ptr saucePlayable;
+    bool sauceShowing = false;
+    std::atomic<int> sauceGeneration { 0 };
+    void renderSauceKit();
+    void updatePlayerKit();          // SAUCE's own kit while SAUCE shows it, BUILD's picked kit otherwise
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
     juce::String makeState();
     void applyState (const juce::String&);

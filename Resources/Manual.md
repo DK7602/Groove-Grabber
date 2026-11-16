@@ -6,7 +6,7 @@ Groove Grabber builds four drum kits for the song you're making, using only the 
 
 This manual covers version {VERSION}. Groove Grabber runs as a plug-in in your DAW (VST3, AU on Mac) and as a standalone app. Open this manual any time with the **?** button in the header or the **F1** key.
 
-The workflow in six steps:
+The workflow in seven steps:
 
 1. **LIBRARY:** point it at your drum folders once. It listens to every sound and remembers it.
 2. **BUILD:** describe the song in your own words (genre, decade, feel, tempo, key, even an artist or song).
@@ -14,6 +14,7 @@ The workflow in six steps:
 4. **Edit:** lock the pads you love, regenerate the rest, swap in alternatives, tweak each pad.
 5. **EXPORT:** a numbered folder you drop straight onto your drum sampler's first pad, with steps for your DAW.
 6. **SAUCE:** how the drums are played in your genre, style and decade, with patterns to play, edit and drag into your DAW.
+7. **FX:** your effects by kind (risers, impacts, tape stops, scratches...), with where each fits and how it sounds in time with your beat.
 
 ## Install and first run
 
@@ -41,6 +42,7 @@ The Windows and Mac installers let you choose the parts. Pick "Plug-in + standal
 | Exported kits | Documents\Groove Grabber\Exports\<genre>\<kit name> |
 | Patterns dragged from SAUCE | Documents\Groove Grabber\Sauce MIDI |
 | My grooves | Documents\Groove Grabber\My Grooves |
+| Backups of your grooves (before each save, rename or delete) | Documents\Groove Grabber\My Grooves\Backups |
 | Saved kits | Documents\Groove Grabber\Kits\<genre> |
 | Harvested hits | Documents\Groove Grabber\Harvested |
 | Your own recordings | Documents\Groove Grabber\My Recordings |
@@ -48,17 +50,17 @@ The Windows and Mac installers let you choose the parts. Pick "Plug-in + standal
 
 ## The screen at a glance
 
-Everything sits on four pages under one header bar. Hover over almost anything to see a tip.
+Everything sits on five pages under one header bar. Hover over almost anything to see a tip.
 
 **The header, left to right**
 
 | Control | What it does |
 | --- | --- |
 | Logo | Click to switch between the dark and light look |
-| BUILD / LIBRARY / MY KITS / SAUCE | The four pages |
+| BUILD / SAUCE / FX / MY KITS / LIBRARY | The five pages |
 | KEY | The song's key. The kick, 808 and toms are tuned to it. Minor keys are listed first. |
 | BPM | The song's tempo. Drag up or down, scroll, or double-click to type. |
-| KEY COMPASS | Takes the key and tempo from a Key Compass song or from a song file |
+| KEY COMPASS | Takes the key and tempo from a Key Compass song or a song file, or uses a song sent from Song Savant |
 | ? | This manual (also the F1 key) |
 | Gear | Settings: audio / MIDI (standalone app), export format and folder, the manual, About |
 | Sun / moon | Light / dark look (same as clicking the logo) |
@@ -67,10 +69,11 @@ Everything sits on four pages under one header bar. Hover over almost anything t
 
 - **BUILD:** describe the song, generate the four kits, edit pads, save and export. It's where you spend most of your time.
 - **LIBRARY:** your sound folders, scanning, Harvest Hits, and a searchable list of every analysed sound.
+- **FX:** your effects by kind, with where each fits in your genre and decade, a tip on where it goes, and HEAR IT IN TIME.
 - **MY KITS:** kits you saved, plus recent ones, filed by genre and searchable.
 - **SAUCE:** how the drums go in a genre, style and decade: the patterns (which you can edit), and how to play and program them.
 
-The app opens on LIBRARY the very first time (nothing to build with yet) and on BUILD after that. The window can be resized from the bottom-right corner.
+The app opens on LIBRARY the very first time (nothing to build with yet) and on BUILD after that. The window can be resized from the bottom-right corner. Make it bigger than the size it opens at (or maximise it) and everything grows with it: the words, buttons and pads are easier to read on a big screen, and shrink back when the window gets smaller. The standalone app's window also has a maximise button between minimise and close (or double-click its title bar).
 
 ## LIBRARY: your sounds
 
@@ -137,6 +140,7 @@ Examples that work:
 | A genre: trap, hip-hop, rap, r&b, pop, rock, country, worship, gospel, edm, house, lofi, cinematic... | The genre |
 | A style: g-funk, boom bap, uk drill, phonk, honky tonk, pop rock, hard rock, neo soul, drum and bass... | The style within the genre |
 | A decade: 60s, 70s, 80s, 90s, 2000s, 2010s, today | The era (and, with just a genre, the style that decade is known for: "80s pop" = Synth Pop) |
+| modern, new, latest, contemporary, new school | Today, when no decade is named ("modern rap", "new country"). A decade you name wins: "a modern take on 90s boom bap" stays 90s. "New" in a name (New York, New Orleans, new jack swing, new wave) isn't read as today. |
 | Feel words: punchy, warm, dark, bright, roomy, dry, dusty, vintage, clean, modern, hard, heavy, smooth, gated... | The character sliders. "Not too bright" works too. |
 | live, acoustic, programmed, drum machine, hybrid | Live feel |
 | 808, no 808, fx, risers, lots of percussion, no percussion, minimal | The options |
@@ -162,7 +166,7 @@ Name an artist or a song and kit 1 takes their sound: "like Dr. Dre", "Still D.R
 - **An artist from another genre lends their decade and feel.** "Dr. Dre" with Rock picked gives a punchy, dry 90s rock kit with a little hip-hop in it.
 - **A genre typed in the box wins over the artist's own.** "Dr. Dre style rock song" stays Rock.
 - **Names that are everyday words need a cue:** "like Future", "Prince type beat", "in the style of Queen". Otherwise "future bass" would mean the rapper.
-- Names it doesn't know are ignored. For the real drums of a specific song, harvest them (see Working with Key Compass and Sample Snagger).
+- Names it doesn't know are ignored. For the real drums of a specific song, harvest them (see Working with Key Compass, Song Savant and Sample Snagger).
 
 ## BUILD: kit character and options
 
@@ -186,10 +190,11 @@ Moving a slider shifts all four kits the same way, so each kit keeps its own per
 
 | Option | Choices | What it does |
 | --- | --- | --- |
+| KIT SIZE | 17, 23, 32 | How many sounds each kit holds. **17** (the default): one of each kind. **23:** two kicks, two 808s, two snares, two closed hats, two open hats and three FX, plus one each of clap, rim, crash, ride, the three toms and three percussion. **32:** two of everything, four percussion and four FX. Each second sound is a different one of its kind, not a near twin of the first. It takes effect when you press GENERATE KITS. |
 | FEEL | Auto, Live, Hybrid, Prog | Auto lets the style decide. Live = real drums, Prog = drum machines, Hybrid = a mix. |
 | LOW END | Auto, Kick, Kick + 808 | Just a kick, or a kick and an 808. Auto follows the style (trap and G-Funk use an 808, rock doesn't). |
-| PERC | Auto, 0, 1, 2, 3 | How many percussion pads (shaker, tambourine, conga...) |
-| FX / sound effects | On / off | Adds two FX pads of different kinds: a build-up (riser, reverse), an impact, a texture (vinyl, noise) or an accent (scratch, stab, laser) |
+| PERC | Auto, 0, 1, 2, 3 | How many percussion pads (shaker, tambourine, conga...). Auto follows the style; a 23-sound kit fills its 3 percussion pads and a 32-sound kit its 4. |
+| FX / sound effects | On / off | Fills the FX pads (two, three or four, by the kit size) with different kinds: a build-up (riser, reverse), an impact, a texture (vinyl, noise) or an accent (scratch, stab, laser). Off leaves them empty. LOW END works the same way: with Kick only, a bigger kit's two 808 pads stay empty too. |
 | Tune kick, 808, toms to key | On / off | Tunes the 808 to the song's root, the kick to the root or fifth when it's close, and the toms to notes of the scale. With no key set, the kick is still tuned to the 808's note (or its fifth), so the low end agrees. |
 
 **USE SOUNDS FROM**
@@ -216,7 +221,7 @@ You get four kits across the top of the BUILD page, each a different take on you
 
 **The pads (KIT EDITOR)**
 
-The kit you're editing shows its pads: Kick, 808, Snare, Clap, Rim, Closed Hat, Open Hat, Crash, Ride, three toms, three percussion and two FX. Each pad shows its waveform, file name and how far it was tuned to the key ("KEY +3.5"), or to the 808 when no key is set ("TO 808 +1.2").
+The kit you're editing shows its pads: Kick, 808, Snare, Clap, Rim, Closed Hat, Open Hat, Crash, Ride, three toms, three percussion and two FX. A 23- or 32-sound kit (KIT SIZE) shows them in rows of 8, each second sound beside its first: Kick, Kick 2, 808, 808 2, Snare, Snare 2... Each pad shows its waveform, file name and how far it was tuned to the key ("KEY +3.5"), or to the 808 when no key is set ("TO 808 +1.2").
 
 - **Click a pad** to hear it and open it in the pad editor below.
 - **Drag a pad into your DAW** to use that one sound on its own.
@@ -235,8 +240,9 @@ The buttons above the pads act on the whole kit: **REGENERATE** (new sounds for 
 **The groove bar** (very bottom)
 
 - **Play / stop** the preview groove with the selected kit. The **Space bar** does the same.
-- **Groove** picks the preview pattern. Each style has its own, and it plays at the song's BPM.
-- **SWING** and **VOL** for the preview.
+- **Groove** picks the preview pattern. Each style has its own, and it plays at the song's BPM. Your own grooves are listed under MY GROOVES.
+- **EDIT IN SAUCE** opens the groove you picked on the SAUCE page, to change it, save it as your own or drag it into your DAW.
+- **SWING** for the preview, from 50% (straight) to 66% (a full triplet), the same as SAUCE's. Point at it to see the value; double-click it for straight. **VOL** sets the preview's volume.
 - **Follow DAW:** while your DAW plays, the groove locks to its timeline, so you hear the kit inside your song.
 
 **Playing from MIDI:** the pads answer MIDI notes 36 to 57 (C1 to A2), the same layout as the export (see the Quick reference card). Closed, pedal and open hats cut each other off like a real hi-hat.
@@ -245,10 +251,11 @@ The buttons above the pads act on the whole kit: **REGENERATE** (new sounds for 
 
 Press the heart on a kit card, or **SAVE KIT** above the pads, to keep a kit. It keeps its name, sounds, pad settings, locks, style, decade, key, tempo and the description you typed.
 
-The MY KITS page has two views:
+The MY KITS page has three views:
 
 - **SAVED:** every kit you kept, filed in a folder for its genre (Documents\Groove Grabber\Kits\Hip-Hop, \Rock, \Country...). Kits saved by older versions are moved into their genre folders automatically.
 - **RECENT:** the last 48 kits you generated, saved or not, so a good one is never lost.
+- **MY GROOVES:** the patterns you saved as your own on SAUCE (see SAUCE: how the drums go). Each shows a small picture of the pattern, its genre and style, tempo, swing, the pattern it started from and the kit it was saved with, with **OPEN** (show it on SAUCE to play, change or drag it, with its original kit or onto BUILD's current kit), **USE ON BUILD** (BUILD's preview and the export's Groove MIDI use it) and **DELETE** (click twice). The genre tabs and search work here too. **BACKUPS...** (top right) lists the copies kept before a groove was saved over, renamed or deleted; pick one to bring it back as a groove of its own.
 
 **Finding a kit**
 
@@ -284,6 +291,7 @@ Each kit shows its genre, style, decade, key, BPM, how many pads it fills and wh
 ```
 Exports/Hip-Hop/90s Westside Classic/
   01 Kick.wav  02 Rim.wav  03 Snare.wav ... 17 808.wav ... 22 FX 2.wav
+  (23 sounds: ... 23 Kick 2.wav ... 27 FX 3.wav;  32 sounds: ... 33 FX 4.wav)
   90s Westside Classic.pgm          MPC 1000 program
   90s Westside Classic Groove.mid   the preview groove
   Kit Info.txt                      where every sound came from + the steps for your DAW
@@ -292,7 +300,9 @@ Exports/Hip-Hop/90s Westside Classic/
 
 **For FL Studio, each file also carries the kit's name**, for example "01 Kick - 90s Westside Classic.wav". FPC finds its samples by file name, so this keeps two kits' kicks from ever getting mixed up.
 
-**Note names differ between DAWs.** The files always sit on MIDI notes 36 to 57, but DAWs name those notes differently: note 36 is C1 in Cubase, Live, Logic, Studio One and Bitwig, C2 in REAPER and C3 in FL Studio. The export panel, Kit Info.txt and the SAUCE grid use your DAW's names.
+**How many files:** a 17-sound kit exports 22 files (notes 36 to 57), a 23-sound kit 27 (36 to 62) and a 32-sound kit 33 (36 to 68). The export panel and Kit Info.txt count them for you, for example which of Groove Agent's pad groups the later files land in.
+
+**Note names differ between DAWs.** The files always start on MIDI note 36, but DAWs name those notes differently: note 36 is C1 in Cubase, Live, Logic, Studio One and Bitwig, C2 in REAPER and C3 in FL Studio. The export panel, Kit Info.txt and the SAUCE grid use your DAW's names.
 
 **Loading the kit, DAW by DAW**
 
@@ -320,15 +330,20 @@ The SAUCE page explains how drums are played and programmed in a genre, style an
 - The style's grooves as a step grid: one row per drum, 16 steps a bar, two bars. The beats are steps 1, 5, 9 and 13, counted 1 e & a. Brighter cells are harder hits, faded ones are soft ghost notes, and split cells are rolls.
 - Each row shows the note it plays in your DAW, for example "C1 (36)".
 - The buttons across the top pick between the style's grooves.
-- **Play** (or the Space bar) plays it with the kit you're editing on BUILD. It plays at your song's tempo while you're on your song's style, and at the groove's own tempo when you're reading up on another.
-- **DRAG MIDI** shows the tempo and swing it plays at, and drags four bars of it into your DAW, on the same notes as every Groove Grabber kit (MIDI channel 1). **Drop it on the lane of your drum track** (in Cubase, your Groove Agent SE or Groove Grabber track), at the bar where it should start. Dropped below the last track, most DAWs make a new track with no instrument on it, so it stays silent. The files are kept in Documents\Groove Grabber\Sauce MIDI.
+- **BLANK** (the first button) is an empty two-bar pattern, to build your own from scratch. Its rows are the sounds of the kit you picked (KIT 01 to 04), all of them in a 23- or 32-sound kit, so you hear that kit as you click steps in. When there are more rows than fit, the pattern gets more of the page and the rows scroll (mouse wheel) under the count. It's kept with your song like any other change, SAVE AS MY GROOVE keeps it for every song, and BUILD's groove list has it as "Blank".
+- **KIT 01 to 04** picks which of BUILD's four kits plays the pattern (the same as clicking that kit on BUILD). Point at one to see its name. One of MY GROOVES also has **ORIGINAL** here: the kit it was saved with (see My grooves below).
+- **Play** (or the Space bar) plays it with the kit you picked. It plays at your song's tempo while you're on your song's style, and at the groove's own tempo when you're reading up on another.
+- **The playhead moves where you click.** Click the count over the steps (1 e & a 2...) and the playhead jumps to that step and plays from there, even when it's stopped. Drag along the count to scrub. When you stop, the playhead stays where you last clicked, and Play and the Space bar start from there. Click "1" of bar 1 to start from the top again. (With Follow DAW on and your DAW playing, the DAW's position leads.)
+- **DRAG MIDI** shows the tempo and swing it plays at, and drags the pattern into your DAW twice over (four bars for a two-bar groove), on the same notes as every Groove Grabber kit (MIDI channel 1). **Drop it on the lane of your drum track** (in Cubase, your Groove Agent SE or Groove Grabber track), at the bar where it should start. Dropped below the last track, most DAWs make a new track with no instrument on it, so it stays silent. The files are kept in Documents\Groove Grabber\Sauce MIDI.
 
 **Editing the pattern**
 
-- **Click a step** to add a hit or take one away. Hold the mouse down and drag along the row to do several.
+- **Click a drum's name** (Kick, 808, Snare...) on the left of the grid to hear it from the kit you picked.
+- **Click a step** to add a hit or take one away. Hold the mouse down and drag along the row to do several. Each hit you add (or make harder, softer or a roll) plays as you click it.
 - **Right-click** a hit to make it hard, medium or soft (a ghost note). Right-click an empty step for a soft ghost note.
 - **Ctrl-click** (Alt-click on a Mac) a step for a roll: 2 quick hits in that step, Ctrl-click again for 3 (a triplet roll, the fast hi-hat flutter in trap and drill), and again for 1 hit. Right-click it afterwards to make the roll softer.
 - **+ ADD DRUM** adds a row for a drum the pattern doesn't use yet (rim, toms, ride, percussion, FX...).
+- **SWING** (under the grid) sets the pattern's swing, from 50% (straight) to 66% (a full triplet). Double-click it for straight. It's saved with the pattern like your other changes (UNDO takes it back), and DRAG MIDI and BUILD's preview play it that way.
 - **UNDO** takes back your last change. **RESET** goes back to the original pattern (and UNDO brings your version back).
 - An edited pattern shows **EDITED**. Your version is saved with your song (in your DAW project), plays while you edit, and is also what BUILD's preview groove plays and what goes into the export's Groove MIDI file. The groove list on BUILD marks it "edited".
 
@@ -337,12 +352,49 @@ The SAUCE page explains how drums are played and programmed in a genre, style an
 An edit belongs to one song. To keep a pattern for all your songs, save it as your own:
 
 1. Shape the pattern (or take a style's pattern as it is) and press **SAVE AS MY GROOVE**.
-2. Type a name ("Late Snare Bounce") and press Enter or **SAVE**. Esc or **CANCEL** leaves it.
-3. It's saved on your computer in Documents\Groove Grabber\My Grooves, with its tempo and swing.
+2. Type a name ("Late Snare Bounce"), then:
+    - **SAVE** (or Enter) keeps your version under its new name. The pattern you started from goes back to its original, so BUILD's groove list still has the original under its own name. (UNDO on the original brings your changes back.)
+    - **SAVE & REPLACE ON BUILD** does the same, and BUILD's preview plays your version in place of the original (and the export's Groove MIDI uses it).
+    - **CANCEL** (or Esc) leaves it.
+3. It's saved on your computer in Documents\Groove Grabber\My Grooves, with its tempo and swing and the kit you heard it with, and listed under MY GROOVES here and on the MY KITS page.
 
-- **MY GROOVES** (next to the pattern buttons) lists your grooves, this genre's first and the rest under Other genres. Pick one to see it, play it, change it or drag it into your DAW.
-- While one of your grooves is showing, it's marked **MY GROOVE**. Changes save to it as you go (UNDO still works), **RENAME** gives it a new name, and **DELETE** removes it (click it twice: the first click asks SURE?).
+- **MY GROOVES** (next to the pattern buttons) lists your grooves, this genre's first and the rest under Other genres. Point at one to choose how it loads:
+    - **With its original kit**: the kit you made it with, sound for sound. It plays on SAUCE only. BUILD's four kits, and the one picked there, stay exactly as they are, and BUILD keeps playing its own kit. Clicking the groove's name loads it this way.
+    - **Onto BUILD's current kit**: your hits on the kit picked on BUILD, to hear the beat with your new sounds.
+- While it shows, the KIT row has **ORIGINAL** beside 01 to 04, so you can switch between its original kit and BUILD's kits any time. Going to another pattern goes back to BUILD's kit.
+- While SAUCE plays the original kit, its drum names and the notes from your DAW play that kit too. On the other pages, BUILD's kit plays.
+- Which kit a groove keeps: the one playing when you saved it (SAVE AS MY GROOVE, SAVE AS COPY, or a MIDI file dropped on SAUCE). SAVE keeps its original kit. A groove saved before Groove Grabber 1.0.29 has no original kit yet; SAVE it once and it keeps the kit you hear it with.
+- The kit points at your sound files: if you move or delete them, those sounds are silent in the original kit.
+- While one of your grooves is showing, it's marked **MY GROOVE**. **Nothing changes it until you say so**: as soon as you change a step it's marked **CHANGED**, and then:
+    - **SAVE** puts your changes into this groove.
+    - **SAVE AS COPY** saves your changes as a new groove (the name counts up: "Trap 1" becomes "Trap 2"), and this one stays exactly as it was saved. SAVE AS COPY works without changes too, for a copy to experiment on.
+    - **REVERT** drops the changes (UNDO brings them back).
+    - Changes you haven't saved stay with the song, so they're still there when you reopen the project.
+- **RENAME** gives it a new name and changes nothing else. **DELETE** removes it (click it twice: the first click asks SURE?).
+- **A copy is always kept.** Before a groove is saved over, renamed or deleted, a copy goes to Documents\Groove Grabber\My Grooves\Backups. MY KITS > MY GROOVES > **BACKUPS...** brings any of them back.
 - BUILD's groove list has a **MY GROOVES** section in every song: pick one to hear new kits in your groove, and it's what goes into the export's Groove MIDI file. If you delete it, BUILD goes back to the style's own groove.
+
+**Drop a MIDI pattern on SAUCE**
+
+Drag a MIDI file (.mid) onto the SAUCE page: a drum part from Song Savant, a clip from your DAW, or a file from a folder. It becomes one of **MY GROOVES**, named after the file, saved with the genre and style you're on, and shows on the grid to play, change and save.
+
+- Each note goes to its drum. Files from Song Savant and Groove Grabber say which drum layout they use, so the 808 and the percussion land on their own rows. Other files are read as the usual General MIDI drums (what most DAWs and drum maps use).
+- It starts from the first bar with a note, and keeps up to **4 bars**. A pattern that plays the same two bars twice (what DRAG MIDI gives) comes back as those two bars.
+- The hits are lined up to the grid's 16ths. Two or three quick hits in one step stay a roll. If the pattern swings, Groove Grabber finds its swing and sets SWING to match.
+- The tempo comes from the file (or your song's tempo when the file has none).
+- Notes that aren't drums (a bass line, say) are left out. The message at the bottom says what came in.
+
+**Coach my beat: feedback on your pattern**
+
+**COACH MY BEAT** (top right of the bottom panel) looks at a pattern you changed, BLANK, or one of MY GROOVES (a beat you dropped in from your DAW too), next to the genre, style and decade picked on the left and your song's tempo.
+
+- **Four ratings:** Groove fit (backbeat, kick, hats, low end), Feel (swing, accents, ghost notes, tempo), Space (crowded steps, a busy kick or hats) and Variation (does the last bar move).
+- **What to work on:** up to six tips, the biggest first. Each is a direct line in bold, then why the style does it. Point at a tip and its steps light up on the grid.
+- **TRY IT** makes the change for you (UNDO takes it back) and the coach looks again.
+- **ON PURPOSE** leaves a tip out for this pattern, when you did it that way on purpose, and it stays out after you close Groove Grabber: for one of MY GROOVES in every song, for any other pattern with the song (your DAW project). **BRING THEM BACK** shows them again.
+- **What's working:** what you got right.
+- The coach compares your beat with the style's own grooves and its SAUCE table. It only suggests adding something when every one of the style's grooves has it, and taking something out when none of them do, so its tips are about the style, not one way of playing it. It reads the pattern, not the sounds.
+- Change the beat or the style and the report says so: press **COACH AGAIN**. **THE SAUCE** goes back to the write-up.
 
 **THE SAUCE** (bottom)
 
@@ -352,9 +404,30 @@ An edit belongs to one song. To keep a pattern for all your songs, save it as yo
 - **Sauce tips:** velocity, ghost notes, timing, layering and mix moves.
 - With a decade picked, **In the 90s** (or whichever) adds how that genre's drums sounded then, the gear of the time and how to get that sound in your DAW.
 
-Swing is given MPC-style: 50% is straight, about 54 to 58% light, 60 to 62% heavy and 66% a full triplet. The DRAG MIDI handle shows the swing the pattern plays at (for example "4 bars, 92 BPM, swing 60%"), and BUILD's swing slider shows its value the same way when you point at it. DAWs name their swing controls differently, so match the feel rather than the number.
+Swing is given MPC-style: 50% is straight, about 54 to 58% light, 60 to 62% heavy and 66% a full triplet. The DRAG MIDI handle shows the swing the pattern plays at (for example "4 bars, 92 BPM, swing 60%"), and BUILD's swing slider covers the same range and shows its value the same way when you point at it. Swing stops at a full triplet: past that the late note lands nearer the next one than its own beat, and it sounds lopsided rather than swung. DAWs name their swing controls differently, so match the feel rather than the number.
 
-## Working with Key Compass and Sample Snagger
+## FX: your effects
+
+The FX page gathers every effect in your library (anything LIBRARY lists as FX) and sorts it by kind:
+
+| Group | Kinds |
+| --- | --- |
+| Build-ups | Riser, reverse cymbal, swell (a reversed snare or hit) |
+| Hits | Impact, sub drop / boom |
+| Falls and moves | Downlifter, sweep, whoosh, tape stop, rewind |
+| Textures | Vinyl crackle, noise bed |
+| Accents | Scratch, zap, laser, blip, glitch, air horn / siren |
+
+- **How it knows the kind.** A file's name and folders come first ("Riser 4 Bars", "Tape Stop", "Transitions/Reverse Crash"). With no name to go by ("FX 01", "Untitled"), it listens to the whole sound: where it's loudest, whether it gets brighter or darker, whether its pitch rises, falls or wobbles, how steady and how noisy it is. The first time, it takes a moment to sort them (it says "sorting your effects..."); after that it remembers. Each effect says whether its kind came from its name, its sound, or you.
+- **Wrong kind?** Right-click it and pick "It's really a...". What you set is never changed again (marked with a star).
+- **Kinds** (left): click one to see only those; the number is how many you have. "Every effect" shows them all.
+- **The list**: name, kind, length, its length in **bars at your song's tempo** (a riser of exactly 2 bars starts 2 bars before the change), its note when it holds one, how well it **fits** your song (BUILD's genre and decade: Great fit, Fits or Unusual), and its pack. Click a column to sort, search by name, pack or kind, and press **FITS MY SONG FIRST** to put the best fits at the top.
+- **Click an effect** to hear it (the arrow keys move through the list and play each one; Space plays the one picked).
+- **The effect** (right): its sound, length, note, where it goes against the beat, its fit for your song and where it's at home ("Best in: EDM / Dance, Pop, Trap... 2000s to today"), and a tip on how it's used. The fit is only advice: use anything you like.
+- **HEAR IT IN TIME** plays it over BUILD's groove and kit, at your tempo, placed where it belongs: a build-up (riser, reverse cymbal, swell, sweep, tape stop, rewind) **ends** on a downbeat, a hit or an accent **starts** on one, a whoosh **peaks** on one, a texture runs from the downbeat. One bar of the groove plays first and two after. With no kits yet it plays over a click. Press it again (STOP) to stop.
+- **DRAG** the effect onto an audio track in your DAW (it's the original file). Line a build-up's end up with the bar line where the change comes.
+
+## Working with Key Compass, Song Savant and Sample Snagger
 
 **Key Compass**
 
@@ -365,6 +438,19 @@ Click **KEY COMPASS** in the header:
 - **Choose the Key Compass songs folder...** if your songs live somewhere other than the default (AppData\Roaming\KeyCompass\Songs on Windows).
 
 With a key set and "Tune kick, 808, toms to key" on, the kit is tuned to your song.
+
+**Song Savant**
+
+Song Savant suggests the sounds for a whole song from the instruments you own. On its drum card, **SEND TO GROOVE GRABBER** passes the song over: its description, genre, style, decade, key and tempo (and the sections of its arrangement).
+
+- If Groove Grabber is open, the BUILD page shows **Song Savant sent "...": USE IT** under your description for a day. Click it and Groove Grabber sets everything and builds four kits for the song, with the kick, 808 and toms tuned to its key. The **X** next to it hides it.
+- Every song Song Savant sent is also in the **KEY COMPASS** menu, under SONG SAVANT SONGS. Picking one does the same.
+- Click **SAVE KIT** on the kit you like. If Song Savant is open, that kit lands on its drum card by itself within a few seconds, locked, and Song Savant's starter drum parts and arrangement use it (Song Savant 0.10.1 or newer). Every other kit you save shows up among Song Savant's drum choices.
+- In your DAW, put Groove Grabber on an instrument track, open **MY KITS** and **LOAD** the kit, then drag Song Savant's drum part onto that track: it plays Groove Grabber's pads, and in 808 styles the 808 plays with the kick.
+
+- **Drum patterns go both ways** (Song Savant 1.3.0 or newer). Drag DRAG MIDI from SAUCE onto Song Savant (its drum card, a drums box on its ARRANGE page, or its drum piano roll), and each drum lands on its own row, the 808 too. Drag Song Savant's drum part (its piano roll's drag tag, or a drums box on ARRANGE) onto SAUCE, and it becomes one of MY GROOVES (see Drop a MIDI pattern on SAUCE). If one of them is the plug-in in your DAW, drag the pattern into the DAW first, then from the DAW onto the other.
+
+The songs are small files in Documents\Song Savant\Songs.
 
 **Sample Snagger**
 
@@ -471,6 +557,7 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | Pads sound out of tune with your song | Set the right KEY in the header, or switch off "Tune kick, 808, toms to key". Fine-tune with the pad's TUNE knob. |
 | The plug-in doesn't show up in your DAW | It's an instrument: look in your instrument list (Cubase: under Drum, by Grabber Audio). On Windows the VST3 is in C:\Program Files\Common Files\VST3. In Cubase, if it was ever blocked, open Studio > VST Plug-in Manager, show the blocklist, select Groove Grabber and click Reactivate. |
 | No sound from the standalone app | Gear menu, **Audio / MIDI settings...**, and pick your output device. |
+| Your DAW froze while closing a project or quitting | Fixed in 1.0.13 (Cubase could freeze when it quit). If it ever happens again, send Documents\Groove Grabber\Groove Grabber log.txt: its last lines show how far closing got. |
 | The groove drifts from your song | Turn on **Follow DAW** in the groove bar. |
 | Sounds land on the wrong pads in your sampler | Keep "Silent files for empty pads" on, and drop all 22 files on the note 36 pad. In Groove Agent, drop on the lowest drop icon; in Studio One, hold Shift. See Exporting to your DAW. |
 | All the files stacked up on one pad | The sampler layered them. Drop them again the way your DAW spreads them (Exporting to your DAW), or one file per pad in FPC, REAPER and Kong. |
@@ -478,7 +565,16 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | Open hats ring over closed hats | Put the Closed Hat, Pedal Hat and Open Hat pads (notes 42, 44 and 46) in the same choke / exclusive group. |
 | A pattern you dragged in from SAUCE doesn't play | It was dropped on empty space, so your DAW made a new track with no instrument. Drag the part onto your drum track (Groove Agent, Groove Grabber...), or set that track's output to your drum instrument. Next time, drop it straight on the drum track's lane. |
 | You changed a pattern on SAUCE and want the original back | Press RESET under the pattern. UNDO brings your version back. |
-| You want a pattern in every song, not just this one | SAUCE: SAVE AS MY GROOVE. It's then under MY GROOVES on SAUCE and in BUILD's groove list. |
+| You want to hear one part of a pattern again and again | Click the count over the steps where it starts: it plays from there. Play and Space start from that spot until you click somewhere else. |
+| You want feedback on a beat you made | SAUCE: change a pattern (or build one from BLANK, or drop your MIDI on SAUCE), pick the style it's for, and press COACH MY BEAT. |
+| You want to build a pattern from scratch | SAUCE: press **BLANK**, pick the kit with KIT 01 to 04, click the steps in and set SWING. SAVE AS MY GROOVE keeps it for every song. |
+| An effect isn't on the FX page | LIBRARY files it as something else (a loop, a perc...). Right-click it there and pick "It's really a..." > FX. |
+| You want to hear where a riser should start | FX: pick it and press HEAR IT IN TIME. It ends on the downbeat, and the BARS column says how long it runs at your tempo. |
+| You want a pattern in every song, not just this one | SAUCE: SAVE AS MY GROOVE. It's then under MY GROOVES on SAUCE, in BUILD's groove list and on the MY KITS page. |
+| One of your grooves plays on BUILD's kit, not the sounds you made it with | SAUCE: MY GROOVES, point at the groove and pick "With its original kit" (or press ORIGINAL on the KIT row). BUILD's kits stay as they are. Grooves saved before 1.0.29 get their kit the next time you SAVE them. |
+| One of your grooves changed or is gone, and you want it back | MY KITS > MY GROOVES > BACKUPS...: every version from before a save, rename or delete is there. Pick one to bring it back as a groove of its own. |
+| You want to change a groove BUILD is playing | Press EDIT IN SAUCE next to BUILD's groove list. |
+| You saved your version and want BUILD to use it instead of the original | Pick it in BUILD's groove list (MY GROOVES section), or press USE ON BUILD on the MY KITS page. Next time, save with SAVE & REPLACE ON BUILD. |
 | You moved or renamed your drum folders | Remove the old folder on the LIBRARY page and add it again. Saved kits point at the old file locations. |
 | The first scan takes a while | Every sound is analysed once. Later scans only look at new files, and you can keep working meanwhile. |
 
@@ -490,6 +586,7 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | --- | --- |
 | F1 or the ? button | Open this manual |
 | Space | Play / stop the preview groove (on SAUCE: the pattern you're looking at) |
+| Click a drum's name (SAUCE) | Hear that drum |
 | Click a step (SAUCE) | Add or take away a hit; drag along the row for several |
 | Right-click a step (SAUCE) | Hard, medium, soft |
 | Ctrl-click a step (SAUCE; Alt-click on a Mac) | A roll: 2 quick hits, then 3 (triplet), then 1 |
@@ -498,8 +595,11 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | Double-click a slider or knob | Reset it |
 | Click the logo | Switch dark / light |
 | Right-click a sound (LIBRARY) | Fix its type, favourite it, ban it, put it on a pad |
+| Right-click an effect (FX) | Set its kind, hear it in time, show the file |
+| Space (FX) | Play the effect you picked |
 | Drag a pad to your DAW | Use that one sound |
 | Drop a file on a pad | Replace that pad's sound |
+| Drop a .mid on SAUCE | Make it one of MY GROOVES (from Song Savant, your DAW...) |
 
 **Pad map** (export file numbers and MIDI notes; shown as C1 = MIDI note 36, the Cubase, Live and Logic naming)
 
@@ -527,5 +627,16 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | 20 | Perc 3 | G2 (55) |
 | 21 | FX 1 | G#2 (56) |
 | 22 | FX 2 | A2 (57) |
+| 23 | Kick 2 | A#2 (58) |
+| 24 | 808 2 | B2 (59) |
+| 25 | Closed Hat 2 | C3 (60) |
+| 26 | Open Hat 2 | C#3 (61) |
+| 27 | FX 3 | D3 (62) |
+| 28 | Clap 2 | D#3 (63) |
+| 29 | Rim 2 | E3 (64) |
+| 30 | Crash 2 | F3 (65) |
+| 31 | Ride 2 | F#3 (66) |
+| 32 | Perc 4 | G3 (67) |
+| 33 | FX 4 | G#3 (68) |
 
-Snare 2, Floor Tom 2, Pedal Hat, Low Tom and Hi-Mid Tom are variations of a main pad (tuned down, quieter or shorter), so General MIDI grooves always find a sound.
+Files 23 to 27 come with a 23-sound kit, 23 to 33 with a 32-sound kit (KIT SIZE). In a 17-sound kit, Snare 2, Floor Tom 2, Low Tom and Hi-Mid Tom are variations of a main pad (tuned down or a little quieter), and the Pedal Hat always is (a shorter, quieter closed hat), so General MIDI grooves always find a sound. A bigger kit puts its real second snare on Snare 2 (E1), and a 32-sound kit its second toms on Floor Tom 2, Low Tom and Hi-Mid Tom. Closed Hat 2 and Open Hat 2 go in the hats' choke group.

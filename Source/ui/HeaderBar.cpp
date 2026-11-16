@@ -69,8 +69,8 @@ namespace ggui
     //==============================================================================
     HeaderBar::HeaderBar (GrooveGrabberProcessor& p) : proc (p)
     {
-        const char* names[] = { "BUILD", "LIBRARY", "MY KITS", "SAUCE" };
-        for (int i = 0; i < 4; ++i)
+        const char* names[] = { "BUILD", "LIBRARY", "MY KITS", "SAUCE", "FX" };
+        for (int i = 0; i < 5; ++i)
         {
             auto* b = tabs.add (new juce::TextButton (names[i]));
             b->getProperties().set ("style", "tab");
@@ -81,6 +81,7 @@ namespace ggui
         tabs[1]->setTooltip ("Your sound folders, scanning, and every analysed sound");
         tabs[2]->setTooltip ("Kits you saved, and recent ones");
         tabs[3]->setTooltip ("How the drums go in your genre, style and decade: patterns to play and drag into your DAW");
+        tabs[4]->setTooltip ("Your effects by kind (risers, impacts, sweeps, scratches...): where each fits, and how it sounds in time");
 
         key.addItem ("No key", 1);
         for (int k = 0; k < 24; ++k)
@@ -99,7 +100,7 @@ namespace ggui
         addAndMakeVisible (bpm);
 
         keyCompass.setLabel ("KEY COMPASS");
-        keyCompass.setTooltip ("Take the key and tempo from a Key Compass song, or from a song file");
+        keyCompass.setTooltip ("Take the key and tempo from a Key Compass song or a song file, or use a song sent from Song Savant");
         keyCompass.onClick = [this] { showKeyCompassMenu(); };
         addAndMakeVisible (keyCompass);
 
@@ -152,10 +153,44 @@ namespace ggui
     {
         auto r = getLocalBounds().reduced (14, 9);
         const bool narrow = getWidth() < 1400;
-        logoArea = r.removeFromLeft (narrow ? 280 : 340);
-        r.removeFromLeft (narrow ? 4 : 10);
+
+        // the logo: the badge nearly as tall as the bar (above the brand line), and only as wide as GROOVE needs
+        const int badge = narrow ? 76 : 80;
+        titleH = narrow ? 44.0f : 46.0f;
+        grabberH = narrow ? 19.0f : 20.0f;
+        const float grooveW = juce::GlyphArrangement::getStringWidth (titleFont (titleH).withExtraKerningFactor (0.04f), "GROOVE");
+        logoArea = { 14, (getHeight() - 2 - badge) / 2, badge + 14 + (int) std::ceil (grooveW) + 8, badge };
+        r.setLeft (logoArea.getRight() + (narrow ? 6 : 14));
+
+        // the tabs, each as wide as its name: shown BUILD, SAUCE, FX, MY KITS, LIBRARY; each keeps its page's
+        // number (0 BUILD, 1 LIBRARY, 2 MY KITS, 3 SAUCE, 4 FX)
+        // (they get a little smaller when the window is too narrow for them and the controls on the right)
+        const int controlsW = 46 * 3 + 4 * 2 + 10 + (narrow ? 46 : 158) + 10 + 64 + 36 + 6 + (narrow ? 124 : 140) + 34 + 8;
+        const int room = r.getWidth() - controlsW;
+        float textH = narrow ? 16.0f : 17.0f;
+        int pad = narrow ? 26 : 32;
+        auto widthOf = [this] (float h, int padding)
+        {
+            const auto f = headFont (h).withExtraKerningFactor (0.1f);
+            int w = 0;
+            for (const int page : tabOrder)
+                w += (int) std::ceil (juce::GlyphArrangement::getStringWidth (f, tabs[page]->getButtonText())) + padding;
+            return w;
+        };
+        while (widthOf (textH, pad) > room && (pad > 14 || textH > 13.0f))
+        {
+            if (pad > 14) pad -= 2;
+            else textH -= 0.5f;
+        }
+        const auto tabFont = headFont (textH).withExtraKerningFactor (0.1f);
         auto tabRow = r.withSizeKeepingCentre (r.getWidth(), 44);
-        for (auto* t : tabs) { t->setBounds (tabRow.removeFromLeft (t == tabs[2] ? (narrow ? 96 : 108) : (narrow ? 84 : 98)).reduced (2, 2)); }
+        for (const int page : tabOrder)
+        {
+            auto* t = tabs[page];
+            t->getProperties().set ("textH", textH);
+            const int w = (int) std::ceil (juce::GlyphArrangement::getStringWidth (tabFont, t->getButtonText())) + pad;
+            t->setBounds (tabRow.removeFromLeft (w).reduced (2, 2));
+        }
         r = r.withLeft (tabRow.getX());
 
         // right to left: light / dark, settings, Key Compass, BPM, key
@@ -199,12 +234,14 @@ namespace ggui
             g.drawImage (badgeImage(), badge, juce::RectanglePlacement::centred);
         }
         la.removeFromLeft (14);
-        auto groove = la.removeFromTop (la.getHeight() * 64 / 100).toFloat();
-        auto grabber = la.toFloat();
+        // GROOVE over GRABBER, the pair centred on the badge (Orbitron's capitals are 0.574 of its font height)
+        const float grooveCap = titleH * 0.574f, grabberCap = grabberH * 0.574f, gap = titleH * 0.24f;
+        const float grooveBase = (float) la.getY() + ((float) la.getHeight() - (grooveCap + gap + grabberCap)) * 0.5f + grooveCap;
+        const float grabberBase = grooveBase + gap + grabberCap;
         {
-            const auto font = titleFont (38.0f).withExtraKerningFactor (0.04f);
+            const auto font = titleFont (titleH).withExtraKerningFactor (0.04f);
             juce::GlyphArrangement ga;
-            ga.addLineOfText (font, "GROOVE", groove.getX(), groove.getBottom() - 4);
+            ga.addLineOfText (font, "GROOVE", (float) la.getX(), grooveBase);
             juce::Path text;
             ga.createPath (text);
             const auto tb = text.getBounds();
@@ -221,8 +258,8 @@ namespace ggui
             g.fillPath (text);
         }
         g.setColour (p.orange);
-        g.setFont (headFont (17.0f).withExtraKerningFactor (0.66f));
-        g.drawText ("GRABBER", grabber.withTrimmedLeft (3), juce::Justification::topLeft, false);
+        g.setFont (headFont (grabberH).withExtraKerningFactor (0.7f));
+        g.drawSingleLineText ("GRABBER", la.getX() + 3, juce::roundToInt (grabberBase));
 
         g.setColour (p.dim);
         g.setFont (headFont (10.0f).withExtraKerningFactor (0.12f));
@@ -246,13 +283,33 @@ namespace ggui
             if (s.bpm > 0) text << "  -  " << juce::String (s.bpm, 0) << " BPM";
             m.addItem ((int) i + 1, text);
         }
+        // songs sent from Song Savant: genre, style, key and tempo, and four kits built for them
+        const auto ssSongs = gg::listSongSavantSongs (gg::paths::songSavantSongs(), 8);
+        if (! ssSongs.empty())
+        {
+            m.addSeparator();
+            m.addSectionHeader ("SONG SAVANT SONGS");
+            for (size_t i = 0; i < ssSongs.size(); ++i)
+            {
+                const auto& s = ssSongs[i];
+                const auto sum = s.summary();
+                m.addItem (200 + (int) i, s.name + (sum.isNotEmpty() ? "    " + sum : juce::String()));
+            }
+        }
         m.addSeparator();
         m.addItem (100, "Detect key and tempo from a song file...");
         m.addItem (101, "Choose the Key Compass songs folder...");
 
-        m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&keyCompass), [this, songs, safe = juce::Component::SafePointer<HeaderBar> (this)] (int r)
+        m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&keyCompass), [this, songs, ssSongs, safe = juce::Component::SafePointer<HeaderBar> (this)] (int r)
         {
             if (safe == nullptr || r == 0) return;
+            if (r >= 200 && r < 200 + (int) ssSongs.size())
+            {
+                const auto& s = ssSongs[(size_t) r - 200];
+                proc.getSettings().set ("songSavantSeen", s.sent.toISO8601 (true));
+                proc.useSongSavantSong (s);
+                return;
+            }
             if (r > 0 && r <= (int) songs.size())
             {
                 const auto& s = songs[(size_t) r - 1];
