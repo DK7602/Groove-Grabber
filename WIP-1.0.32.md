@@ -21,7 +21,7 @@ without this file.
 - BUILD pad editor: FIT for FX pads.
 
 ## Checklist
-- [ ] Core: SlotState, RenderParams, fit in render, fx helpers, cache key
+- [x] Core: SlotState, RenderParams, fit in render (render::fitTo, anchorSample), fx::fitSettings / keyTune, cache key; tests
 - [ ] Processor: retuneFx, fit into ADD / PUT, hear in time + drag render
 - [ ] FX tab: FIT control, tune line, drag a rendered file
 - [ ] BUILD pad editor: FIT for FX pads

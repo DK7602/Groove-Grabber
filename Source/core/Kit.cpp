@@ -7,7 +7,8 @@ namespace gg
     bool SlotState::sameSound (const SlotState& o) const noexcept
     {
         return path == o.path && autoTune == o.autoTune && userTune == o.userTune && startMs == o.startMs
-            && lengthPct == o.lengthPct && gainDb == o.gainDb && reverse == o.reverse;
+            && lengthPct == o.lengthPct && gainDb == o.gainDb && reverse == o.reverse
+            && fitBars == o.fitBars && fitAnchor == o.fitAnchor && fitStretch == o.fitStretch;
     }
 
     juce::var SlotState::toVar() const
@@ -21,6 +22,12 @@ namespace gg
         if (gainDb != 0)      o->setProperty ("gain", gainDb);
         if (reverse)          o->setProperty ("reverse", true);
         if (locked)           o->setProperty ("locked", true);
+        if (fitBars > 0)
+        {
+            o->setProperty ("fit", fitBars);
+            o->setProperty ("fitAnchor", fitAnchor);
+            o->setProperty ("fitStretch", fitStretch);
+        }
         return juce::var (o);
     }
 
@@ -39,6 +46,10 @@ namespace gg
         s.startMs = num ("start", 0.0, 0.0, 250.0);
         s.lengthPct = num ("length", 100.0, 5.0, 100.0);
         s.gainDb = num ("gain", 0.0, -24.0, 12.0);
+        const int fit = (int) v.getProperty ("fit", 0);
+        s.fitBars = fit == 1 || fit == 2 || fit == 4 || fit == 8 ? fit : 0;
+        s.fitAnchor = juce::jlimit (0, 2, (int) v.getProperty ("fitAnchor", 0));
+        s.fitStretch = (bool) v.getProperty ("fitStretch", true);
         s.reverse = (bool) v.getProperty ("reverse", false);
         s.locked = (bool) v.getProperty ("locked", false);
         return s;

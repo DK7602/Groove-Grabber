@@ -510,6 +510,44 @@ namespace gg::fx
         return k;
     }
 
+    FitSettings fitSettings (Type t)
+    {
+        FitSettings f;
+        switch (anchorOf (t))
+        {
+            case Anchor::end:  f.anchor = 0; break;
+            case Anchor::peak: f.anchor = 1; break;
+            default:           f.anchor = 2; break;
+        }
+        const auto g = groupOf (t);
+        f.stretch = g == Group::buildUp || g == Group::move || g == Group::texture;
+        return f;
+    }
+
+    bool hasSteadyPitch (const Shape& s)
+    {
+        return s.valid && s.pitchShare > 0.45f && s.pitchHz > 0 && std::abs (s.pitchTrend) <= 2.5f && s.wobble <= 2.0f;
+    }
+
+    float keyTune (const Shape& s, Type t, int key)
+    {
+        if (key < 0 || key > 23 || ! hasSteadyPitch (s)) return 0.0f;
+        const float midi = 12.0f * std::log2 (s.pitchHz / 440.0f) + 69.0f;
+        const int root = key % 12;
+        static const int minorScale[] { 0, 2, 3, 5, 7, 8, 10 }, majorScale[] { 0, 2, 4, 5, 7, 9, 11 };
+        const bool hit = groupOf (t) == Group::hit;
+        float best = 1000.0f;
+        for (int oct = -1; oct <= 11; ++oct)
+            for (int i = 0; i < (hit ? 1 : 7); ++i)
+            {
+                const float note = (float) (oct * 12 + root + (hit ? 0 : (key >= 12 ? minorScale[i] : majorScale[i])));
+                if (std::abs (note - midi) < std::abs (best)) best = note - midi;
+            }
+        const float most = hit ? 6.0f : 1.5f;
+        if (std::abs (best) > most) return 0.0f;
+        return std::abs (best) < 0.05f ? 0.0f : std::round (best * 100.0f) / 100.0f;
+    }
+
     double barsAt (double seconds, double bpm)
     {
         return bpm > 0 ? seconds * bpm / 240.0 : 0.0;

@@ -112,7 +112,7 @@ set(GG_UI_SOURCES
     Source/ui/FxPage.cpp)
 
 add_library(GGShared INTERFACE)
-target_include_directories(GGShared INTERFACE Source)
+target_include_directories(GGShared INTERFACE Source ThirdParty)    # (ThirdParty: Signalsmith Stretch, MIT)
 target_link_libraries(GGShared INTERFACE
     GrooveGrabberBinaryData
     juce::juce_audio_utils

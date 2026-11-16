@@ -1,4 +1,5 @@
 #include "SampleRender.h"
+#include "signalsmith-stretch/signalsmith-stretch.h"   // (ThirdParty: MIT)
 #include "Analyzer.h"
 #include <cmath>
 
@@ -165,6 +166,13 @@ namespace gg
                     for (int c = 0; c < 2; ++c) res.setSample (c, i, res.getSample (c, i) * (float) i / (float) fadeIn);
             }
 
+            // ---- FIT: so many bars at the song's tempo ----
+            if (p.fitBeats > 0 && p.fitBpm > 0 && std::isfinite (p.fitBeats) && std::isfinite (p.fitBpm))
+            {
+                fitTo (res, outSr, p.fitBeats * 60.0 / juce::jlimit (40.0, 250.0, p.fitBpm), p.fitAnchor, p.fitStretch);
+                keep = res.getNumSamples();
+            }
+
             // ---- level: matched for its kind, then your GAIN; never over -0.5 dBFS ----
             float gainDb = juce::jlimit (-60.0f, 24.0f, std::isfinite (p.gainDb + p.padGainDb) ? p.gainDb + p.padGainDb : 0.0f);
             if (p.normalise)
@@ -180,6 +188,117 @@ namespace gg
             if (! std::isfinite (g)) g = 0.0f;
             res.applyGain (g);
             return res;
+        }
+
+        int anchorSample (const juce::AudioBuffer<float>& b, int anchor)
+        {
+            const int n = b.getNumSamples();
+            if (n == 0) return 0;
+            float peak = 0;
+            int peakAt = 0;
+            for (int i = 0; i < n; ++i)
+            {
+                float v = 0;
+                for (int c = 0; c < juce::jmin (2, b.getNumChannels()); ++c) v = juce::jmax (v, std::abs (b.getSample (c, i)));
+                if (v > peak) { peak = v; peakAt = i; }
+            }
+            if (anchor == 1) return peakAt;
+            if (anchor == 2) return 0;
+            int end = n;
+            while (end > peakAt + 1)
+            {
+                float v = 0;
+                for (int c = 0; c < juce::jmin (2, b.getNumChannels()); ++c) v = juce::jmax (v, std::abs (b.getSample (c, end - 1)));
+                if (v >= peak * 0.01f) break;
+                --end;
+            }
+            return end;
+        }
+
+        namespace
+        {
+            // a time-stretch of the whole sound, its pitch kept (Signalsmith Stretch)
+            juce::AudioBuffer<float> stretched (const juce::AudioBuffer<float>& in, double sampleRate, int outSamples)
+            {
+                const int ch = juce::jlimit (1, 2, in.getNumChannels());
+                juce::AudioBuffer<float> out (ch, juce::jmax (1, outSamples));
+                out.clear();
+                signalsmith::stretch::SignalsmithStretch<float> st;
+                st.presetDefault (ch, (float) sampleRate);
+                std::vector<const float*> ins;
+                std::vector<float*> outs;
+                for (int c = 0; c < ch; ++c) { ins.push_back (in.getReadPointer (c)); outs.push_back (out.getWritePointer (c)); }
+                if (! st.exact (ins.data(), in.getNumSamples(), outs.data(), outSamples))
+                {
+                    // too short for a stretch: as it is, silence after
+                    for (int c = 0; c < ch; ++c) out.copyFrom (c, 0, in, c, 0, juce::jmin (outSamples, in.getNumSamples()));
+                }
+                return out;
+            }
+
+            void fade (juce::AudioBuffer<float>& b, int start, int length, bool in)
+            {
+                length = juce::jmin (length, b.getNumSamples() - start);
+                for (int i = 0; i < length; ++i)
+                {
+                    const float x = (float) (i + 1) / (float) (length + 1);
+                    const float g = 0.5f - 0.5f * std::cos (juce::MathConstants<float>::pi * (in ? x : 1.0f - x));
+                    for (int c = 0; c < b.getNumChannels(); ++c) b.setSample (c, start + i, b.getSample (c, start + i) * g);
+                }
+            }
+
+            juce::AudioBuffer<float> slice (const juce::AudioBuffer<float>& b, int from, int length, int silenceBefore = 0)
+            {
+                juce::AudioBuffer<float> out (b.getNumChannels(), juce::jmax (1, silenceBefore + length));
+                out.clear();
+                for (int c = 0; c < b.getNumChannels(); ++c)
+                    out.copyFrom (c, silenceBefore, b, c, from, juce::jmin (length, b.getNumSamples() - from));
+                return out;
+            }
+        }
+
+        double fitTo (juce::AudioBuffer<float>& b, double sr, double seconds, int anchor, bool stretch)
+        {
+            const int target = (int) std::round (seconds * sr);
+            if (target < 64 || b.getNumSamples() < 64) return 1.0;
+            double factor = 1.0;
+            if (anchor == 2)
+            {
+                // its start on the bar line: the sound lasts the bars
+                const int body = anchorSample (b, 0);
+                if (body > target)
+                {
+                    b = slice (b, 0, target);
+                    fade (b, target - juce::jmin (target / 4, (int) (sr * 0.12)), juce::jmin (target / 4, (int) (sr * 0.12)), false);
+                }
+                else if (body < target && stretch)
+                {
+                    factor = juce::jmin (4.0, (double) target / (double) juce::jmax (1, body));
+                    b = stretched (slice (b, 0, body), sr, (int) std::round (body * factor));
+                }
+                return factor;
+            }
+            // its end (or peak) on the bar line, `target` samples in
+            int at = anchorSample (b, anchor);
+            if (at < 1) return 1.0;
+            if (at < target && stretch)
+            {
+                factor = juce::jmin (4.0, (double) target / (double) at);
+                b = stretched (b, sr, (int) std::round (b.getNumSamples() * factor));
+                at = anchorSample (b, anchor);
+            }
+            if (at > target)
+            {
+                // too long: from the front, so the end stays (a short fade in where it's cut)
+                b = slice (b, at - target, b.getNumSamples() - (at - target));
+                fade (b, 0, juce::jmin (target / 8, (int) (sr * 0.03)), true);
+            }
+            else if (at < target)
+            {
+                // short of it still: silence in front
+                b = slice (b, 0, b.getNumSamples(), target - at);
+            }
+            return factor;
         }
 
         std::vector<std::pair<float, float>> peaks (const juce::AudioBuffer<float>& b, int numPoints)

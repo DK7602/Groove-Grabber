@@ -44,7 +44,7 @@ namespace gg
         }
 
         std::shared_ptr<const juce::AudioBuffer<float>> renderCached (const SlotState& st, Cat cat, bool keyTuning,
-                                                                    float extraTune, float padGainDb, float lengthScale, double sr)
+                                                                    float extraTune, float padGainDb, float lengthScale, double sr, double bpm)
         {
             if (st.isEmpty()) return nullptr;
             RenderParams p;
@@ -55,7 +55,15 @@ namespace gg
             p.reverse = st.reverse;
             p.lengthScale = lengthScale;
             p.padGainDb = padGainDb;
-            const auto key = st.path + "|" + juce::String (p.tune, 3) + "|" + juce::String (p.startMs, 1) + "|" + juce::String (p.lengthPct, 1)
+            if (st.fitBars > 0 && bpm > 0)
+            {
+                p.fitBeats = 4.0 * st.fitBars;
+                p.fitBpm = bpm;
+                p.fitAnchor = st.fitAnchor;
+                p.fitStretch = st.fitStretch;
+            }
+            const auto key = (p.fitBeats > 0 ? "fit" + juce::String (st.fitBars) + "/" + juce::String (p.fitBpm, 2) + "/" + juce::String (st.fitAnchor)
+                                                 + (st.fitStretch ? "s|" : "|") : juce::String()) + st.path + "|" + juce::String (p.tune, 3) + "|" + juce::String (p.startMs, 1) + "|" + juce::String (p.lengthPct, 1)
                            + "|" + juce::String (p.gainDb, 2) + "|" + (p.reverse ? "r" : "f") + "|" + juce::String (lengthScale, 3)
                            + "|" + juce::String (padGainDb, 2) + "|" + juce::String ((int) sr) + "|" + catId (cat);
             if (auto hit = renderCache().get (key)) return hit;
@@ -73,12 +81,12 @@ namespace gg
         if (isBankSlot (pad.slot) ? ! slotInBank (pad.slot, kit.size) : pad.note - firstPadNote >= kit.padCount()) return nullptr;
         const auto use = kit.padSound (pad);
         return renderCached (kit[use.slot], slotCat (use.slot), kit.tuneToKey, use.shaped ? pad.tuneOffset : 0.0f,
-                             use.shaped ? pad.gainDb : 0.0f, use.shaped ? pad.lengthScale : 1.0f, sr);
+                             use.shaped ? pad.gainDb : 0.0f, use.shaped ? pad.lengthScale : 1.0f, sr, kit.bpm);
     }
 
     std::shared_ptr<const juce::AudioBuffer<float>> renderSlotPreview (const Kit& kit, Slot slot, double sr)
     {
-        return renderCached (kit[slot], slotCat (slot), kit.tuneToKey, 0, 0, 1, sr);
+        return renderCached (kit[slot], slotCat (slot), kit.tuneToKey, 0, 0, 1, sr, kit.bpm);
     }
 
     PlayableKit::Ptr buildPlayable (const Kit& kit, double sr)
