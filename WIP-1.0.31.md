@@ -29,8 +29,8 @@ release commit.
 - [x] SoundTypes: slots, pads, names, ids, helpers (Kit::bankCount / bankUsed, renderPad plays bank pads)
 - [x] Processor: bank, sync, state, ADD / PUT ON KIT API (setSlotSound on a bank slot -> setSongFx; loadKit adopts a saved kit's bank when the song has none)
 - [x] Player / render: bank pads play
-- [ ] BUILD: SONG FX row
-- [ ] FX tab: ADD TO SONG FX, PUT ON THIS KIT
+- [x] BUILD: SONG FX row (PadGrid bottom strip, "+N waiting", no lock on bank pads)
+- [x] FX tab: ADD TO SONG FX (REMOVE when in), PUT ON THIS KIT, "In your song" line
 - [ ] SAUCE: rows, addable, MIDI
 - [ ] Export: Song FX folder, MPC, Kit Info, FL names, DAW guide step
 - [ ] Song Savant DrumLanes

@@ -245,7 +245,7 @@ namespace ggui
         g.setColour (colour);
         g.setFont (headFont (10.0f).withExtraKerningFactor (0.1f));
         g.drawFittedText (gg::slotName (slot).toUpperCase(), top.withTrimmedRight (20), juce::Justification::centredLeft, 1, 0.6f);
-        if (! st.isEmpty())
+        if (! st.isEmpty() && ! gg::isBankSlot (slot))
             drawIcon (g, st.locked ? Icon::lock : Icon::unlock, lockArea().toFloat().reduced (2.0f), st.locked ? p.orange : p.faint);
 
         auto bottom = in.removeFromBottom (compact() ? 16 : 30);
@@ -254,7 +254,10 @@ namespace ggui
             const bool optionalOff = gg::slotIsOptional (slot);
             g.setColour (p.faint);
             g.setFont (uiFont (13.0f, false));
-            g.drawFittedText (optionalOff ? "Off - drop a sound" : "Empty - drop a sound", wave.getBounds(), juce::Justification::centred, 2);
+            const auto text = gg::isBankSlot (slot) ? juce::String ("Empty - add from FX") : optionalOff ? juce::String ("Off - drop a sound") : juce::String ("Empty - drop a sound");
+            // (a short pad, the Song FX row's: on its bottom line)
+            if (wave.getHeight() < 16) g.drawFittedText (text, bottom, juce::Justification::centredLeft, 1, 0.8f);
+            else g.drawFittedText (text, wave.getBounds(), juce::Justification::centred, 2);
             return;
         }
         juce::String tag;
@@ -291,7 +294,7 @@ namespace ggui
         auto* kit = proc.getActiveKit();
         if (kit == nullptr) return;
         if (e.mods.isPopupMenu()) { proc.selectedSlot = slot; if (onSelect) onSelect(); showMenu(); return; }
-        if (lockArea().contains (e.getPosition()) && ! (*kit)[slot].isEmpty())
+        if (lockArea().contains (e.getPosition()) && ! (*kit)[slot].isEmpty() && ! gg::isBankSlot (slot))
         {
             (*kit)[slot].locked = ! (*kit)[slot].locked;
             proc.sendChangeMessage();
@@ -333,7 +336,8 @@ namespace ggui
         const auto& st = (*kit)[slot];
         juce::PopupMenu m;
         m.addSectionHeader (gg::slotName (slot) + (st.isEmpty() ? juce::String() : " - " + shortName (st.path)));
-        m.addItem (1, st.locked ? "Unlock" : "Lock (keep it when regenerating)", ! st.isEmpty());
+        if (gg::isBankSlot (slot)) m.addItem (1, "Song FX: on every kit, kept when regenerating", false);
+        else m.addItem (1, st.locked ? "Unlock" : "Lock (keep it when regenerating)", ! st.isEmpty());
         m.addItem (2, "Show the file", ! st.isEmpty());
         m.addSeparator();
         m.addItem (3, "Favourite this sound (picked more often)", ! st.isEmpty());
@@ -393,7 +397,11 @@ namespace ggui
         const auto& shown = gg::kitSlots (shownSize);
         const int perRow = shownSize == 17 ? 9 : 8;
         const int rows = ((int) shown.size() + perRow - 1) / perRow;
-        const auto r = getLocalBounds();
+        auto r = getLocalBounds();
+        // the Song FX row at the bottom: slim (a name and the sound's), the same for every kit
+        const int bankH = juce::jlimit (44, 58, r.getHeight() / (rows * 2 + 1));
+        auto bankRow = r.removeFromBottom (bankH);
+        r.removeFromBottom (4);
         const int w = r.getWidth() / perRow, h = r.getHeight() / juce::jmax (1, rows);
         for (auto* t : tiles) t->setVisible (false);
         for (int i = 0; i < (int) shown.size(); ++i)
@@ -401,6 +409,35 @@ namespace ggui
             auto* t = tiles[(int) shown[(size_t) i]];
             t->setBounds (juce::Rectangle<int> (r.getX() + (i % perRow) * w, r.getY() + (i / perRow) * h, w, h).reduced (3));
             t->setVisible (true);
+        }
+        bankLabel = bankRow.removeFromLeft (juce::jmin (w, 96));
+        const int nb = gg::bankSizeFor (shownSize);
+        const int bw = juce::jmin (w, bankRow.getWidth() / nb);
+        for (int i = 0; i < nb; ++i)
+        {
+            auto* t = tiles[(int) gg::bankSlot (i)];
+            t->setBounds (bankRow.removeFromLeft (bw).reduced (3, 2));
+            t->setTooltip ("Song FX " + juce::String (i + 1) + " (note " + juce::String (gg::firstBankNote + i)
+                           + "): the song's, on every kit and kept when you generate again. Add effects from the FX tab, or drop a file here.");
+            t->setVisible (true);
+        }
+        repaint();
+    }
+
+    void PadGrid::paint (juce::Graphics& g)
+    {
+        const auto& p = pal();
+        auto r = bankLabel.reduced (4, 2);
+        g.setColour (p.amber);
+        g.setFont (headFont (10.5f).withExtraKerningFactor (0.12f));
+        const int waiting = proc.songFxWaiting();
+        g.drawText ("SONG FX", r.removeFromTop (waiting > 0 ? r.getHeight() / 2 : r.getHeight()), waiting > 0 ? juce::Justification::bottomLeft : juce::Justification::centredLeft);
+        if (waiting > 0)
+        {
+            // more in the bank than this kit size plays
+            g.setColour (p.dim);
+            g.setFont (uiFont (12.5f, false));
+            g.drawFittedText ("+" + juce::String (waiting) + " waiting", r, juce::Justification::topLeft, 1, 0.7f);
         }
     }
 
@@ -560,7 +597,7 @@ namespace ggui
         const bool has = kit != nullptr && ! (*kit)[slot].isEmpty();
         for (auto* k : { &tune, &start, &length, &gain }) k->setEnabled (has);
         reverse.setEnabled (has);
-        lock.setEnabled (has);
+        lock.setEnabled (has && ! gg::isBankSlot (proc.selectedSlot));     // (Song FX: kept anyway)
         playBtn.setEnabled (has);
         if (has)
         {

@@ -64,6 +64,7 @@ namespace ggui
         explicit PadGrid (GrooveGrabberProcessor&);
         void refresh();
         void resized() override;
+        void paint (juce::Graphics&) override;        // the SONG FX row's label
         std::function<void()> onSelect;
 
     private:
@@ -72,6 +73,7 @@ namespace ggui
         GrooveGrabberProcessor& proc;
         juce::OwnedArray<PadTile> tiles;              // one per slot (all 32); the kit's own are shown
         int shownSize = 0;
+        juce::Rectangle<int> bankLabel;               // "SONG FX", left of the bank's pads
         std::array<std::uint32_t, gg::numPads> lastFlash {};
     };
 
