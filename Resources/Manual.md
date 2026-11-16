@@ -195,7 +195,7 @@ Moving a slider shifts all four kits the same way, so each kit keeps its own per
 | LOW END | Auto, Kick, Kick + 808 | Just a kick, or a kick and an 808. Auto follows the style (trap and G-Funk use an 808, rock doesn't). |
 | PERC | Auto, 0, 1, 2, 3 | How many percussion pads (shaker, tambourine, conga...). Auto follows the style; a 23-sound kit fills its 3 percussion pads and a 32-sound kit its 4. |
 | FX / sound effects | On / off | Fills the FX pads (two, three or four, by the kit size) with different kinds: a build-up (riser, reverse), an impact, a texture (vinyl, noise) or an accent (scratch, stab, laser). Off leaves them empty. LOW END works the same way: with Kick only, a bigger kit's two 808 pads stay empty too. |
-| Tune kick, 808, toms to key | On / off | Tunes the 808 to the song's root, the kick to the root or fifth when it's close, and the toms to notes of the scale. With no key set, the kick is still tuned to the 808's note (or its fifth), so the low end agrees. |
+| Tune kick, 808, toms, FX to key | On / off | Tunes the 808 to the song's root, the kick to the root or fifth when it's close, the toms to notes of the scale, and effects that hold a clear note (a boom, a zap, a horn) to the key; noise effects are left alone. With no key set, the kick is still tuned to the 808's note (or its fifth), so the low end agrees. |
 
 **USE SOUNDS FROM**
 
@@ -228,7 +228,7 @@ The kit you're editing shows its pads: Kick, 808, Snare, Clap, Rim, Closed Hat, 
 - **Drop a sound file on a pad** to replace it with your own.
 - **The lock icon** on a pad keeps it when you regenerate.
 
-**SONG FX** (the slim row under the pads) holds the song's own effects: the risers, impacts, tape stops and so on you add from the FX tab with ADD TO SONG FX. They belong to the song, not to one kit, so all four kits play them, and GENERATE KITS, REGENERATE and loading a kit never change them. They're saved with your song (your DAW project). They play on notes 69 and up (A3 in Cubase's naming), past any kit's own pads: a 17-sound kit has 4 Song FX pads, a 23-sound kit 6 and a 32-sound kit 8. The bank always keeps all 8, so if you switch to a smaller KIT SIZE the extra ones wait ("+4 waiting") until you switch back. Click a Song FX pad to hear it and shape it in the pad editor (tune, start, length, gain, reverse): the change goes to every kit. Drop a file on it to replace it, or right-click > Clear this pad. Song FX pads have no lock: they're kept anyway. A kit you load from MY KITS brings the Song FX it was saved with only when your song has none yet.
+**SONG FX** (the slim row under the pads) holds the song's own effects: the risers, impacts, tape stops and so on you add from the FX tab with ADD TO SONG FX. They belong to the song, not to one kit, so all four kits play them, and GENERATE KITS, REGENERATE and loading a kit never change them. They're saved with your song (your DAW project). They play on notes 69 and up (A3 in Cubase's naming), past any kit's own pads: a 17-sound kit has 4 Song FX pads, a 23-sound kit 6 and a 32-sound kit 8. The bank always keeps all 8, so if you switch to a smaller KIT SIZE the extra ones wait ("+4 waiting") until you switch back. Click a Song FX pad to hear it and shape it in the pad editor (tune, start, length, gain, reverse, FIT): the change goes to every kit. Drop a file on it to replace it, or right-click > Clear this pad. Song FX pads have no lock: they're kept anyway. A kit you load from MY KITS brings the Song FX it was saved with only when your song has none yet.
 
 The buttons above the pads act on the whole kit: **REGENERATE** (new sounds for every unlocked pad), **LOCK ALL**, **SAVE KIT** and **EXPORT**.
 
@@ -237,6 +237,7 @@ The buttons above the pads act on the whole kit: **REGENERATE** (new sounds for 
 - A large waveform, a play button, and notes such as "level matched", "tuned +3.52 st to Am", the sound's note, and any hiss or vinyl noise.
 - **TUNE** (on top of the key tuning), **START** (skip the start of the sound), **LENGTH** (shorten it with a fade) and **GAIN** (on top of the level matching). Double-click a knob to reset it.
 - **REVERSE** and **LOCK**.
+- **FIT** (FX pads only: FX 1 to 4 and Song FX): click it to make the effect 1, 2, 4 or 8 bars at the kit's tempo, or as it is. A build-up ends on the bar line, a hit starts on it, a whoosh peaks on it (see FX: your effects). It's lit while a FIT is on, and the notes say "fit to 2 bars at 90 BPM".
 - **ALTERNATIVES:** five other sounds that fit the rest of this kit. Click one to hear it, **USE** to swap it in.
 
 **The groove bar** (very bottom)
@@ -428,9 +429,12 @@ The FX page gathers every effect in your library (anything LIBRARY lists as FX) 
 - **Click an effect** to hear it (the arrow keys move through the list and play each one; Space plays the one picked).
 - **The effect** (right): its sound, length, note, where it goes against the beat, its fit for your song and where it's at home ("Best in: EDM / Dance, Pop, Trap... 2000s to today"), and a tip on how it's used. The fit is only advice: use anything you like.
 - **HEAR IT IN TIME** plays it over BUILD's groove and kit, at your tempo, placed where it belongs: a build-up (riser, reverse cymbal, swell, sweep, tape stop, rewind) **ends** on a downbeat, a hit or an accent **starts** on one, a whoosh **peaks** on one, a texture runs from the downbeat. One bar of the groove plays first and two after. With no kits yet it plays over a click. Press it again (STOP) to stop.
-- **DRAG** the effect onto an audio track in your DAW (it's the original file). Line a build-up's end up with the bar line where the change comes.
+- **FIT** (AS IT IS, 1 BAR, 2, 4, 8) makes the effect that many bars long at your song's tempo, lined up the way it's used: a build-up (riser, reverse cymbal, swell, sweep, tape stop, rewind) **ends** right on the bar line, a whoosh **peaks** on it, and a hit, fall, texture or accent **starts** on it. Too long, it's trimmed from its start (a riser keeps its climb to the top); too short, it's stretched without changing its pitch (up to 4 times its length; past that, silence fills the rest). Hits and accents (an impact, a scratch, a laser) are never stretched: they start on the downbeat and ring as they are. The panel says what FIT does to it ("2 bars: trimmed from its start", "4 bars: stretched x1.6, pitch kept"). HEAR IT IN TIME, DRAG, ADD TO SONG FX and PUT ON THIS KIT all use it, so a 2-bar riser on a pad starts exactly 2 bars before the change. AS IT IS leaves it its own length.
+- **Tuned to your key.** With a KEY set and "Tune kick, 808, toms, FX to key" on (BUILD > OPTIONS), an effect that holds a clear, steady note is tuned to the key: a boom or an impact with a tone to the key's root (like the 808), a zap, blip, horn or other accent to the nearest note of the scale. The panel says so ("Key: tuned -1.0 st to A Minor", or "in A Minor already"). Noise effects (risers, crackle, whooshes) and effects whose pitch slides (lasers, tape stops) are left alone. The pads, HEAR IT IN TIME and DRAG play it tuned, and changing the key tunes it again.
+- **DRAG** the effect onto an audio track in your DAW. As it is (no FIT, nothing to tune), it's the original file. With a FIT or a tuning, it's a new file made just like the pad plays it, named with what was done ("Riser 4 Bars (2 bars at 90 BPM).wav", "Air Horn (-1.0 st to Am).wav") and kept in Documents/Groove Grabber/FX Renders. Put a fit build-up's end on the bar line where the change comes (or its start 2 bars before it, for a 2-bar FIT).
 - **ADD TO SONG FX** puts it on the next free **Song FX** pad: every kit plays it (notes 69 and up), it shows on BUILD's SONG FX row and as a row on SAUCE's grid, and it goes out with every export. When they're all taken, it asks which one to replace. When the effect is already there, the button reads **REMOVE FROM SONG FX**.
 - **PUT ON THIS KIT** puts it on one of the kit's own FX pads instead (FX 1 and 2, up to FX 4 in a 32-sound kit): that kit only. When they're full, it asks which one to replace.
+- Both take the FIT you picked with them. To change it later, click the pad on BUILD and use **FIT** in the pad editor.
 - **In your song** (under the effect's length) says where it is now: on a Song FX pad, or on a kit's own FX pad.
 
 ## Working with Key Compass, Song Savant and Sample Snagger
@@ -443,7 +447,7 @@ Click **KEY COMPASS** in the header:
 - **Detect key and tempo from a song file...** listens to a bounce or rough mix (WAV, AIFF, FLAC, MP3 or OGG) and sets the key and BPM from it.
 - **Choose the Key Compass songs folder...** if your songs live somewhere other than the default (AppData\Roaming\KeyCompass\Songs on Windows).
 
-With a key set and "Tune kick, 808, toms to key" on, the kit is tuned to your song.
+With a key set and "Tune kick, 808, toms, FX to key" on, the kit is tuned to your song.
 
 **Song Savant**
 
@@ -560,7 +564,7 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | "No kicks / snares / hats in your library yet" | Add a pack that has them, or check that its folder is switched on and its kind is ticked under USE SOUNDS FROM. |
 | The four kits feel too alike | Use the dice (Surprise me), move the sliders further, or name a style or artist. |
 | A word or artist you typed didn't change anything | Check the blue "understood" line under the box. Use the drop-downs, or give a common-word name a cue ("like Future"). |
-| Pads sound out of tune with your song | Set the right KEY in the header, or switch off "Tune kick, 808, toms to key". Fine-tune with the pad's TUNE knob. |
+| Pads sound out of tune with your song | Set the right KEY in the header, or switch off "Tune kick, 808, toms, FX to key". Fine-tune with the pad's TUNE knob. |
 | The plug-in doesn't show up in your DAW | It's an instrument: look in your instrument list (Cubase: under Drum, by Grabber Audio). On Windows the VST3 is in C:\Program Files\Common Files\VST3. In Cubase, if it was ever blocked, open Studio > VST Plug-in Manager, show the blocklist, select Groove Grabber and click Reactivate. |
 | No sound from the standalone app | Gear menu, **Audio / MIDI settings...**, and pick your output device. |
 | Your DAW froze while closing a project or quitting | Fixed in 1.0.13 (Cubase could freeze when it quit). If it ever happens again, send Documents\Groove Grabber\Groove Grabber log.txt: its last lines show how far closing got. |
@@ -578,6 +582,8 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | BUILD says "+4 waiting" under SONG FX | Your song has more Song FX than this KIT SIZE has pads (4 for 17 sounds, 6 for 23, 8 for 32). They're kept: a bigger KIT SIZE plays them. |
 | An effect isn't on the FX page | LIBRARY files it as something else (a loop, a perc...). Right-click it there and pick "It's really a..." > FX. |
 | You want to hear where a riser should start | FX: pick it and press HEAR IT IN TIME. It ends on the downbeat, and the BARS column says how long it runs at your tempo. |
+| You want a riser exactly 2 (or 4) bars long | FX: pick it, set FIT to 2, then DRAG it, ADD TO SONG FX or PUT ON THIS KIT. It ends right on the bar line, trimmed or stretched (its pitch kept). On a pad already: click the pad on BUILD and use FIT in the pad editor. |
+| An effect sounds out of key | Set the KEY and switch on "Tune kick, 808, toms, FX to key": effects with a clear note are tuned. Noise effects have no note to tune. Fine-tune a pad with its TUNE knob. |
 | You want a pattern in every song, not just this one | SAUCE: SAVE AS MY GROOVE. It's then under MY GROOVES on SAUCE, in BUILD's groove list and on the MY KITS page. |
 | One of your grooves plays on BUILD's kit, not the sounds you made it with | SAUCE: MY GROOVES, point at the groove and pick "With its original kit" (or press ORIGINAL on the KIT row). BUILD's kits stay as they are. Grooves saved before 1.0.29 get their kit the next time you SAVE them. |
 | One of your grooves changed or is gone, and you want it back | MY KITS > MY GROOVES > BACKUPS...: every version from before a save, rename or delete is there. Pick one to bring it back as a groove of its own. |

@@ -36,6 +36,8 @@ namespace ggui
         void addToSongFx();                          // ADD TO SONG FX (or REMOVE, when it's there): the song's bank
         void putOnKit();                             // PUT ON THIS KIT: the kit you're on, one of its own FX pads
         void setFitsFirst (bool);
+        void setFitBars (int bars);                  // FIT for the effect picked: 0 (as it is), 1, 2, 4, 8
+        int getFitBars() const;
         juce::String fitTextOf (int row) const;
 
     private:
@@ -66,6 +68,10 @@ namespace ggui
         juce::TextButton fitsFirst { "FITS MY SONG FIRST" }, inTime { "HEAR IT IN TIME" }, addBank { "ADD TO SONG FX" },
                          onKit { "PUT ON THIS KIT" };
         IconButton play { "play", Icon::play };
+        Segmented fit { { "AS IT IS", "1 BAR", "2", "4", "8" } };   // FIT: so many bars at the song's tempo
+        std::map<juce::String, int> fitChoice;       // FIT per effect (this session's)
+        juce::Rectangle<int> fitRow;
+        juce::String fitWords (const gg::fx::Catalog::Item&, const gg::SoundInfo&) const;   // "2 bars: trimmed from the start"
         WaveView wave;
         std::unique_ptr<TypeList> types;
 

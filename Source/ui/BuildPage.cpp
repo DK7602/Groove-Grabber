@@ -68,7 +68,7 @@ namespace ggui
             addAndMakeVisible (*t);
         }
         fx.setTooltip ("Fill the FX pads (two, three or four, by the kit size): risers, impacts, sweeps...");
-        tuneKey.setTooltip ("Tune the kick and 808 to the song's root and the toms to its scale (needs a key)");
+        tuneKey.setTooltip ("Tune the kick and 808 to the song's root, the toms to its scale, and effects that hold a clear note (a boom, a zap, a horn) to the key. Noise effects are left as they are. Needs a key.");
 
         for (int i = 0; i < (int) gg::Source::count; ++i)
         {
@@ -161,6 +161,7 @@ namespace ggui
         {
             o.tuneToKey = tuneKey.getToggleState();
             for (auto& k : proc.kits) k.tuneToKey = o.tuneToKey;
+            proc.retuneFx (false);                // (the FX: tuned again, or not)
             proc.kitChanged (proc.activeKit);     // re-render with / without the key tuning
         }
         else

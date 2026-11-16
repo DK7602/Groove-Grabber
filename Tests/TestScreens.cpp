@@ -5,6 +5,7 @@
 #include "core/Settings.h"
 #include "core/MyGrooves.h"
 #include "core/Coach.h"
+#include "core/SampleRender.h"
 #include "TestSounds.h"
 #include <iostream>
 
@@ -1072,6 +1073,103 @@ int runScreenshots (const juce::File& outDir)
             expect (p.songFx[0].isEmpty() && p.kits[0][S::sfx1].isEmpty(), "Song FX: REMOVE FROM SONG FX takes it off every kit");
             fxp.addToSongFx();
             pump (300);
+        }
+        // ---- FIT: a riser made 2 bars at the song's tempo ends on the bar line (the pad, the drag file); a pitched
+        // effect tuned to the key, noise left alone ----
+        {
+            using S = gg::Slot;
+            for (int i = 0; i < gg::numBankSlots; ++i) p.setSongFx (i, {});
+            fxp.showType ((int) T::riser);
+            fxp.selectRow (0);
+            pump (200);
+            const auto riser = fxp.getSelectedPath();
+            fxp.setFitBars (2);
+            pump (200);
+            save (*ed, outDir.getChildFile ("fx-fit.png"));
+            const double bpm = p.songBpm(), twoBars = 2 * 240.0 / bpm;
+            // the drag file: its end on the bar line, named with its fit
+            const auto file = p.fxFileToDrag (riser, T::riser, 2);
+            bool dragOk = false;
+            {
+                juce::AudioFormatManager fm;
+                fm.registerBasicFormats();
+                if (std::unique_ptr<juce::AudioFormatReader> r (fm.createReaderFor (file)); r != nullptr)
+                {
+                    juce::AudioBuffer<float> b ((int) r->numChannels, (int) r->lengthInSamples);
+                    r->read (&b, 0, (int) r->lengthInSamples, 0, true, true);
+                    const double end = gg::render::anchorSample (b, 0) / r->sampleRate;
+                    dragOk = std::abs (end - twoBars) < 0.02 * twoBars && file != juce::File (riser);
+                    if (! dragOk) std::cout << "    (drag file ends at " << end << " s, 2 bars = " << twoBars << " s)" << std::endl;
+                }
+            }
+            expect (dragOk && file.getFileName().contains ("2 bars at " + juce::String (bpm, 0) + " BPM"),
+                    "FIT: DRAG gives a file of the riser 2 bars long at the song's tempo, ending on the bar line (" + file.getFileName() + ")");
+            expect (p.fxFileToDrag (riser, T::riser, 0) == juce::File (riser), "FIT: as it is (and nothing to tune), DRAG gives the original file");
+            // ADD TO SONG FX with FIT: the pad plays it 2 bars long, its end on the bar line
+            fxp.addToSongFx();
+            pump (300);
+            const bool stored = p.songFx[0].path == riser && p.songFx[0].fitBars == 2 && p.songFx[0].fitAnchor == 0 && p.songFx[0].fitStretch
+                                && p.kits[0][S::sfx1].fitBars == 2;
+            bool padOk = false;
+            for (int i = 0; i < 100 && ! padOk; ++i)
+            {
+                pump (50);
+                if (auto pk = p.getPlayable (p.activeKit))
+                {
+                    const auto& pad = pk->pads[(size_t) (gg::firstBankNote - gg::firstPadNote)];
+                    const double sr = p.player.getSampleRate() > 0 ? p.player.getSampleRate() : 44100.0;
+                    const double kb = p.kits[(size_t) p.activeKit].bpm, want = 2 * 240.0 / kb;
+                    padOk = pad != nullptr && std::abs (gg::render::anchorSample (*pad, 0) / sr - want) < 0.02 * want;
+                }
+            }
+            expect (stored && padOk, "FIT: ADD TO SONG FX keeps the FIT; Song FX 1 plays the riser 2 bars long, ending on the bar line");
+            // saved with the song
+            {
+                juce::MemoryBlock state;
+                p.getStateInformation (state);
+                GrooveGrabberProcessor q;
+                q.setStateInformation (state.getData(), (int) state.getSize());
+                pump (300);
+                expect (q.songFx[0].fitBars == 2 && q.songFx[0].fitAnchor == 0, "FIT: saved with the song");
+            }
+            // BUILD's pad editor shows it
+            ed->showTab (0);
+            p.selectedSlot = S::sfx1;
+            ed->refreshAll();
+            pump (500);
+            save (*ed, outDir.getChildFile ("build-fxfit.png"));
+
+            // tuned to the key: the air horn (B flat) moves to A minor's nearest note; the riser and the laser (a slide) stay
+            juce::String horn, laser;
+            for (const auto& si : *p.library->getSounds())
+            {
+                if (si.fileName().startsWith ("Air Horn")) horn = si.path;
+                if (si.fileName().startsWith ("Laser 3")) laser = si.path;
+            }
+            p.options.tuneToKey = true;
+            p.setKey (21);       // A minor
+            p.setSongFx (1, horn);
+            pump (300);
+            const float inAm = p.fxTuneFor (horn);
+            const bool tuned = std::abs (std::abs (inAm) - 1.0f) < 0.15f && std::abs (p.songFx[1].autoTune - inAm) < 0.001f
+                               && p.fxTuneFor (riser) == 0.0f && p.fxTuneFor (laser) == 0.0f;
+            p.setKey (10);       // B flat major: it's in the key already
+            pump (200);
+            const bool retuned = std::abs (p.fxTuneFor (horn)) < 0.15f && std::abs (p.songFx[1].autoTune - p.fxTuneFor (horn)) < 0.001f
+                                 && std::abs (p.kits[0][S::sfx2].autoTune - p.songFx[1].autoTune) < 0.001f;
+            expect (tuned && retuned, "Key: the air horn tuned " + juce::String (inAm, 2) + " st to A minor, none in B flat major (retuned with the key); "
+                    "the riser (noise) and the laser (a slide) left alone");
+            p.setKey (21);
+            ed->showTab (4);
+            fxp.showType ((int) T::horn);
+            fxp.selectRow (0);
+            pump (500);
+            save (*ed, outDir.getChildFile ("fx-tuned.png"));
+            const auto drag = p.fxFileToDrag (horn, T::horn, 0);
+            expect (drag != juce::File (horn) && drag.getFileName().contains ("st to Am"), "Key: DRAG gives the horn tuned to the key (" + drag.getFileName() + ")");
+            for (int i = 0; i < gg::numBankSlots; ++i) p.setSongFx (i, {});
+            p.setKey (-1);
+            pump (200);
         }
         // light
         p.getSettings().setLightTheme (true);

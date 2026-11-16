@@ -107,15 +107,17 @@ namespace ggui
         void refresh();
         void paint (juce::Graphics&) override;
         void resized() override;
+        void setFitBars (int bars);       // FIT on the pad picked (an FX pad): 0 (as it is), 1, 2, 4, 8 bars
 
     private:
         void applyKnobs();
         void loadAlternatives();
+        void showFitMenu();
         GrooveGrabberProcessor& proc;
         WaveView wave;
         LabelledKnob tune { "Tune", -12.0, 12.0, 0.1, 0.0, " st" }, start { "Start", 0.0, 250.0, 1.0, 0.0, " ms" },
                      length { "Length", 5.0, 100.0, 1.0, 100.0, " %" }, gain { "Gain", -24.0, 12.0, 0.1, 0.0, " dB" };
-        juce::TextButton reverse { "REVERSE" }, lock { "LOCK" };
+        juce::TextButton reverse { "REVERSE" }, lock { "LOCK" }, fitBtn { "FIT" };   // FIT: FX pads only
         IconButton playBtn { "play", Icon::play };
         juce::OwnedArray<AltTile> alts;
         juce::String shownPath;
