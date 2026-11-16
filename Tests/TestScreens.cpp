@@ -166,7 +166,8 @@ int runScreenshots (const juce::File& outDir)
                     int n = 0;
                     std::function<void (juce::Component&)> walk = [&] (juce::Component& c)
                     {
-                        if (auto* t = dynamic_cast<ggui::PadTile*> (&c); t != nullptr && t->isVisible() && t->getWidth() > 20) ++n;
+                        if (auto* t = dynamic_cast<ggui::PadTile*> (&c); t != nullptr && t->isVisible() && t->getWidth() > 20
+                                                                          && ! gg::isBankSlot (t->getSlot())) ++n;     // (the kit's own: not its Song FX row)
                         for (auto* child : c.getChildren()) walk (*child);
                     };
                     walk (root);
@@ -980,6 +981,97 @@ int runScreenshots (const juce::File& outDir)
             save (*ed, outDir.getChildFile ("fx-intime.png"));
             expect (heard && fxp.getSelectedType() == T::riser, "FX: HEAR IT IN TIME plays the riser over the groove");
             fxp.hearInTime();      // (stop)
+        }
+        // ---- the Song FX bank: ADD TO SONG FX puts it on every kit, PUT ON THIS KIT on the one you're on ----
+        {
+            using S = gg::Slot;
+            fxp.showType ((int) T::impact);
+            fxp.selectRow (0);
+            pump (200);
+            const auto impact = fxp.getSelectedPath();
+            fxp.addToSongFx();
+            pump (300);
+            bool everyKit = p.songFx[0].path == impact && ! p.kits.empty();
+            for (auto& k : p.kits) everyKit = everyKit && k[S::sfx1].path == impact;
+            save (*ed, outDir.getChildFile ("fx-added.png"));
+            fxp.showType ((int) T::riser);
+            fxp.selectRow (0);
+            pump (200);
+            const auto riser = fxp.getSelectedPath();
+            const auto free = p.freeKitFx();
+            fxp.putOnKit();
+            pump (300);
+            const bool onKit = free != S::count && (*p.getActiveKit())[free].path == riser && p.songFx[1].isEmpty()
+                               && (p.kits.size() < 2 || p.kits[(size_t) (p.activeKit == 0 ? 1 : 0)][free].path != riser);
+            expect (everyKit && onKit, "Song FX: ADD TO SONG FX is on every kit's Song FX 1 (note 69), PUT ON THIS KIT only on this kit's FX pad");
+            // GENERATE and REGENERATE keep the song's FX; a knob turned on a Song FX pad reaches every kit
+            p.generate (false);
+            p.regenerateKit (0, false);
+            pump (400);
+            bool kept = true;
+            for (auto& k : p.kits) kept = kept && k[S::sfx1].path == impact;
+            p.kits[(size_t) p.activeKit][S::sfx1].gainDb = -6.0f;
+            p.kitChanged (p.activeKit);
+            bool shaped = std::abs (p.songFx[0].gainDb + 6.0f) < 0.01f;
+            for (auto& k : p.kits) shaped = shaped && std::abs (k[S::sfx1].gainDb + 6.0f) < 0.01f;
+            // a pad press on note 69 plays it
+            {
+                juce::AudioBuffer<float> buf (2, 512);
+                juce::MidiBuffer midi;
+                pump (500);
+                const auto before = p.player.getPadFlash (33);
+                midi.addEvent (juce::MidiMessage::noteOn (1, 69, (juce::uint8) 110), 0);
+                buf.clear();
+                p.processBlock (buf, midi);
+                shaped = shaped && p.player.getPadFlash (33) != before;
+            }
+            expect (kept && shaped, "Song FX: kept through GENERATE and REGENERATE, its knobs reach every kit, note 69 plays it");
+            // with the song: saved and opened again
+            juce::MemoryBlock state;
+            p.getStateInformation (state);
+            {
+                GrooveGrabberProcessor q;
+                q.setStateInformation (state.getData(), (int) state.getSize());
+                pump (300);
+                expect (q.songFx[0].path == impact && ! q.kits.empty() && q.kits[0][S::sfx1].path == impact && std::abs (q.songFx[0].gainDb + 6.0f) < 0.01f,
+                        "Song FX: saved with the song, and back when it opens");
+            }
+            // SAUCE: BLANK has a row for it
+            ed->showTab (3);
+            ed->getSauce().openGroove ("blank");
+            pump (300);
+            int filled = 0;
+            if (auto* k = p.getActiveKit())
+            {
+                for (auto sl : k->shownSlots()) filled += (*k)[sl].isEmpty() ? 0 : 1;
+                filled += k->bankUsed() > 0 ? 1 : 0;
+            }
+            save (*ed, outDir.getChildFile ("sauce-songfx.png"));
+            expect (ed->getSauce().getGrid().numLanes() == filled, "Song FX: SAUCE's BLANK has a row for it (" + juce::String (ed->getSauce().getGrid().numLanes()) + " rows)");
+            // the bank holds 8 whatever the size: a 17-sound kit plays the first 4, the rest wait
+            p.options.kitSize = 32;
+            p.generate (false);
+            for (int i = 1; i < 8; ++i) p.setSongFx (i, riser);
+            const bool eight = p.kits[0].bankUsed() == 8 && p.songFxWaiting() == 0;
+            p.options.kitSize = 17;
+            p.generate (false);
+            pump (400);
+            ed->showTab (0);
+            ed->refreshAll();
+            pump (400);
+            save (*ed, outDir.getChildFile ("build-songfx.png"));
+            expect (eight && p.songFxPads() == 4 && p.songFxWaiting() == 4 && p.kits[0].bankUsed() == 4 && p.kits[0][S::sfx5].isEmpty()
+                    && p.songFx[7].path == riser, "Song FX: a 32-sound kit plays all 8; a 17-sound kit the first 4, with 4 waiting (kept)");
+            // REMOVE FROM SONG FX
+            ed->showTab (4);
+            fxp.showType ((int) T::impact);
+            fxp.selectRow (0);
+            pump (200);
+            fxp.addToSongFx();        // (it's there: REMOVE)
+            pump (200);
+            expect (p.songFx[0].isEmpty() && p.kits[0][S::sfx1].isEmpty(), "Song FX: REMOVE FROM SONG FX takes it off every kit");
+            fxp.addToSongFx();
+            pump (300);
         }
         // light
         p.getSettings().setLightTheme (true);
