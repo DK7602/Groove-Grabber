@@ -842,7 +842,12 @@ namespace ggui
         add ("Length   ", juce::String (secs, 2) + " s  -  " + barsText (gg::fx::barsAt (secs, bpm)) + " at " + juce::String (bpm, 0) + " BPM");
         if (const auto note = steadyNote (r.item.shape); note.isNotEmpty()) add ("Note   ", note);
         add ("In time   ", inTimeWords (r.item.type));
-        if (const auto f = fitWords (r.item, *s); f.isNotEmpty()) add ("Fit   ", f);
+        if (const auto f = fitWords (r.item, *s); f.isNotEmpty())
+        {
+            add ("Fit   ", f);
+            if (const double daw = proc.dawBpm(); daw > 0 && std::abs (daw - bpm) > 0.05)
+                add ("Tempo   ", "your DAW is at " + juce::String (daw, daw == std::round (daw) ? 0 : 1) + " BPM: set BPM to match");
+        }
         if (proc.options.tuneToKey && proc.options.key >= 0)
         {
             const float t = proc.fxTuneFor (s->path);

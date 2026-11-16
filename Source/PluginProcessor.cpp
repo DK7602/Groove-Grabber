@@ -61,6 +61,7 @@ void GrooveGrabberProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
             host.playing = pos->getIsPlaying();
             if (auto ppq = pos->getPpqPosition()) host.ppq = *ppq;
             if (auto bpm = pos->getBpm()) host.bpm = *bpm;
+            if (host.valid && host.bpm > 0) hostBpm.store (host.bpm);
         }
 
     if (buffer.getNumChannels() >= 2)
@@ -200,6 +201,13 @@ void GrooveGrabberProcessor::setBpm (double bpm)
     options.bpm = juce::jlimit (40.0, 250.0, bpm);
     player.setTempo (options.bpm);
     for (auto& k : kits) k.bpm = options.bpm;
+    // FX with a FIT: made again at the new tempo
+    bool fitted = false;
+    for (auto& st : songFx) fitted = fitted || (! st.isEmpty() && st.fitBars > 0);
+    for (auto& k : kits)
+        for (auto s : { gg::Slot::fx1, gg::Slot::fx2, gg::Slot::fx3, gg::Slot::fx4 })
+            fitted = fitted || (! k[s].isEmpty() && k[s].fitBars > 0);
+    if (fitted) renderKits();
     notify();
 }
 

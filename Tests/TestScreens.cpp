@@ -1123,6 +1123,25 @@ int runScreenshots (const juce::File& outDir)
                 }
             }
             expect (stored && padOk, "FIT: ADD TO SONG FX keeps the FIT; Song FX 1 plays the riser 2 bars long, ending on the bar line");
+            // a new tempo: fit again
+            {
+                const double oldBpm = p.options.bpm;
+                p.setBpm (120.0);
+                bool refit = false;
+                for (int i = 0; i < 100 && ! refit; ++i)
+                {
+                    pump (50);
+                    if (auto pk = p.getPlayable (p.activeKit))
+                    {
+                        const auto& pad = pk->pads[(size_t) (gg::firstBankNote - gg::firstPadNote)];
+                        const double sr = p.player.getSampleRate() > 0 ? p.player.getSampleRate() : 44100.0;
+                        refit = pad != nullptr && std::abs (gg::render::anchorSample (*pad, 0) / sr - 4.0) < 0.08;    // 2 bars at 120 = 4 s
+                    }
+                }
+                expect (refit, "FIT: a new BPM fits the pad again (2 bars at 120 BPM: 4 s)");
+                p.setBpm (oldBpm);
+                pump (300);
+            }
             // saved with the song
             {
                 juce::MemoryBlock state;

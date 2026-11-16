@@ -129,6 +129,7 @@ public:
     // ---- FX: your effects, typed (core/Fx), and heard in time with the groove ----
     juce::SharedResourcePointer<gg::fx::Catalog> fxCatalog;
     double songBpm() const;                        // the song's tempo (or its style's)
+    double dawBpm() const noexcept                 { return hostBpm.load(); }   // the DAW's tempo (0: none, or standalone)
     // Plays the effect over BUILD's groove and kit, placed where it goes: a build-up ends on a downbeat, a hit starts
     // on one, a whoosh peaks on one. With no kits yet, over a click. Returns how long it plays (seconds).
     double hearFxInTime (const juce::String& path, gg::fx::Type, int fitBars = 0);
@@ -167,6 +168,7 @@ private:
     std::shared_ptr<std::atomic<bool>> alive = std::make_shared<std::atomic<bool>> (true);
     std::array<gg::PlayableKit::Ptr, 4> playables;
     std::atomic<int> renderGeneration { 0 };
+    std::atomic<double> hostBpm { 0.0 };
     juce::uint32 seed = 1;
     juce::String statusMessage;
     juce::AudioBuffer<float> monoScratch;            // for hosts that pick a mono output
