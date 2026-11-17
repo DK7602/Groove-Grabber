@@ -1,4 +1,4 @@
-// Groove Grabber - the top bar: logo, pages, the song's key and tempo, Key Compass, theme, settings.
+// Groove Grabber - the top bar: logo, pages, the song's key and tempo, IMPORT SONG, theme, settings.
 #pragma once
 
 #include "Widgets.h"
@@ -26,7 +26,7 @@ namespace ggui
         juce::Label editor;
     };
 
-    class HeaderBar : public juce::Component
+    class HeaderBar : public juce::Component, public juce::FileDragAndDropTarget
     {
     public:
         explicit HeaderBar (GrooveGrabberProcessor&);
@@ -42,21 +42,28 @@ namespace ggui
         void resized() override;
         void mouseUp (const juce::MouseEvent&) override;
         void mouseMove (const juce::MouseEvent&) override;
+        void paintOverChildren (juce::Graphics&) override;
+        // a song file dropped on IMPORT SONG
+        bool isInterestedInFileDrag (const juce::StringArray&) override;
+        void fileDragEnter (const juce::StringArray&, int, int) override     { dropHover = true; repaint(); }
+        void fileDragExit (const juce::StringArray&) override                 { dropHover = false; repaint(); }
+        void filesDropped (const juce::StringArray&, int, int) override;
 
     private:
         void toggleTheme();
-        void showKeyCompassMenu();
+        void showImportMenu();
         void showSettingsMenu();
         GrooveGrabberProcessor& proc;
         juce::OwnedArray<juce::TextButton> tabs;                      // by page: BUILD, LIBRARY, MY KITS, SAUCE, FX
         static constexpr int tabOrder[] = { 0, 3, 4, 2, 1 };           // left to right: BUILD, SAUCE, FX, MY KITS, LIBRARY
         juce::ComboBox key;
         DragNumber bpm;
-        IconButton keyCompass { "Key Compass", Icon::compass }, theme { "theme", Icon::moon }, gear { "settings", Icon::gear },
+        IconButton importSong { "Import song", Icon::music }, theme { "theme", Icon::moon }, gear { "settings", Icon::gear },
                    help { "manual", Icon::help };
         std::unique_ptr<juce::FileChooser> chooser;
         juce::Rectangle<int> logoArea, keyLabel, bpmLabel;
         float titleH = 46.0f, grabberH = 20.0f;                       // GROOVE and GRABBER (font heights)
         int tab = 0;
+        bool dropHover = false;
     };
 }

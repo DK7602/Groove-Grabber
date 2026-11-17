@@ -21,5 +21,5 @@ Design
 
 Checklist
 - [x] core + engine tests (815/815)
-- [ ] processor, header, strip, drops; screen tests; screenshots
+- [x] processor, header, strip, drops; screen tests; screenshots (815/815)
 - [ ] manual, CLAUDE.md, FX tempo hint text, version 1.0.34; full tests + host; release; CI; Song Savant

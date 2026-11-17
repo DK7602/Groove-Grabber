@@ -231,6 +231,76 @@ void GrooveGrabberProcessor::useSongSavantSong (const gg::SongSavantSong& s)
     notify (msg + ". " + built);
 }
 
+//==============================================================================
+void GrooveGrabberProcessor::importSongFile (const juce::File& file)
+{
+    if (importing.exchange (true)) return;          // (one at a time)
+    notify ("Reading \"" + file.getFileName() + "\"...");
+    runInBackground ([this, a = alive, file]
+    {
+        auto song = gg::importSong (file, [] { auto* job = juce::ThreadPoolJob::getCurrentThreadPoolJob(); return job != nullptr && job->shouldExit(); });
+        juce::MessageManager::callAsync ([this, a, song, file]
+        {
+            if (! a->load()) return;
+            importing = false;
+            if (! song.ok)
+            {
+                notify ("\"" + file.getFileName() + "\": " + song.error);
+                return;
+            }
+            // a Key Compass song picked by hand: its folder is where the recent ones are
+            if (song.from == gg::ImportedSong::From::keyCompass && file.getParentDirectory() != getSettings().getKeyCompassDir())
+                getSettings().setKeyCompassDir (file.getParentDirectory());
+            offerImport (song);
+        });
+    });
+}
+
+void GrooveGrabberProcessor::offerImport (gg::ImportedSong song)
+{
+    importedDrumsId = {};
+    offeredImport = std::move (song);
+    notify (offeredImport->title() + ": " + offeredImport->summary() + ". USE IT on BUILD sets it.");
+}
+
+void GrooveGrabberProcessor::useImport (bool otherTempo)
+{
+    if (! offeredImport) return;
+    const auto s = *offeredImport;
+    offeredImport.reset();
+    if (s.songSavant)
+    {
+        getSettings().set ("songSavantSeen", s.songSavant->sent.toISO8601 (true));
+        useSongSavantSong (*s.songSavant);
+        return;
+    }
+    songName = s.name;
+    const double bpm = otherTempo && s.otherBpm > 0 ? s.otherBpm : s.bpm;
+    juce::StringArray set;
+    if (bpm > 0) { setBpm (bpm); set.add (juce::String (bpm, std::abs (bpm - std::round (bpm)) < 0.05 ? 0 : 1) + " BPM"); }
+    if (s.key >= 0) { setKey (s.key); set.add (gg::keyName (s.key)); }
+    notify ("Using " + s.title() + (set.isEmpty() ? juce::String (" (it had no key or tempo to set)") : ": " + set.joinIntoString (", ")) + ".");
+}
+
+void GrooveGrabberProcessor::dismissImport()
+{
+    if (offeredImport && offeredImport->songSavant)
+        getSettings().set ("songSavantSeen", offeredImport->songSavant->sent.toISO8601 (true));
+    offeredImport.reset();
+    importedDrumsId = {};
+    notify();
+}
+
+juce::String GrooveGrabberProcessor::saveImportedDrums()
+{
+    if (! offeredImport || ! offeredImport->hasDrums()) return {};
+    if (importedDrumsId.isNotEmpty()) return importedDrumsId;
+    const auto& s = *offeredImport;
+    importedDrumsId = importMyGroove (s.drums, s.name + " drums.mid", options.genre, options.style().id, s.bpm > 0 ? s.bpm : songBpm());
+    sendChangeMessage();
+    return importedDrumsId;
+}
+
 void GrooveGrabberProcessor::setGrooveId (const juce::String& wanted)
 {
     // one of my grooves that's gone (deleted, or a song from another computer): the style's own groove
@@ -343,10 +413,16 @@ juce::String GrooveGrabberProcessor::importMyGroove (const juce::File& file, gg:
         notify ("Couldn't open \"" + file.getFileName() + "\"");
         return {};
     }
-    auto in = gg::grooveFromMidi (data, file.getFileName());
+    return importMyGroove (data, file.getFileName(), genre, styleId, bpm);
+}
+
+juce::String GrooveGrabberProcessor::importMyGroove (const juce::MemoryBlock& data, const juce::String& fileName, gg::Genre genre,
+                                                     const juce::String& styleId, double bpm)
+{
+    auto in = gg::grooveFromMidi (data, fileName);
     if (in.why.isNotEmpty())
     {
-        notify ("\"" + file.getFileName() + "\": " + in.why);
+        notify ("\"" + fileName + "\": " + in.why);
         return {};
     }
     auto& g = in.groove;

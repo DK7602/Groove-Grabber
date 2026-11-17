@@ -5,7 +5,7 @@
 
 namespace ggui
 {
-    class SongPanel : public juce::Component, private juce::Timer
+    class SongPanel : public juce::Component, public juce::FileDragAndDropTarget, private juce::Timer
     {
     public:
         explicit SongPanel (GrooveGrabberProcessor&);
@@ -13,16 +13,28 @@ namespace ggui
         void paint (juce::Graphics&) override;
         void resized() override;
         std::function<void()> onGenerate;
-        void checkSongSavant();                 // a song Song Savant just sent: offer it (also the tests)
-        bool isOfferingSongSavant() const       { return waiting.has_value(); }
+        void checkSongSavant();                 // a song Song Savant just sent: offered like an import (also the tests)
+        bool isOfferingSongSavant() const       { const auto& o = proc.getOfferedImport(); return o.has_value() && o->songSavant.has_value(); }
+        bool isOfferingImport() const           { return proc.getOfferedImport().has_value(); }
+        // (the tests) the strip's buttons
+        void clickUseImport (bool otherTempo)   { tempoB.setToggleState (otherTempo, juce::dontSendNotification); if (useImport.onClick) useImport.onClick(); }
+        juce::Rectangle<int> getImportArea() const   { return understoodArea; }
+        // a song file dropped on YOUR SONG
+        bool isInterestedInFileDrag (const juce::StringArray&) override;
+        void fileDragEnter (const juce::StringArray&, int, int) override     { dropHover = true; repaint(); }
+        void fileDragExit (const juce::StringArray&) override                 { dropHover = false; repaint(); }
+        void filesDropped (const juce::StringArray&, int, int) override;
+        void paintOverChildren (juce::Graphics&) override;
 
     private:
         void timerCallback() override           { checkSongSavant(); }
+        void updateImportStrip();
         void pushOptions();
         void syncDescription();
         GrooveGrabberProcessor& proc;
-        std::optional<gg::SongSavantSong> waiting;
-        juce::TextButton useSongSavant, skipSongSavant { "X" };
+        // IMPORT SONG's "what I found" strip (under the description): USE IT, the tempo (or double / half), the drums, X
+        juce::TextButton useImport { "USE IT" }, tempoA, tempoB, keepDrums { "DRUMS TO MY GROOVES" }, skipImport { "X" };
+        bool stripShown = false, dropHover = false;
         juce::TextEditor description;
         juce::ComboBox genre, styleBox, era;
         gg::Genre stylesShownFor = gg::Genre::count;
@@ -74,6 +86,7 @@ namespace ggui
         std::function<void()> onExport;
         std::function<void()> onEditGroove;     // open BUILD's groove on SAUCE
         TransportBar& getTransport() noexcept   { return transport; }     // (for the tests)
+        SongPanel& getSongPanel() noexcept      { return song; }
 
     private:
         GrooveGrabberProcessor& proc;

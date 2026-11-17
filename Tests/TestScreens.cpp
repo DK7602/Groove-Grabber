@@ -828,17 +828,16 @@ int runScreenshots (const juce::File& outDir)
         {
             ggui::SongPanel panel (p);
             panel.setSize (420, 900);
-            expect (panel.isOfferingSongSavant(), "the build page offers a song Song Savant just sent");
-            p.useSongSavantSong (*song);
+            expect (panel.isOfferingSongSavant(), "the build page offers a song Song Savant just sent (IMPORT SONG's strip)");
+            panel.clickUseImport (false);      // USE IT AND BUILD
             expect (p.options.genre == gg::Genre::country && p.options.style().id == "country.modern", "Song Savant's genre and style: " + p.options.style().id);
             expect (p.options.key == 21 && std::abs (p.options.bpm - 92) < 0.1, "Song Savant's key and tempo");
             expect (p.songName == "Back Roads" && p.description.contains ("Morgan Wallen"), "the song's name and description");
             expect (p.kits.size() == 4, "four kits built for it");
             expect (! p.kits.empty() && p.kits.front().key == 21, "the kits are made in the song's key");
             expect (p.getStatusMessage().startsWith ("From Song Savant: Back Roads"), "says where the song came from: " + p.getStatusMessage());
-            p.getSettings().set ("songSavantSeen", song->sent.toISO8601 (true));
             panel.checkSongSavant();
-            expect (! panel.isOfferingSongSavant(), "once used, it isn't offered again");
+            expect (! panel.isOfferingSongSavant() && ! p.getOfferedImport().has_value(), "once used, it isn't offered again");
             p.getSettings().set ("songSavantSeen", {});
 
             // a style the words don't name ("modern trap" sent as NY Drill): it stays, through the window refreshing
@@ -861,6 +860,125 @@ int runScreenshots (const juce::File& outDir)
             ed.reset();
         }
         f.deleteFile();
+    }
+
+    // IMPORT SONG: a MIDI file from a DAW is offered on BUILD (nothing changes yet); USE IT sets its key and tempo;
+    // its drums go to MY GROOVES; a bounce offers its tempo or double / half; X; a file it can't read
+    {
+        auto expect = [&failures] (bool ok, const juce::String& what)
+        {
+            std::cout << (ok ? "  ok: " : "  FAIL: ") << what << std::endl;
+            if (! ok) ++failures;
+        };
+        const auto dir = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("GrooveGrabberTests").getChildFile ("Import UI");
+        dir.deleteRecursively();
+        dir.createDirectory();
+        // a song as a DAW exports it: tempo 92, A minor, piano chords, a drum track
+        juce::MidiFile mf;
+        mf.setTicksPerQuarterNote (480);
+        {
+            juce::MidiMessageSequence c, piano, drums;
+            c.addEvent (juce::MidiMessage::tempoMetaEvent ((int) std::round (60.0e6 / 92.0)), 0);
+            c.addEvent (juce::MidiMessage::timeSignatureMetaEvent (4, 4), 0);
+            c.addEvent (juce::MidiMessage::keySignatureMetaEvent (0, true), 0);
+            piano.addEvent (juce::MidiMessage::textMetaEvent (3, "Piano"), 0);
+            const int ch[4][4] = { { 45, 57, 60, 64 }, { 41, 57, 60, 65 }, { 48, 60, 64, 67 }, { 43, 59, 62, 67 } };
+            for (int b = 0; b < 8; ++b)
+                for (int n : ch[b % 4])
+                {
+                    piano.addEvent (juce::MidiMessage::noteOn (1, n, (juce::uint8) 90), b * 1920.0);
+                    piano.addEvent (juce::MidiMessage::noteOff (1, n), b * 1920.0 + 1800.0);
+                }
+            drums.addEvent (juce::MidiMessage::textMetaEvent (3, "Drums"), 0);
+            for (int b = 0; b < 8; ++b)
+                for (auto [beat, note] : { std::pair<double, int> { 0.0, 36 }, { 1.0, 38 }, { 2.5, 36 }, { 3.0, 38 } })
+                {
+                    drums.addEvent (juce::MidiMessage::noteOn (10, note, (juce::uint8) 110), (b * 4 + beat) * 480.0);
+                    drums.addEvent (juce::MidiMessage::noteOff (10, note), (b * 4 + beat + 0.1) * 480.0);
+                }
+            for (auto* t : { &c, &piano, &drums }) { t->updateMatchedPairs(); mf.addTrack (*t); }
+        }
+        const auto midi = dir.getChildFile ("Back Porch.mid");
+        {
+            juce::FileOutputStream os (midi);
+            mf.writeTo (os);
+        }
+        GrooveGrabberProcessor p;
+        for (int i = 0; i < 400 && p.library->isScanning(); ++i) pump (25);
+        p.applyDescription ("90s boom bap, 90 BPM");
+        p.generate (false);
+        std::unique_ptr<GrooveGrabberEditor> ed (dynamic_cast<GrooveGrabberEditor*> (p.createEditor()));
+        ed->setSize (1440, 900);
+        ed->showTab (0);
+        pump (300);
+        auto& panel = ed->getBuild().getSongPanel();
+        auto waitImport = [&] { for (int i = 0; i < 400 && p.isImporting(); ++i) pump (25); pump (200); ed->refreshAll(); pump (300); };
+
+        p.importSongFile (midi);
+        waitImport();
+        const auto& o = p.getOfferedImport();
+        expect (o.has_value() && o->from == gg::ImportedSong::From::midi && o->key == 21 && std::abs (o->bpm - 92) < 0.01 && o->hasDrums()
+                && std::abs (p.options.bpm - 90) < 0.01 && panel.isOfferingImport(),
+                "IMPORT SONG: a MIDI file is offered (A minor, 92 BPM, its drums); nothing changes until USE IT");
+        save (*ed, outDir.getChildFile ("build-import.png"));
+        const auto drumsId = p.saveImportedDrums();
+        const auto* mine = gg::mygrooves::entry (drumsId);
+        expect (mine != nullptr && mine->groove->name == "Back Porch drums" && p.getOfferedImport().has_value(),
+                "IMPORT SONG: DRUMS TO MY GROOVES keeps its drum part as one of MY GROOVES");
+        panel.clickUseImport (false);
+        pump (300);
+        expect (p.options.key == 21 && std::abs (p.options.bpm - 92) < 0.01 && p.songName == "Back Porch" && ! p.getOfferedImport().has_value(),
+                "IMPORT SONG: USE IT sets the key and tempo (" + gg::keyName (p.options.key) + ", " + juce::String (p.options.bpm) + ")");
+        if (drumsId.isNotEmpty()) p.deleteMyGroove (drumsId);
+
+        // a bounce: its tempo, or double / half
+        {
+            ggtest::Synth s;
+            const double sr = 22050, bpm = 88, spb = sr * 60.0 / bpm;
+            s.sr = sr;
+            juce::AudioBuffer<float> song (1, (int) (sr * 16));
+            song.clear();
+            auto kick = s.kick (50, 0.2f, 0.5f), snare = s.snare (200, 0.15f, 0.8f);
+            for (int b = 0; b * spb < song.getNumSamples(); ++b)
+            {
+                const int at = (int) (b * spb);
+                const auto& hit = b % 2 == 0 ? kick : snare;
+                song.addFrom (0, at, hit, 0, 0, juce::jmin (hit.getNumSamples(), song.getNumSamples() - at), 0.8f);
+            }
+            for (int i = 0; i < song.getNumSamples(); ++i)
+            {
+                const float t = (float) (i / sr);
+                float v = 0;
+                for (float f : { 220.0f, 261.63f, 329.63f, 110.0f }) v += std::sin (juce::MathConstants<float>::twoPi * f * t) * 0.06f;
+                song.addSample (0, i, v);
+            }
+            const auto wav = dir.getChildFile ("Rough Mix.wav");
+            ggtest::Synth::write (wav, song, sr);
+            p.importSongFile (wav);
+            waitImport();
+            const auto& a = p.getOfferedImport();
+            const bool pair = a.has_value() && a->otherBpm > 0 && (std::abs (a->otherBpm - a->bpm * 2) < 0.6 || std::abs (a->otherBpm - a->bpm / 2) < 0.6);
+            expect (a.has_value() && a->from == gg::ImportedSong::From::audio && pair && a->key == 21,
+                    "IMPORT SONG: a bounce is offered with its tempo or double / half, and its key (" + (a ? a->summary() : juce::String()) + ")");
+            save (*ed, outDir.getChildFile ("build-import-audio.png"));
+            const double other = a ? a->otherBpm : 0;
+            panel.clickUseImport (true);
+            pump (300);
+            expect (other > 0 && std::abs (p.options.bpm - other) < 0.6, "IMPORT SONG: USE IT with the other tempo picked");
+        }
+        // X; a file it can't read
+        p.importSongFile (midi);
+        waitImport();
+        p.dismissImport();
+        pump (100);
+        expect (! p.getOfferedImport().has_value(), "IMPORT SONG: X takes the offer away");
+        const auto txt = dir.getChildFile ("notes.txt");
+        txt.replaceWithText ("hello");
+        p.importSongFile (txt);
+        waitImport();
+        expect (! p.getOfferedImport().has_value() && p.getStatusMessage().contains ("can't read"), "IMPORT SONG: a file it can't read says so");
+        ed.reset();
+        dir.deleteRecursively();
     }
 
     // the genre box and the description together

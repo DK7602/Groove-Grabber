@@ -87,56 +87,95 @@ namespace ggui
         surprise.onClick = [this] { syncDescription(); proc.generate (true); };
         addAndMakeVisible (surprise);
 
-        // a song sent from Song Savant (its SEND TO GROOVE GRABBER button): one click sets it all and builds the kits
-        useSongSavant.getProperties().set ("style", "accent");
-        useSongSavant.onClick = [this]
+        // IMPORT SONG's strip: what a song brought, before anything changes (a song Song Savant sends shows here too)
+        useImport.getProperties().set ("style", "accent");
+        useImport.onClick = [this] { proc.useImport (tempoB.getToggleState()); };
+        for (auto* t : { &tempoA, &tempoB })
         {
-            if (! waiting) return;
-            const auto s = *waiting;
-            proc.getSettings().set ("songSavantSeen", s.sent.toISO8601 (true));
-            checkSongSavant();
-            proc.useSongSavantSong (s);
-        };
-        addChildComponent (useSongSavant);
-        skipSongSavant.getProperties().set ("style", "ghost");
-        skipSongSavant.setTooltip ("Not now (it stays in the KEY COMPASS menu)");
-        skipSongSavant.onClick = [this]
-        {
-            if (waiting) proc.getSettings().set ("songSavantSeen", waiting->sent.toISO8601 (true));
-            checkSongSavant();
-        };
-        addChildComponent (skipSongSavant);
+            t->getProperties().set ("style", "toggle");
+            t->setClickingTogglesState (true);
+            t->setRadioGroupId (7301);
+            t->setTooltip ("A tempo heard in audio can be double or half the one you count: pick the one your song is in");
+            addChildComponent (t);
+        }
+        keepDrums.setTooltip ("Keep the song's drum part as one of MY GROOVES (on SAUCE: play it, change it, drag it), "
+                              "with the genre and style picked here");
+        keepDrums.onClick = [this] { proc.saveImportedDrums(); updateImportStrip(); };
+        skipImport.getProperties().set ("style", "ghost");
+        skipImport.setTooltip ("Not now (nothing changes)");
+        skipImport.onClick = [this] { proc.dismissImport(); };
+        for (auto* b : { &useImport, &keepDrums, &skipImport }) addChildComponent (b);
         checkSongSavant();
         startTimer (2000);
     }
 
     void SongPanel::checkSongSavant()
     {
+        // a song Song Savant sent in the last day, not used or turned down yet: offered (unless another import is)
         auto s = gg::newestSongSavantSong (gg::paths::songSavantSongs());
         const auto seen = juce::Time::fromISO8601 (proc.getSettings().get ("songSavantSeen"));
-        const bool fresh = s.has_value() && s->sent > seen
-                             && (juce::Time::getCurrentTime() - s->sent).inHours() < 24.0;
-        const bool wasShown = waiting.has_value();
-        if (fresh)
+        const bool fresh = s.has_value() && s->sent > seen && (juce::Time::getCurrentTime() - s->sent).inHours() < 24.0;
+        if (fresh && ! proc.getOfferedImport().has_value() && ! proc.isImporting())
+            proc.offerImport (gg::songFromSongSavant (*s));
+        updateImportStrip();
+    }
+
+    void SongPanel::updateImportStrip()
+    {
+        const auto& o = proc.getOfferedImport();
+        const bool show = o.has_value();
+        if (show)
         {
-            if (! waiting || waiting->file != s->file || waiting->sent != s->sent)
-            {
-                waiting = s;
-                useSongSavant.setButtonText ("Song Savant sent \"" + s->name + "\": USE IT");
-                const auto sum = s->summary();
-                useSongSavant.setTooltip ("Sets the genre, style, key and tempo" + (sum.isNotEmpty() ? " (" + sum + ")" : juce::String())
-                                          + " and builds four kits for it, with the kick, 808 and toms tuned to the key");
-            }
+            const bool two = o->otherBpm > 0 && ! o->songSavant;
+            tempoA.setButtonText (juce::String (o->bpm, 0));
+            tempoB.setButtonText (juce::String (o->otherBpm, 0));
+            if (! tempoA.getToggleState() && ! tempoB.getToggleState()) tempoA.setToggleState (true, juce::dontSendNotification);
+            tempoA.setVisible (two);
+            tempoB.setVisible (two);
+            useImport.setButtonText (o->songSavant ? "USE IT AND BUILD" : "USE IT");
+            useImport.setTooltip (o->songSavant ? "Sets the description, genre, style, decade, key and tempo, and builds four kits for it"
+                                                : "Sets the key and tempo (your kits are retuned; GENERATE KITS makes new ones)");
+            const bool saved = proc.getImportedDrumsId().isNotEmpty();
+            keepDrums.setVisible (o->hasDrums());
+            keepDrums.setEnabled (! saved);
+            keepDrums.setButtonText (saved ? "IN MY GROOVES" : "DRUMS TO MY GROOVES");
         }
         else
-            waiting.reset();
-        if (waiting.has_value() != wasShown)
         {
-            useSongSavant.setVisible (waiting.has_value());
-            skipSongSavant.setVisible (waiting.has_value());
-            resized();
-            repaint();
+            for (auto* t : { &tempoA, &tempoB }) t->setToggleState (false, juce::dontSendNotification);
+            tempoA.setVisible (false);
+            tempoB.setVisible (false);
+            keepDrums.setVisible (false);
         }
+        useImport.setVisible (show);
+        skipImport.setVisible (show);
+        if (show != stripShown)
+        {
+            stripShown = show;
+            resized();
+        }
+        repaint();
+    }
+
+    bool SongPanel::isInterestedInFileDrag (const juce::StringArray& files)
+    {
+        return files.size() == 1 && gg::canImport (juce::File (files[0]));
+    }
+
+    void SongPanel::filesDropped (const juce::StringArray& files, int, int)
+    {
+        dropHover = false;
+        repaint();
+        if (files.size() == 1) proc.importSongFile (juce::File (files[0]));
+    }
+
+    void SongPanel::paintOverChildren (juce::Graphics& g)
+    {
+        if (! dropHover) return;
+        g.setColour (pal().orange);
+        g.drawRoundedRectangle (getLocalBounds().toFloat().reduced (3.0f), 14.0f, 2.0f);
+        g.setFont (uiFont (15.0f));
+        g.drawText ("Drop to import the song", getLocalBounds().reduced (14, 12).removeFromTop (20), juce::Justification::centredRight);
     }
 
     void SongPanel::syncDescription()
@@ -216,6 +255,7 @@ namespace ggui
         }
         surprise.setAccent (pal().purple);
         updating = false;
+        updateImportStrip();
         repaint();
     }
 
@@ -224,12 +264,16 @@ namespace ggui
         auto r = getLocalBounds().reduced (14, 12);
         r.removeFromTop (24);
         description.setBounds (r.removeFromTop (getHeight() < 760 ? 62 : 86));
-        understoodArea = r.removeFromTop (waiting ? 32 : 24);
+        understoodArea = r.removeFromTop (stripShown ? 24 + 30 : 24);
         {
-            auto row = understoodArea.reduced (0, 1);
-            skipSongSavant.setBounds (row.removeFromRight (26));
-            row.removeFromRight (4);
-            useSongSavant.setBounds (row);
+            auto row = understoodArea.withTrimmedTop (24).reduced (0, 1);
+            skipImport.setBounds (row.removeFromRight (28));
+            row.removeFromRight (6);
+            useImport.setBounds (row.removeFromLeft (proc.getOfferedImport() && proc.getOfferedImport()->songSavant ? 150 : 86));
+            row.removeFromLeft (6);
+            tempoA.setBounds (row.removeFromLeft (52));
+            tempoB.setBounds (row.removeFromLeft (52));
+            keepDrums.setBounds (understoodArea.withTrimmedTop (24).reduced (0, 1).withTrimmedLeft (86 + 6).withTrimmedRight (28 + 6));
         }
         r.removeFromTop (4);
         {
@@ -292,8 +336,33 @@ namespace ggui
         auto r = getLocalBounds().reduced (14, 12);
         drawSectionTitle (g, r.removeFromTop (20), "Your song", p.orange);
 
-        // what the description was understood as (unless a song from Song Savant is offered there)
-        if (! waiting)
+        // what an imported song brought (IMPORT SONG, or Song Savant sent it): its strip
+        if (const auto& o = proc.getOfferedImport())
+        {
+            juce::AttributedString t;
+            t.append (o->title() + ":  ", uiFont (13.5f), p.orange);
+            t.append (o->summary(), uiFont (13.5f, false), p.text);
+            t.setJustification (juce::Justification::centredLeft);
+            t.setWordWrap (juce::AttributedString::none);
+            auto line = understoodArea.withHeight (24).toFloat();
+            juce::TextLayout layout;
+            layout.createLayout (t, 4000.0f);
+            if (layout.getWidth() > line.getWidth())       // (too long: smaller, as one line)
+            {
+                g.setColour (p.orange);
+                g.setFont (uiFont (13.5f));
+                g.drawFittedText (o->title() + ":  " + o->summary(), line.toNearestInt(), juce::Justification::centredLeft, 1, 0.6f);
+            }
+            else t.draw (g, line);
+        }
+        else if (proc.isImporting())
+        {
+            g.setColour (p.orange);
+            g.setFont (uiFont (13.5f, false));
+            g.drawFittedText ("Reading the song...", understoodArea, juce::Justification::centredLeft, 1, 0.7f);
+        }
+        // what the description was understood as
+        else
         {
             juce::String u;
             if (proc.understood.understood.size() > 0) u = proc.understood.understood.joinIntoString ("  -  ");
