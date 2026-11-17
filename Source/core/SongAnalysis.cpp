@@ -80,6 +80,15 @@ namespace gg
                 chroma[(size_t) pc] += std::sqrt ((double) buf[(size_t) k]);
             }
         }
+        return keyFromChroma (chroma, confidence);
+    }
+
+    int keyFromChroma (const std::array<double, 12>& chroma, float& confidence)
+    {
+        confidence = 0;
+        double total = 0;
+        for (auto c : chroma) total += c;
+        if (total <= 0) return -1;
         static const double major[12] = { 6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88 };
         static const double minor[12] = { 6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17 };
         auto corr = [&] (const double* prof, int tonic)

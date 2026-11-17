@@ -22,6 +22,7 @@
 #include "core/MyGrooves.h"
 #include "core/Fx.h"
 #include "core/SampleRender.h"
+#include "core/SongImport.h"
 #include <juce_events/juce_events.h>
 #include <cmath>
 #include <iostream>
@@ -1818,6 +1819,8 @@ namespace
         check (names.contains ("Closed Hat 1 (hard)"), "closed hat");
     }
 
+    void testSongImport (const juce::File& dir);
+
     void testSongAnalysis()
     {
         section ("Song tempo and key");
@@ -1850,6 +1853,164 @@ namespace
         float conf = 0;
         const int key = gg::detectKey (song.getReadPointer (0), song.getNumSamples(), sr, conf);
         check (key == 21, "key A minor, got " + gg::keyName (key));
+
+        // IMPORT SONG: the same song as a bounce
+        const auto dir = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("GrooveGrabberTests").getChildFile ("Import");
+        dir.deleteRecursively();
+        dir.createDirectory();
+        {
+            const auto wav = dir.getChildFile ("Late Night Mix.wav");
+            ggtest::Synth::write (wav, song, sr);
+            const auto r = gg::importSong (wav);
+            check (r.ok && r.from == gg::ImportedSong::From::audio && std::abs (r.bpm - 120) < 1.5 && r.key == 21 && r.name == "Late Night Mix",
+                   "import a bounce: its tempo and key (" + r.summary() + ")");
+        }
+        check (std::abs (gg::otherTempo (88) - 176) < 0.01 && std::abs (gg::otherTempo (140) - 70) < 0.01 && gg::otherTempo (120) == 0,
+               "a tempo heard in audio offers double (slow) or half (fast)");
+        testSongImport (dir);
+    }
+
+    // IMPORT SONG from MIDI (a DAW's export, a pattern), Song Savant and Key Compass files
+    void testSongImport (const juce::File& dir)
+    {
+        section ("Import a song");
+        auto fileOf = [] (const std::vector<juce::MidiMessageSequence>& tracks)
+        {
+            juce::MidiFile mf;
+            mf.setTicksPerQuarterNote (480);
+            for (auto t : tracks) { t.updateMatchedPairs(); mf.addTrack (t); }
+            juce::MemoryOutputStream os;
+            mf.writeTo (os);
+            return juce::MemoryBlock (os.getData(), os.getDataSize());
+        };
+        auto conductor = [] (double bpm, int sharps, bool minor, bool keySig, int num = 4, int den = 4)
+        {
+            juce::MidiMessageSequence t;
+            t.addEvent (juce::MidiMessage::tempoMetaEvent ((int) std::round (60.0e6 / bpm)), 0);
+            t.addEvent (juce::MidiMessage::timeSignatureMetaEvent (num, den), 0);
+            if (keySig) t.addEvent (juce::MidiMessage::keySignatureMetaEvent (sharps, minor), 0);
+            return t;
+        };
+        auto chords = [] (const juce::String& name, int channel, std::vector<std::vector<int>> bars, int times)
+        {
+            juce::MidiMessageSequence t;
+            t.addEvent (juce::MidiMessage::textMetaEvent (3, name), 0);
+            int bar = 0;
+            for (int k = 0; k < times; ++k)
+                for (const auto& c : bars)
+                {
+                    for (int n : c)
+                    {
+                        t.addEvent (juce::MidiMessage::noteOn (channel, n, (juce::uint8) 90), bar * 4 * 480.0);
+                        t.addEvent (juce::MidiMessage::noteOff (channel, n), (bar * 4 + 3.9) * 480.0);
+                    }
+                    ++bar;
+                }
+            return t;
+        };
+        // a drum part: an intro bar with only a crash, then a beat with soft hats in between
+        auto drumPart = [] (const juce::String& name, int channel, int bars, bool intro)
+        {
+            juce::MidiMessageSequence t;
+            t.addEvent (juce::MidiMessage::textMetaEvent (3, name), 0);
+            auto hit = [&] (double beat, int note, int vel)
+            {
+                t.addEvent (juce::MidiMessage::noteOn (channel, note, (juce::uint8) vel), beat * 480.0);
+                t.addEvent (juce::MidiMessage::noteOff (channel, note), (beat + 0.1) * 480.0);
+            };
+            int first = 0;
+            if (intro) { hit (0, 49, 110); first = 1; }
+            for (int b = first; b < first + bars; ++b)
+            {
+                const double at = b * 4.0;
+                for (double k : { 0.0, 2.5 }) hit (at + k, 36, 115);
+                for (double k : { 1.0, 3.0 }) hit (at + k, 38, 112);
+                for (int e = 0; e < 8; ++e) hit (at + e * 0.5, 42, e % 2 == 0 ? 100 : 55);
+            }
+            return t;
+        };
+        const std::vector<std::vector<int>> amChords { { 45, 57, 60, 64 }, { 41, 57, 60, 65 }, { 48, 60, 64, 67 }, { 43, 59, 62, 67 } };   // Am F C G
+
+        // a DAW's song export: tempo, A minor key signature, piano, bass, drums on channel 10 after a crash intro
+        {
+            const auto data = fileOf ({ conductor (92, 0, true, true), chords ("Piano", 1, amChords, 2), drumPart ("Drums", 10, 8, true) });
+            const auto r = gg::songFromMidi (data, "Back Porch");
+            bool kick = false, snare = false, crash = false, ghost = false;
+            if (r.hasDrums())
+            {
+                const auto g = gg::grooveFromMidi (r.drums, "x").groove;
+                for (const auto& h : g.hits)
+                {
+                    kick = kick || h.slot == gg::Slot::kick;
+                    snare = snare || h.slot == gg::Slot::snare;
+                    crash = crash || h.slot == gg::Slot::crash;
+                    ghost = ghost || (h.slot == gg::Slot::closedHat && h.velocity < 0.6f);
+                }
+            }
+            check (r.ok && std::abs (r.bpm - 92) < 0.01 && r.key == 21 && r.keySure && r.keyFrom == "its key signature",
+                   "MIDI: its tempo and key signature (" + r.summary() + ")");
+            check (r.hasDrums() && kick && snare && ghost && ! crash && r.drumBars >= 1,
+                   "MIDI: its drum part on its own, the beat (not the intro's crash), soft hats kept soft");
+        }
+        // no key signature: the key from the notes (E major); a DAW's default C major signature on a song in G
+        {
+            const auto e = gg::songFromMidi (fileOf ({ conductor (120, 0, false, false), chords ("Keys", 1, { { 40, 64, 68, 71 }, { 45, 61, 64, 69 }, { 47, 63, 66, 71 }, { 40, 64, 68, 71 } }, 2) }), "E Song");
+            check (e.ok && e.key == 4 && e.keyFrom == "its notes" && ! e.hasDrums(), "MIDI: no key signature, the key from its notes (" + e.summary() + ")");
+            const auto g = gg::songFromMidi (fileOf ({ conductor (100, 0, false, true), chords ("Guitar", 1, { { 43, 59, 62, 67 }, { 48, 60, 64, 67 }, { 50, 62, 66, 69 }, { 43, 59, 62, 67 } }, 2) }), "G Song");
+            check (g.key == 7 && g.keyFrom == "its notes", "MIDI: a default C major signature on a song in G: the notes win (" + g.summary() + ")");
+            const auto c = gg::songFromMidi (fileOf ({ conductor (100, 0, false, true), chords ("Piano", 1, amChords, 2) }), "Am Song");
+            check (c.key == 21 && c.keyFrom == "its key signature", "MIDI: C major / A minor signature, the notes pick A minor (" + c.summary() + " from " + c.keyFrom + ")");
+        }
+        // drums on a channel-1 track named Drums (a drum plug-in's track); a drums-only pattern; 3/4; not MIDI
+        {
+            const auto r = gg::songFromMidi (fileOf ({ conductor (88, 0, true, true), chords ("Piano", 1, amChords, 1), drumPart ("Groove Agent SE - Drums", 1, 4, false) }), "Track");
+            check (r.hasDrums() && r.key == 21, "MIDI: a drum track by its name (channel 1), kept out of the key");
+            gg::Groove pat;
+            pat.bars = 2;
+            pat.hits = { { 0.0, gg::Slot::kick, 1.0f }, { 1.0, gg::Slot::snare, 1.0f }, { 2.5, gg::Slot::bass808, 0.9f }, { 3.0, gg::Slot::snare, 1.0f } };
+            const auto p = gg::songFromMidi (gg::grooveToMidi (pat, 90, 0), "Pattern");
+            check (p.ok && p.hasDrums() && p.key < 0 && std::abs (p.bpm - 90) < 0.01, "MIDI: a drum pattern (SAUCE's own): its drums, no key (" + p.summary() + ")");
+            const auto w = gg::songFromMidi (fileOf ({ conductor (90, 0, true, true, 3, 4), drumPart ("Drums", 10, 4, false) }), "Waltz");
+            check (w.ok && ! w.hasDrums() && w.why.contains ("3/4"), "MIDI: drums in 3/4 aren't offered as a groove (" + w.why + ")");
+            juce::MemoryBlock junk ("not a midi file at all", 22);
+            const auto j = gg::songFromMidi (junk, "Junk");
+            check (! j.ok && j.error.isNotEmpty(), "not MIDI: says so");
+        }
+        // files by kind: a .mid, a Song Savant song, a Key Compass song, something else
+        {
+            const auto mid = dir.getChildFile ("Back Porch.mid");
+            mid.replaceWithData (fileOf ({ conductor (92, 0, true, true), chords ("Piano", 1, amChords, 2) }).getData(),
+                                 fileOf ({ conductor (92, 0, true, true), chords ("Piano", 1, amChords, 2) }).getSize());
+            const auto m = gg::importSong (mid);
+            check (m.ok && m.from == gg::ImportedSong::From::midi && m.key == 21 && m.name == "Back Porch" && m.file == mid, "a .mid file");
+
+            const auto ss = dir.getChildFile ("Back Roads.sssong");
+            juce::DynamicObject::Ptr o = new juce::DynamicObject();
+            o->setProperty ("app", "Song Savant");
+            o->setProperty ("name", "Back Roads");
+            o->setProperty ("description", "modern country, warm");
+            o->setProperty ("genre", "country");
+            o->setProperty ("style", "country.modern");
+            o->setProperty ("key", 21);
+            o->setProperty ("bpm", 92);
+            o->setProperty ("sent", juce::Time::getCurrentTime().toISO8601 (true));
+            ss.replaceWithText (juce::JSON::toString (juce::var (o.get())));
+            const auto s = gg::importSong (ss);
+            check (s.ok && s.songSavant.has_value() && s.songSavant->styleId == "country.modern" && s.key == 21 && s.title().startsWith ("Song Savant sent"),
+                   "a Song Savant song: everything (" + s.summary() + ")");
+
+            const auto kc = dir.getChildFile ("Night Drive.kcsong");
+            kc.replaceWithText ("<KeyCompassSong name=\"Night Drive\"><SongMap bpm=\"76\"><Section name=\"Verse\" chords=\"Dm Bb F C\"/></SongMap></KeyCompassSong>");
+            const auto k = gg::importSong (kc);
+            check (k.ok && k.from == gg::ImportedSong::From::keyCompass && std::abs (k.bpm - 76) < 0.01 && k.key == 14,
+                   "a Key Compass song: its tempo, and its key from the chords (" + k.summary() + ")");
+
+            const auto txt = dir.getChildFile ("notes.txt");
+            txt.replaceWithText ("hello");
+            const auto t = gg::importSong (txt);
+            check (! t.ok && t.error.isNotEmpty() && ! gg::canImport (txt) && gg::canImport (mid) && gg::canImport (ss) && gg::canImport (kc),
+                   "another kind of file: says what it can read");
+        }
     }
 }
 

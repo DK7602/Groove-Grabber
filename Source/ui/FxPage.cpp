@@ -878,7 +878,7 @@ namespace ggui
         {
             add ("Fit   ", f);
             if (const double daw = proc.dawBpm(); daw > 0 && std::abs (daw - bpm) > 0.05)
-                add ("Tempo   ", "your DAW is at " + juce::String (daw, daw == std::round (daw) ? 0 : 1) + " BPM: set BPM to match");
+                add ("Tempo   ", "your DAW is at " + juce::String (daw, daw == std::round (daw) ? 0 : 1) + " BPM (IMPORT SONG > Use my DAW's tempo)");
         }
         if (proc.options.tuneToKey && proc.options.key >= 0)
         {

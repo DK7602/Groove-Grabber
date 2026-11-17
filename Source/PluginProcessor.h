@@ -7,6 +7,7 @@
 #include "core/SongContext.h"
 #include "core/Exporter.h"
 #include "core/Fx.h"
+#include "core/SongImport.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <map>
 
@@ -42,7 +43,7 @@ public:
     gg::KitOptions options;
     juce::String description;
     gg::ParsedDescription understood;
-    juce::String songName;                         // from Key Compass, if picked there
+    juce::String songName;                         // from IMPORT SONG, if a song was imported
     bool genreByHand = false;                      // picked in the genre box: artists are read inside it
     void applyDescription (const juce::String& text);
     void setGenre (gg::Genre);
@@ -115,6 +116,17 @@ public:
     // A MIDI pattern dropped on SAUCE, saved as one of your grooves (with this genre and style; `bpm` when the file
     // has no tempo). Returns its id, or empty (with a message saying why).
     juce::String importMyGroove (const juce::File& midi, gg::Genre, const juce::String& styleId, double bpm);
+    juce::String importMyGroove (const juce::MemoryBlock& midi, const juce::String& fileName, gg::Genre, const juce::String& styleId, double bpm);
+
+    // ---- IMPORT SONG (core/SongImport): what a song brought, offered on BUILD before anything changes ----
+    void importSongFile (const juce::File&);      // read in the background (audio takes a few seconds), then offered
+    void offerImport (gg::ImportedSong);
+    const std::optional<gg::ImportedSong>& getOfferedImport() const noexcept   { return offeredImport; }
+    bool isImporting() const noexcept              { return importing.load(); }
+    void useImport (bool otherTempo = false);       // USE IT: its key and tempo (a Song Savant song: everything, and four kits)
+    void dismissImport();                           // X
+    juce::String saveImportedDrums();               // its drum part as one of MY GROOVES (with BUILD's genre and style)
+    juce::String getImportedDrumsId() const        { return importedDrumsId; }   // (saved already: its id)
     void deleteMyGroove (const juce::String& id);
 
     // COACH MY BEAT's ON PURPOSE tips, kept after the app closes: one of MY GROOVES keeps them in the settings
@@ -168,6 +180,9 @@ private:
     std::shared_ptr<std::atomic<bool>> alive = std::make_shared<std::atomic<bool>> (true);
     std::array<gg::PlayableKit::Ptr, 4> playables;
     std::atomic<int> renderGeneration { 0 };
+    std::optional<gg::ImportedSong> offeredImport;
+    juce::String importedDrumsId;
+    std::atomic<bool> importing { false };
     std::atomic<double> hostBpm { 0.0 };
     juce::uint32 seed = 1;
     juce::String statusMessage;

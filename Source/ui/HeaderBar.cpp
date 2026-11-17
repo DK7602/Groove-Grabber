@@ -99,10 +99,11 @@ namespace ggui
         bpm.onChange = [this] (double v) { proc.setBpm (v); };
         addAndMakeVisible (bpm);
 
-        keyCompass.setLabel ("KEY COMPASS");
-        keyCompass.setTooltip ("Take the key and tempo from a Key Compass song or a song file, or use a song sent from Song Savant");
-        keyCompass.onClick = [this] { showKeyCompassMenu(); };
-        addAndMakeVisible (keyCompass);
+        importSong.setLabel ("IMPORT SONG");
+        importSong.setTooltip ("Import a song: a bounce or rough mix (its key and tempo), a MIDI file from your DAW (its key, tempo "
+                               "and drums), or a song from Song Savant or Key Compass. Or drop the file here.");
+        importSong.onClick = [this] { showImportMenu(); };
+        addAndMakeVisible (importSong);
 
         theme.setTooltip ("Light / dark (or click the logo)");
         theme.onClick = [this] { toggleTheme(); };
@@ -145,7 +146,7 @@ namespace ggui
         key.setSelectedId (k < 0 ? 1 : (k >= 12 ? k - 12 + 2 : k + 12 + 2), juce::dontSendNotification);
         bpm.setValue (proc.options.bpm > 0 ? proc.options.bpm : proc.player.getTempo());
         theme.setIcon (isLight() ? Icon::moon : Icon::sun);
-        keyCompass.setAccent (pal().blue);
+        importSong.setAccent (pal().blue);
         repaint();
     }
 
@@ -193,7 +194,7 @@ namespace ggui
         }
         r = r.withLeft (tabRow.getX());
 
-        // right to left: light / dark, settings, Key Compass, BPM, key
+        // right to left: light / dark, settings, IMPORT SONG, BPM, key
         auto row = r.withSizeKeepingCentre (r.getWidth(), 46);
         theme.setBounds (row.removeFromRight (46));
         row.removeFromRight (4);
@@ -201,8 +202,8 @@ namespace ggui
         row.removeFromRight (4);
         help.setBounds (row.removeFromRight (46));
         row.removeFromRight (10);
-        keyCompass.setLabel (narrow ? juce::String() : juce::String ("KEY COMPASS"));
-        keyCompass.setBounds (row.removeFromRight (narrow ? 46 : 158).reduced (0, 3));
+        importSong.setLabel (narrow ? juce::String() : juce::String ("IMPORT SONG"));
+        importSong.setBounds (row.removeFromRight (narrow ? 46 : 158).reduced (0, 3));
         r = row;
         r.removeFromRight (10);
         bpm.setBounds (r.removeFromRight (64).reduced (0, 3));
@@ -268,27 +269,42 @@ namespace ggui
     }
 
     //==============================================================================
-    void HeaderBar::showKeyCompassMenu()
+    bool HeaderBar::isInterestedInFileDrag (const juce::StringArray& files)
     {
-        const auto folder = proc.getSettings().getKeyCompassDir();
-        const auto songs = gg::listKeyCompassSongs (folder, 12);
+        return files.size() == 1 && gg::canImport (juce::File (files[0]));
+    }
+
+    void HeaderBar::filesDropped (const juce::StringArray& files, int, int)
+    {
+        dropHover = false;
+        repaint();
+        if (files.size() == 1) proc.importSongFile (juce::File (files[0]));
+    }
+
+    void HeaderBar::paintOverChildren (juce::Graphics& g)
+    {
+        if (! dropHover) return;
+        g.setColour (pal().orange);
+        g.drawRoundedRectangle (importSong.getBounds().toFloat().expanded (3.0f), 9.0f, 2.0f);
+    }
+
+    void HeaderBar::showImportMenu()
+    {
         juce::PopupMenu m;
-        m.addSectionHeader ("KEY COMPASS SONGS");
-        if (songs.empty())
-            m.addItem (-1, folder.isDirectory() ? "No songs in Key Compass's My Songs yet" : "Key Compass's My Songs folder wasn't found", false);
-        for (size_t i = 0; i < songs.size(); ++i)
-        {
-            const auto& s = songs[i];
-            juce::String text = s.name + "    " + (s.key >= 0 ? gg::keyName (s.key) : juce::String ("no key"));
-            if (s.bpm > 0) text << "  -  " << juce::String (s.bpm, 0) << " BPM";
-            m.addItem ((int) i + 1, text);
-        }
-        // songs sent from Song Savant: genre, style, key and tempo, and four kits built for them
+        m.addSectionHeader ("IMPORT A SONG");
+        m.addItem (1, "Song file...   (a bounce, a MIDI file, a Song Savant or Key Compass song)");
+        // the plug-in: the DAW's own tempo (DAWs don't tell plug-ins the key)
+        const double daw = proc.dawBpm();
+        if (! gg::standalone::isStandalone() && daw > 0)
+            m.addItem (2, "Use my DAW's tempo (" + juce::String (daw, std::abs (daw - std::round (daw)) < 0.05 ? 0 : 1) + " BPM)",
+                       std::abs (daw - proc.songBpm()) > 0.05);
+
+        // songs Song Savant sent: genre, style, key and tempo, and four kits built for them (only when there are some)
         const auto ssSongs = gg::listSongSavantSongs (gg::paths::songSavantSongs(), 8);
         if (! ssSongs.empty())
         {
             m.addSeparator();
-            m.addSectionHeader ("SONG SAVANT SONGS");
+            m.addSectionHeader ("FROM SONG SAVANT");
             for (size_t i = 0; i < ssSongs.size(); ++i)
             {
                 const auto& s = ssSongs[i];
@@ -296,47 +312,53 @@ namespace ggui
                 m.addItem (200 + (int) i, s.name + (sum.isNotEmpty() ? "    " + sum : juce::String()));
             }
         }
-        m.addSeparator();
-        m.addItem (100, "Detect key and tempo from a song file...");
-        m.addItem (101, "Choose the Key Compass songs folder...");
-
-        m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&keyCompass), [this, songs, ssSongs, safe = juce::Component::SafePointer<HeaderBar> (this)] (int r)
+        // Key Compass's songs (only when its songs folder is on this computer)
+        const auto folder = proc.getSettings().getKeyCompassDir();
+        const auto kcSongs = folder.isDirectory() ? gg::listKeyCompassSongs (folder, 12) : std::vector<gg::KeyCompassSong>();
+        if (folder.isDirectory())
         {
-            if (safe == nullptr || r == 0) return;
+            m.addSeparator();
+            m.addSectionHeader ("FROM KEY COMPASS");
+            if (kcSongs.empty()) m.addItem (-1, "No songs in Key Compass's My Songs yet", false);
+            for (size_t i = 0; i < kcSongs.size(); ++i)
+            {
+                const auto& s = kcSongs[i];
+                juce::String text = s.name + "    " + (s.key >= 0 ? gg::keyName (s.key) : juce::String ("no key"));
+                if (s.bpm > 0) text << "  -  " << juce::String (s.bpm, 0) << " BPM";
+                m.addItem (300 + (int) i, text);
+            }
+            m.addItem (101, "Choose the Key Compass songs folder...");
+        }
+
+        m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&importSong),
+                         [this, kcSongs, ssSongs, daw, safe = juce::Component::SafePointer<HeaderBar> (this)] (int r)
+        {
+            if (safe == nullptr || r <= 0) return;
+            // a song picked from a list: the menu showed what it sets, so it's used at once
             if (r >= 200 && r < 200 + (int) ssSongs.size())
             {
-                const auto& s = ssSongs[(size_t) r - 200];
-                proc.getSettings().set ("songSavantSeen", s.sent.toISO8601 (true));
-                proc.useSongSavantSong (s);
+                proc.offerImport (gg::songFromSongSavant (ssSongs[(size_t) r - 200]));
+                proc.useImport();
                 return;
             }
-            if (r > 0 && r <= (int) songs.size())
+            if (r >= 300 && r < 300 + (int) kcSongs.size())
             {
-                const auto& s = songs[(size_t) r - 1];
-                proc.songName = s.name;
-                if (s.bpm > 0) proc.setBpm (s.bpm);
-                proc.setKey (s.key);
+                proc.offerImport (gg::songFromKeyCompass (kcSongs[(size_t) r - 300]));
+                proc.useImport();
                 return;
             }
-            if (r == 100)
+            if (r == 2 && daw > 0)
             {
-                chooser = std::make_unique<juce::FileChooser> ("Pick your song (a bounce or rough mix)", juce::File(), "*.wav;*.aif;*.aiff;*.flac;*.mp3;*.ogg");
+                proc.setBpm (daw);
+                return;
+            }
+            if (r == 1)
+            {
+                chooser = std::make_unique<juce::FileChooser> ("Import a song: a bounce, a MIDI file, or a Song Savant or Key Compass song",
+                                                               juce::File(), gg::importPatterns());
                 chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles, [this, safe] (const juce::FileChooser& fc)
                 {
-                    if (safe == nullptr || fc.getResult() == juce::File()) return;
-                    const auto f = fc.getResult();
-                    proc.runInBackground ([this, f, a = safe]
-                    {
-                        const auto facts = gg::analyseSong (f, [] { auto* job = juce::ThreadPoolJob::getCurrentThreadPoolJob(); return job != nullptr && job->shouldExit(); });
-                        juce::MessageManager::callAsync ([this, facts, a, f]
-                        {
-                            if (a == nullptr) return;
-                            if (! facts.ok) return;
-                            proc.songName = f.getFileNameWithoutExtension();
-                            if (facts.bpm > 0) proc.setBpm (facts.bpm);
-                            if (facts.key >= 0) proc.setKey (facts.key);
-                        });
-                    });
+                    if (safe != nullptr && fc.getResult() != juce::File()) proc.importSongFile (fc.getResult());
                 });
             }
             if (r == 101)
