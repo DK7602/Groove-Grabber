@@ -87,6 +87,7 @@ set(GG_CORE_SOURCES
     Source/core/Exporter.cpp
     Source/core/Harvester.cpp
     Source/core/SongAnalysis.cpp
+    Source/core/SongImport.cpp
     Source/core/Settings.cpp
     Source/core/Sauce.cpp
     Source/core/Daws.cpp
