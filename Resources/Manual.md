@@ -60,7 +60,7 @@ Everything sits on five pages under one header bar. Hover over almost anything t
 | BUILD / SAUCE / FX / MY KITS / LIBRARY | The five pages |
 | KEY | The song's key. The kick, 808 and toms are tuned to it. Minor keys are listed first. |
 | BPM | The song's tempo. Drag up or down, scroll, or double-click to type. |
-| KEY COMPASS | Takes the key and tempo from a Key Compass song or a song file, or uses a song sent from Song Savant |
+| IMPORT SONG | Brings in your song: its key and tempo from a bounce or a MIDI file from your DAW (and the MIDI file's drums), everything from a Song Savant song, a Key Compass song, or (in a DAW) your project's tempo. Drop a file on it too. See IMPORT SONG: bring in your song. |
 | ? | This manual (also the F1 key) |
 | Gear | Settings: audio / MIDI (standalone app), export format and folder, the manual, About |
 | Sun / moon | Light / dark look (same as clicking the logo) |
@@ -166,7 +166,7 @@ Name an artist or a song and kit 1 takes their sound: "like Dr. Dre", "Still D.R
 - **An artist from another genre lends their decade and feel.** "Dr. Dre" with Rock picked gives a punchy, dry 90s rock kit with a little hip-hop in it.
 - **A genre typed in the box wins over the artist's own.** "Dr. Dre style rock song" stays Rock.
 - **Names that are everyday words need a cue:** "like Future", "Prince type beat", "in the style of Queen". Otherwise "future bass" would mean the rapper.
-- Names it doesn't know are ignored. For the real drums of a specific song, harvest them (see Working with Key Compass, Song Savant and Sample Snagger).
+- Names it doesn't know are ignored. For the real drums of a specific song, harvest them (see Working with Song Savant and Sample Snagger).
 
 ## BUILD: kit character and options
 
@@ -429,7 +429,7 @@ The FX page gathers every effect in your library (anything LIBRARY lists as FX) 
 - **Click an effect** to hear it (the arrow keys move through the list and play each one; Space plays the one picked).
 - **The effect** (right): its sound, length, note, where it goes against the beat, its fit for your song and where it's at home ("Best in: EDM / Dance, Pop, Trap... 2000s to today"), and a tip on how it's used. The fit is only advice: use anything you like.
 - **HEAR IT IN TIME** plays it over BUILD's groove and kit, at your tempo, placed where it belongs: a build-up (riser, reverse cymbal, swell, sweep, tape stop, rewind) **ends** on a downbeat, a hit or an accent **starts** on one, a whoosh **peaks** on one, a texture runs from the downbeat. One bar of the groove plays first and two after. With no kits yet it plays over a click. Press it again (STOP) to stop.
-- **FIT** (AS IT IS, 1 BAR, 2, 4, 8) makes the effect that many bars long at your song's tempo, lined up the way it's used: a build-up (riser, reverse cymbal, swell, sweep, tape stop, rewind) **ends** right on the bar line, a whoosh **peaks** on it, and a hit, fall, texture or accent **starts** on it. Too long, it's trimmed from its start (a riser keeps its climb to the top); too short, it's stretched without changing its pitch (up to 4 times its length; past that, silence fills the rest). Hits and accents (an impact, a scratch, a laser) are never stretched: they start on the downbeat and ring as they are. The panel says what FIT does to it ("2 bars: trimmed from its start", "4 bars: stretched x1.6, pitch kept"). HEAR IT IN TIME, DRAG, ADD TO SONG FX and PUT ON THIS KIT all use it, so a 2-bar riser on a pad starts exactly 2 bars before the change. AS IT IS leaves it its own length. FIT goes by the BPM in the header (your song's tempo), and the pads fit again when you change it. In a DAW, set it to your project's tempo: the panel says so when your DAW plays at a different one ("Tempo: your DAW is at 140 BPM: set BPM to match").
+- **FIT** (AS IT IS, 1 BAR, 2, 4, 8) makes the effect that many bars long at your song's tempo, lined up the way it's used: a build-up (riser, reverse cymbal, swell, sweep, tape stop, rewind) **ends** right on the bar line, a whoosh **peaks** on it, and a hit, fall, texture or accent **starts** on it. Too long, it's trimmed from its start (a riser keeps its climb to the top); too short, it's stretched without changing its pitch (up to 4 times its length; past that, silence fills the rest). Hits and accents (an impact, a scratch, a laser) are never stretched: they start on the downbeat and ring as they are. The panel says what FIT does to it ("2 bars: trimmed from its start", "4 bars: stretched x1.6, pitch kept"). HEAR IT IN TIME, DRAG, ADD TO SONG FX and PUT ON THIS KIT all use it, so a 2-bar riser on a pad starts exactly 2 bars before the change. AS IT IS leaves it its own length. FIT goes by the BPM in the header (your song's tempo), and the pads fit again when you change it. In a DAW, set it to your project's tempo (IMPORT SONG > Use my DAW's tempo): the panel says so when your DAW plays at a different one ("Tempo: your DAW is at 140 BPM").
 - **Tuned to your key.** With a KEY set and "Tune kick, 808, toms, FX to key" on (BUILD > OPTIONS), an effect that holds a clear, steady note is tuned to the key: a boom or an impact with a tone to the key's root (like the 808), a zap, blip, horn or other accent to the nearest note of the scale. The panel says so ("Key: tuned -1.0 st to A Minor", or "in A Minor already"). Noise effects (risers, crackle, whooshes) and effects whose pitch slides (lasers, tape stops) are left alone. The pads, HEAR IT IN TIME and DRAG play it tuned, and changing the key tunes it again.
 - **DRAG** the effect onto an audio track in your DAW. As it is (no FIT, nothing to tune), it's the original file. With a FIT or a tuning, it's a new file made just like the pad plays it, named with what was done ("Riser 4 Bars (2 bars at 90 BPM).wav", "Air Horn (-1.0 st to Am).wav") and kept in Documents/Groove Grabber/FX Renders. Put a fit build-up's end on the bar line where the change comes (or its start 2 bars before it, for a 2-bar FIT).
 - **ADD TO SONG FX** puts it on the next free **Song FX** pad: every kit plays it (notes 69 and up), it shows on BUILD's SONG FX row and as a row on SAUCE's grid, and it goes out with every export. When they're all taken, it asks which one to replace. When the effect is already there, the button reads **REMOVE FROM SONG FX**.
@@ -437,24 +437,39 @@ The FX page gathers every effect in your library (anything LIBRARY lists as FX) 
 - Both take the FIT you picked with them. To change it later, click the pad on BUILD and use **FIT** in the pad editor.
 - **In your song** (under the effect's length) says where it is now: on a Song FX pad, or on a kit's own FX pad.
 
-## Working with Key Compass, Song Savant and Sample Snagger
+## IMPORT SONG: bring in your song
 
-**Key Compass**
+Click **IMPORT SONG** in the header and pick **Song file...**, or drop the file on IMPORT SONG or on the YOUR SONG panel.
 
-Click **KEY COMPASS** in the header:
+| What you import | What it brings |
+| --- | --- |
+| A bounce or rough mix (WAV, AIFF, FLAC, MP3, OGG) | Its tempo and key, worked out from the audio (it takes a few seconds). A tempo heard in audio can be double or half the one you count, so you pick (88 or 176). When it isn't sure of the key, it says "a guess". |
+| A MIDI file exported from your DAW (.mid) | Its tempo, and its key: from its key signature, or worked out from the notes. (A plain C major signature is often just the DAW's default, so then the notes decide.) Its drum part too (channel 10, or a track named Drums or after a drum plug-in), to keep as one of MY GROOVES. |
+| A Song Savant song (.sssong) | Everything: its description, genre, style, decade, key and tempo, and four kits built for it. |
+| A Key Compass song (.kcsong) | Its key (or the key of its chords) and its tempo. |
 
-- **Your Key Compass songs** are listed at the top (from its My Songs folder). Pick one and Groove Grabber takes its key and tempo. If a song has no key set, it works the key out from the song's chords.
-- **Detect key and tempo from a song file...** listens to a bounce or rough mix (WAV, AIFF, FLAC, MP3 or OGG) and sets the key and BPM from it.
-- **Choose the Key Compass songs folder...** if your songs live somewhere other than the default (AppData\Roaming\KeyCompass\Songs on Windows).
+**Nothing changes until you say so.** What it found shows under your description ("Late Night.wav": A Minor, 92 BPM), with:
 
-With a key set and "Tune kick, 808, toms, FX to key" on, the kit is tuned to your song.
+- **USE IT**: sets the key and tempo. Your kits are retuned to the key; GENERATE KITS makes new ones. For a Song Savant song it's **USE IT AND BUILD**: it sets everything and builds four kits.
+- **88 / 176** (a bounce): the tempo to use.
+- **DRUMS TO MY GROOVES** (a MIDI file with drums): keeps its drum part as one of MY GROOVES (its busiest 4 bars, not an intro's lone crash), with the genre and style picked on BUILD. Open it on SAUCE to play, change or drag it. Drums in 3/4 or 6/8 aren't offered, because SAUCE's grooves are in 4/4.
+- **X**: nothing changes.
+
+The rest of the menu:
+
+- **Use my DAW's tempo (140 BPM)**: in the plug-in, once your DAW has played, sets BPM to your project's tempo. DAWs don't tell plug-ins the key.
+- **From Song Savant** and **From Key Compass** list their recent songs, when those apps' songs are on this computer. Picking one uses it at once (the menu already shows its key and tempo). **Choose the Key Compass songs folder...** if yours live somewhere other than the default; importing a Key Compass song by its file remembers its folder too.
+
+A DAW's project file (Cubase .cpr and the like) can't be read: export a mixdown or a MIDI file from your DAW and import that. With a key set and "Tune kick, 808, toms, FX to key" on, the kits are tuned to your song.
+
+## Working with Song Savant and Sample Snagger
 
 **Song Savant**
 
 Song Savant suggests the sounds for a whole song from the instruments you own. On its drum card, **SEND TO GROOVE GRABBER** passes the song over: its description, genre, style, decade, key and tempo (and the sections of its arrangement).
 
-- If Groove Grabber is open, the BUILD page shows **Song Savant sent "...": USE IT** under your description for a day. Click it and Groove Grabber sets everything and builds four kits for the song, with the kick, 808 and toms tuned to its key. The **X** next to it hides it.
-- Every song Song Savant sent is also in the **KEY COMPASS** menu, under SONG SAVANT SONGS. Picking one does the same.
+- If Groove Grabber is open, the BUILD page shows **Song Savant sent "..."** under your description for a day, with **USE IT AND BUILD**. Click it and Groove Grabber sets everything and builds four kits for the song, tuned to its key. The **X** next to it hides it.
+- Every song Song Savant sent is also in the **IMPORT SONG** menu, under FROM SONG SAVANT. Picking one does the same.
 - Click **SAVE KIT** on the kit you like. If Song Savant is open, that kit lands on its drum card by itself within a few seconds, locked, and Song Savant's starter drum parts and arrangement use it (Song Savant 0.10.1 or newer). Every other kit you save shows up among Song Savant's drum choices.
 - In your DAW, put Groove Grabber on an instrument track, open **MY KITS** and **LOAD** the kit, then drag Song Savant's drum part onto that track: it plays Groove Grabber's pads, and in 808 styles the 808 plays with the kick.
 
@@ -474,7 +489,7 @@ Your Sample Snagger library (Documents\Sample Snagger\Samples) is added to the L
 1. In Sample Snagger, snag a spot where the drums are exposed: an intro, a breakdown or a drum break. Vocals, bass or music on top come along with every hit.
 2. On the LIBRARY page, drag the snag onto **HARVEST HITS**. Every hit is cut out and the cleanest soft, medium and hard version of each is filed under Harvested.
 3. On the BUILD page, under **USE SOUNDS FROM**, switch off everything except Harvested to build only from that song's hits, or leave the others on to mix them with your packs.
-4. Click **KEY COMPASS**, then **Detect key and tempo from a song file...**, and pick the same song to match its key and BPM.
+4. Click **IMPORT SONG**, pick **Song file...** and the same song (or drop it on YOUR SONG), then **USE IT** to match its key and BPM.
 5. Generate.
 
 If you release a track that uses drums lifted from someone else's record, that sample needs clearing.
@@ -581,6 +596,9 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | You want a riser or an impact on every kit | FX: pick it and press ADD TO SONG FX. It's on every kit's Song FX pads (notes 69 up), kept when you generate again, and exported in the kit's Song FX folder. |
 | BUILD says "+4 waiting" under SONG FX | Your song has more Song FX than this KIT SIZE has pads (4 for 17 sounds, 6 for 23, 8 for 32). They're kept: a bigger KIT SIZE plays them. |
 | An effect isn't on the FX page | LIBRARY files it as something else (a loop, a perc...). Right-click it there and pick "It's really a..." > FX. |
+| The imported song's tempo is double (or half) what you count | On the strip under the description, pick the other tempo (88 / 176) before USE IT, or type it in BPM. |
+| Your DAW's project file won't import | Groove Grabber can't read project files. Export a mixdown or a MIDI file from your DAW and import that. |
+| You want a song's drums as a SAUCE pattern | Export the song (or just its drums) as a MIDI file, IMPORT SONG, then DRUMS TO MY GROOVES. |
 | You want to hear where a riser should start | FX: pick it and press HEAR IT IN TIME. It ends on the downbeat, and the BARS column says how long it runs at your tempo. |
 | You want a riser exactly 2 (or 4) bars long | FX: pick it, set FIT to 2, then DRAG it, ADD TO SONG FX or PUT ON THIS KIT. It ends right on the bar line, trimmed or stretched (its pitch kept). On a pad already: click the pad on BUILD and use FIT in the pad editor. |
 | An effect sounds out of key | Set the KEY and switch on "Tune kick, 808, toms, FX to key": effects with a clear note are tuned. Noise effects have no note to tune. Fine-tune a pad with its TUNE knob. |
@@ -614,6 +632,7 @@ Songs work the same way, for example "Still D.R.E.", "Regulate", "N.Y. State of 
 | Drag a pad to your DAW | Use that one sound |
 | Drop a file on a pad | Replace that pad's sound |
 | Drop a .mid on SAUCE | Make it one of MY GROOVES (from Song Savant, your DAW...) |
+| Drop a song on IMPORT SONG or YOUR SONG | Import it: its key and tempo (and a MIDI file's drums) |
 
 **Pad map** (export file numbers and MIDI notes; shown as C1 = MIDI note 36, the Cubase, Live and Logic naming)
 
